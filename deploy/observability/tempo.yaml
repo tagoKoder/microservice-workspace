@@ -1,0 +1,46 @@
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317   # <— explícito
+        http:
+          endpoint: 0.0.0.0:4318   # opcional, por si envías OTLP/HTTP
+
+ingester:
+  trace_idle_period: 10s
+  max_block_duration: 5m
+
+# <<— HABILITA EL GENERADOR DE MÉTRICAS
+metrics_generator:
+  # anillo en memoria para single-node (dev)
+  ring:
+    kvstore:
+      store: inmemory
+  processor:
+    service_graphs: {}     # latencias/llamadas entre servicios
+    span_metrics:
+      dimensions: ["rpc.system","rpc.service","rpc.method","grpc.status_code"]
+  registry:
+    collection_interval: 15s
+  storage:
+    path: /tmp/tempo/generator-wal  # dentro del mismo volumen de tempo
+
+
+compactor:
+  compaction:
+    block_retention: 24h
+
+querier: {}
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /tmp/tempo
+    wal:
+      path: /tmp/tempo/wal
