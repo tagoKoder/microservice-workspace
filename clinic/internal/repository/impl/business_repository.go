@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -92,10 +91,4 @@ func (r *businessRepo) Restore(ctx context.Context, id int64) error {
 		Unscoped().
 		Where("id = ?", id).
 		Update("deleted_at", clause.Expr{SQL: "NULL"}).Error
-}
-
-// escape para LIKE (evita %/_ inyectados)
-func escapeLike(s string) string {
-	replacer := strings.NewReplacer(`%`, `\%`, `_`, `\_`)
-	return replacer.Replace(s)
 }
