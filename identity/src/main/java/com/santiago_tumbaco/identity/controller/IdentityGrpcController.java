@@ -1,11 +1,9 @@
-package com.santiago_tumbaco.identity.adapter.grpc;
+package com.santiago_tumbaco.identity.controller;
 import com.google.protobuf.Empty;
 import com.santiago_tumbaco.identity.config.MetadataInterceptor;
-import com.santiago_tumbaco.identity.core.IdentityServiceCore;
-import com.santiago_tumbaco.identity.oidc.OidcVerifier;
-
+import com.santiago_tumbaco.identity.domain.service.IdpService;
 // === STUBS GENERADOS POR PROTO ===
-import com.evacent.identity.proto.*;
+import com.tagoKoder.identity.proto.*;
 // =================================
 
 import io.grpc.Context;
@@ -15,13 +13,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.util.Objects;
 
 @GrpcService
-public class IdentityGrpcService extends IdentityServiceGrpc.IdentityServiceImplBase {
+public class IdentityGrpcController extends IdentityServiceGrpc.IdentityServiceImplBase {
 
-  private final OidcVerifier verifier;
-  private final IdentityServiceCore core;
+  private final IdpService idpService;
 
-  public IdentityGrpcService(OidcVerifier v, IdentityServiceCore c) {
-    this.verifier = v; this.core = c;
+  public IdentityGrpcController(IdpService c) {
+    this.idpService = c;
   }
 
   private static String bearerFromContext() {
@@ -30,14 +27,14 @@ public class IdentityGrpcService extends IdentityServiceGrpc.IdentityServiceImpl
 
   @Override
   public void link(Empty req, io.grpc.stub.StreamObserver<LinkResponse> resp) {
-    Jwt idt = verifier.verify(bearerFromContext());
-    var r = core.linkFromIdToken(idt);
+    Jwt idt = idpService.verifyJWT(bearerFromContext());
+    var r = idpService.linkFromIdToken(idt);
 
     PersonView pv = PersonView.newBuilder()
-        .setId(r.p().getId())
-        .setName(Objects.toString(r.p().getName(), ""))
-        .setLastName(Objects.toString(r.p().getLastName(), ""))
-        .setEmail(Objects.toString(r.p().getEmail(), ""))
+        .setId(r.person().id())
+        .setName(Objects.toString(r.person().name(), ""))
+        .setLastName(Objects.toString(r.person().lastName(), ""))
+        .setEmail(Objects.toString(r.person().email(), ""))
         .build();
 
     resp.onNext(LinkResponse.newBuilder()
@@ -49,14 +46,14 @@ public class IdentityGrpcService extends IdentityServiceGrpc.IdentityServiceImpl
 
   @Override
   public void whoAmI(Empty req, io.grpc.stub.StreamObserver<WhoAmIResponse> resp) {
-    Jwt at = verifier.verify(bearerFromContext());
-    var r = core.whoAmIFromAccessToken(at);
+    Jwt at = idpService.verifyJWT(bearerFromContext());
+    var r = idpService.whoAmIFromAccessToken(at);
     
     PersonView pv = PersonView.newBuilder()
-        .setId(r.p().getId())
-        .setName(Objects.toString(r.p().getName(), ""))
-        .setLastName(Objects.toString(r.p().getLastName(), ""))
-        .setEmail(Objects.toString(r.p().getEmail(), ""))
+        .setId(r.person().id())
+        .setName(Objects.toString(r.person().name(), ""))
+        .setLastName(Objects.toString(r.person().lastName(), ""))
+        .setEmail(Objects.toString(r.person().email(), ""))
         .build();
 
     resp.onNext(WhoAmIResponse.newBuilder()

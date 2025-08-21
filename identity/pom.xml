@@ -239,7 +239,7 @@
 			<configuration>
 				<debugSentryCli>true</debugSentryCli>
 				<org>santiago-0q</org>
-				<project>java-spring-boot</project>
+				<project>identity-service</project>
 				<authToken>${env.SENTRY_AUTH_TOKEN}</authToken>
 			</configuration>
 			<executions>

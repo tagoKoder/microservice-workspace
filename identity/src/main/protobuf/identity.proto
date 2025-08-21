@@ -4,7 +4,7 @@ package identity;
 
 option go_package   = "github.com/tu-org/proto/genproto/go/identity;identitypb";
 option java_multiple_files = true;
-option java_package = "com.evacent.identity.proto";
+option java_package = "com.tagoKoder.identity.proto";
 option java_outer_classname = "IdentityProto";
 
 import "google/protobuf/empty.proto";
