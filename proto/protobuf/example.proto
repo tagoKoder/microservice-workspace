@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "github.com/tagoKoder/proto/genproto/go/example;examplepb";
+package example;
+
+import "google/protobuf/timestamp.proto";
+
+service ExampleService {
+  rpc GetExample(ExampleRequest) returns (ExampleResponse);
+}
+
+message ExampleRequest {
+  string id = 1;
+}
+
+message ExampleResponse {
+  string message = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
