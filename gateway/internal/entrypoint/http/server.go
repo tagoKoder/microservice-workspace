@@ -3,53 +3,45 @@ package http
 import (
 	"context"
 	"net/http"
-	"os"
 	"time"
 
-	adminID "github.com/tagoKoder/gateway/internal/entrypoint/http/v1/administrator-web/identity"
-
-	"github.com/tagoKoder/gateway/internal/adapter/logger"
-	"github.com/tagoKoder/gateway/internal/entrypoint/http/middleware"
-	idcli "github.com/tagoKoder/gateway/internal/integration/grpc/identity"
-
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog/hlog"
+	commonLog "github.com/tagoKoder/common-kit/pkg/logging"
+	commonHttpx "github.com/tagoKoder/common-kit/pkg/observability/httpx"
+	"github.com/tagoKoder/gateway/internal/config"
+	mw "github.com/tagoKoder/gateway/internal/entrypoint/http/middleware"
+	v1 "github.com/tagoKoder/gateway/internal/entrypoint/http/v1"
+	oidcpkg "github.com/tagoKoder/gateway/pkg/oidc"
 )
 
-type Server struct {
-	httpSrv *http.Server
-	id      *idcli.Client
+type HttpServer struct {
+	httpSrv   *http.Server
+	shutdowns []func()
 }
 
-func NewServer(ctx context.Context) (*Server, error) {
-	log := logger.New()
+func NewHttpServer(ctx context.Context, cfg *config.Config, clientProvider *ClientProvider) (*HttpServer, error) {
 
-	issuer := os.Getenv("OIDC_ISSUER")        // ej: http://localhost:9000/application/o/administrator-web/
-	idAddr := os.Getenv("IDENTITY_GRPC_ADDR") // ej: localhost:8081
-	httpAddr := os.Getenv("HTTP_ADDR")        // ej: :8080
-	if httpAddr == "" {
-		httpAddr = ":8080"
-	}
-
-	oidc, err := middleware.NewOIDC(ctx, issuer)
+	// ---- Auth global (construido una sola vez) ----
+	ver, err := oidcpkg.NewVerifier(ctx, cfg.OidcIssuer, oidcpkg.OidcOptions{SkipClientIDCheck: true})
 	if err != nil {
 		return nil, err
 	}
+	auth := mw.NewOIDCAccessTokenVerifier(ver.VerifyAccessToken)
 
-	id, err := idcli.New(idAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Router principal
+	// ---- Router raíz ----
 	r := mux.NewRouter()
 
 	// Middlewares globales
 	r.Use(mux.CORSMethodMiddleware(r))
-	r.Use(func(next http.Handler) http.Handler { return hlog.NewHandler(log)(next) })
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Recover)
-	r.Use(middleware.CORS)
+	r.Use(commonLog.RequestLogger)
+	r.Use(mw.Recover)
+	r.Use(mw.CORS(mw.CORSOptions{
+		AllowedOrigins:   cfg.WhiteListOrigin,
+		AllowedHeaders:   []string{"Authorization", "Content-Type", cfg.HeaderIDTokenName},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowCredentials: false,
+		MaxAgeSeconds:    600,
+	}))
 
 	// Health
 	r.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -57,31 +49,63 @@ func NewServer(ctx context.Context) (*Server, error) {
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	}).Methods(http.MethodGet, http.MethodOptions)
 
-	// Sub-mux para montar handlers de cada sistema/versión
-	inner := http.NewServeMux()
+	// ---- /api ----
+	api := r.PathPrefix("/api").Subrouter()
 
-	// v1/administrator-web
-	adminID.New(id, oidc).Register(inner)
+	// ---- v1 ----
+	v1Router := v1.NewRouter(v1.V1RouterDeps{
+		Auth: auth,
+		ID:   clientProvider.IdentityProvider().Identity(),
+	})
+	if err := v1Router.Register(api); err != nil {
+		return nil, err
+	}
 
-	// Redirige todo /api/* hacia el serve mux interno
-	r.PathPrefix("/api/").Handler(inner)
+	// Si mañana hay v2:
+	// v2Router := v2.NewRouter(v2.Deps{ Services: v2Prov.Services(), Auth: auth })
+	// _ = v2Router.Register(api)
+
+	// ---- Wrappers de observabilidad en el borde ----
+	/*// 1) OTel HTTP (trazas/métricas HTTP, propagadores)
+	handler := otelhttp.NewHandler(r, "gateway-http",
+		otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+		otelhttp.WithMeterProvider(otel.GetMeterProvider()),
+		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
+	)
+
+	// 2) Sentry HTTP (captura panic/errores y REPANIC para que nuestro Recover escriba JSON)
+	sentryH := sentryhttp.New(sentryhttp.Options{
+		Repanic:         true,
+		WaitForDelivery: true,
+		Timeout:         2 * time.Second,
+	})
+	handler = sentryH.Handle(handler)*/
+
+	handler := commonHttpx.Wrap(r, commonHttpx.Options{
+		Operation:       "gateway-http",
+		WaitForDelivery: true,
+	})
 
 	srv := &http.Server{
-		Addr:              httpAddr,
-		Handler:           r,
+		Addr:              ":" + cfg.HttpPort,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	return &Server{httpSrv: srv, id: id}, nil
+	shutdowns := []func(){
+		func() { _ = clientProvider.Close() },
+	}
+
+	return &HttpServer{httpSrv: srv, shutdowns: shutdowns}, nil
 }
 
-func (s *Server) Start() error {
+func (s *HttpServer) Start() error {
 	return s.httpSrv.ListenAndServe()
 }
 
-func (s *Server) Shutdown(ctx context.Context) error {
-	if s.id != nil {
-		s.id.Close()
+func (s *HttpServer) Shutdown(ctx context.Context) error {
+	for _, fn := range s.shutdowns {
+		fn()
 	}
 	return s.httpSrv.Shutdown(ctx)
 }
