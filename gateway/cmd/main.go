@@ -10,6 +10,7 @@ import (
 
 	commonLog "github.com/tagoKoder/common-kit/pkg/logging"
 	commonObs "github.com/tagoKoder/common-kit/pkg/observability"
+	commonSlog "github.com/tagoKoder/common-kit/pkg/observability/slogx"
 	"github.com/tagoKoder/gateway/internal/config"
 	httpserver "github.com/tagoKoder/gateway/internal/entrypoint/http"
 )
@@ -23,7 +24,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// 1) Logging (ya lo tenías)
+	// 1) Logging
 	if err := commonLog.Init(commonLog.LogOptions{
 		Level: cfg.LogLevel, FilePath: cfg.LogFilePath,
 		Prefix: cfg.BaggagePrefix, MaxKeys: cfg.BaggageMaxKeys, MaxVal: cfg.BaggageMaxVal,
@@ -57,7 +58,7 @@ func main() {
 		Identity: cfg.IdentityServiceAddr,
 	})
 	if err != nil {
-		log.Fatal(err)
+		commonLog.From(ctx).Error("failed to create client provider", commonSlog.MapToAttr(map[string]any{"error": err}))
 	}
 	// Si falla la creación del server, cerramos el provider.
 	defer func() {
@@ -70,15 +71,15 @@ func main() {
 	srv, err := httpserver.NewHttpServer(ctx, cfg, provider)
 	if err != nil {
 		_ = provider.Close()
-		log.Fatal(err)
+		commonLog.From(ctx).Error("failed to create http server", commonSlog.MapToAttr(map[string]any{"error": err}))
 	}
 
-	log.Printf("gateway HTTP listening on :%s", cfg.HttpPort)
+	commonLog.From(ctx).Info("starting http server", commonSlog.MapToAttr(map[string]any{"port": cfg.HttpPort}))
 
 	// Run
 	go func() {
 		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
-			log.Printf("server stopped: %v", err)
+			commonLog.From(ctx).Error("server stopped", commonSlog.MapToAttr(map[string]any{"error": err}))
 		}
 	}()
 
