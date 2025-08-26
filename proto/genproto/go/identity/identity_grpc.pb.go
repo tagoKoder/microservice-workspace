@@ -20,8 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityService_Link_FullMethodName   = "/identity.IdentityService/Link"
-	IdentityService_WhoAmI_FullMethodName = "/identity.IdentityService/WhoAmI"
+	IdentityService_Link_FullMethodName                = "/identity.IdentityService/Link"
+	IdentityService_WhoAmI_FullMethodName              = "/identity.IdentityService/WhoAmI"
+	IdentityService_UpsertFromAuthentik_FullMethodName = "/identity.IdentityService/UpsertFromAuthentik"
 )
 
 // IdentityServiceClient is the client API for IdentityService service.
@@ -32,6 +33,7 @@ type IdentityServiceClient interface {
 	Link(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*LinkResponse, error)
 	// Usa el Access token en Authorization: Bearer <access_token>
 	WhoAmI(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*WhoAmIResponse, error)
+	UpsertFromAuthentik(ctx context.Context, in *AuthentikUserUpsertRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type identityServiceClient struct {
@@ -62,6 +64,16 @@ func (c *identityServiceClient) WhoAmI(ctx context.Context, in *emptypb.Empty, o
 	return out, nil
 }
 
+func (c *identityServiceClient) UpsertFromAuthentik(ctx context.Context, in *AuthentikUserUpsertRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, IdentityService_UpsertFromAuthentik_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IdentityServiceServer is the server API for IdentityService service.
 // All implementations must embed UnimplementedIdentityServiceServer
 // for forward compatibility.
@@ -70,6 +82,7 @@ type IdentityServiceServer interface {
 	Link(context.Context, *emptypb.Empty) (*LinkResponse, error)
 	// Usa el Access token en Authorization: Bearer <access_token>
 	WhoAmI(context.Context, *emptypb.Empty) (*WhoAmIResponse, error)
+	UpsertFromAuthentik(context.Context, *AuthentikUserUpsertRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedIdentityServiceServer()
 }
 
@@ -85,6 +98,9 @@ func (UnimplementedIdentityServiceServer) Link(context.Context, *emptypb.Empty) 
 }
 func (UnimplementedIdentityServiceServer) WhoAmI(context.Context, *emptypb.Empty) (*WhoAmIResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WhoAmI not implemented")
+}
+func (UnimplementedIdentityServiceServer) UpsertFromAuthentik(context.Context, *AuthentikUserUpsertRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpsertFromAuthentik not implemented")
 }
 func (UnimplementedIdentityServiceServer) mustEmbedUnimplementedIdentityServiceServer() {}
 func (UnimplementedIdentityServiceServer) testEmbeddedByValue()                         {}
@@ -143,6 +159,24 @@ func _IdentityService_WhoAmI_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityService_UpsertFromAuthentik_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthentikUserUpsertRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).UpsertFromAuthentik(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_UpsertFromAuthentik_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).UpsertFromAuthentik(ctx, req.(*AuthentikUserUpsertRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IdentityService_ServiceDesc is the grpc.ServiceDesc for IdentityService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -157,6 +191,10 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WhoAmI",
 			Handler:    _IdentityService_WhoAmI_Handler,
+		},
+		{
+			MethodName: "UpsertFromAuthentik",
+			Handler:    _IdentityService_UpsertFromAuthentik_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

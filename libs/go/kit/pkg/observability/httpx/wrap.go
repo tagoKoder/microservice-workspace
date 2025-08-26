@@ -8,12 +8,12 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-type Options struct {
+type HttpxWrapperOptions struct {
 	Operation       string // nombre del handler en OTel, ej. "gateway-http"
 	WaitForDelivery bool
 }
 
-func Wrap(h http.Handler, opt Options) http.Handler {
+func Wrap(h http.Handler, opt HttpxWrapperOptions) http.Handler {
 	if opt.Operation == "" {
 		opt.Operation = "http"
 	}
@@ -22,7 +22,7 @@ func Wrap(h http.Handler, opt Options) http.Handler {
 		otelhttp.WithMeterProvider(otel.GetMeterProvider()),
 		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
 	)
-	sh := sentryhttp.New(sentryhttp.Options{
+	sh := sentryhttp.New(sentryhttp.HttpxWrapperOptions{
 		Repanic:         true,
 		WaitForDelivery: opt.WaitForDelivery,
 	})

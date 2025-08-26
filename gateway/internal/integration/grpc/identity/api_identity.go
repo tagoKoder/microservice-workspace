@@ -10,4 +10,5 @@ import (
 type IdentityAPI interface {
 	WhoAmI(ctx context.Context, accessToken string) (*identitypb.WhoAmIResponse, error)
 	Link(ctx context.Context, idToken string) (*identitypb.LinkResponse, error)
+	UpsertFromAuthentik(ctx context.Context, req *identitypb.AuthentikUserUpsertRequest) error
 }

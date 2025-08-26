@@ -21,3 +21,8 @@ func (c *identityClient) Link(ctx context.Context, idToken string) (*identitypb.
 	ctx = WithBearer(ctx, idToken)
 	return c.pb.Link(ctx, &emptypb.Empty{})
 }
+
+func (c *identityClient) UpsertFromAuthentik(ctx context.Context, req *identitypb.AuthentikUserUpsertRequest) error {
+	_, err := c.pb.UpsertFromAuthentik(ctx, req)
+	return err
+}

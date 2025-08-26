@@ -1,4 +1,4 @@
-package handler
+package controller
 
 import (
 	"context"
@@ -14,13 +14,13 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type ExampleHandler struct {
+type ExampleController struct {
 	examplepb.UnimplementedExampleServiceServer
 }
 
-func NewExampleHandler() *ExampleHandler { return &ExampleHandler{} }
+func NewExampleController() *ExampleController { return &ExampleController{} }
 
-func (h *ExampleHandler) GetExample(ctx context.Context, req *examplepb.ExampleRequest) (*examplepb.ExampleResponse, error) {
+func (h *ExampleController) GetExample(ctx context.Context, req *examplepb.ExampleRequest) (*examplepb.ExampleResponse, error) {
 	// Añade datos útiles a la traza
 	if span := trace.SpanFromContext(ctx); span != nil {
 		span.SetAttributes(attribute.String("example.id", req.GetId()))

@@ -14,6 +14,7 @@ type Config struct {
 	OidcIssuer          string
 	WhiteListOrigin     []string
 	HeaderIDTokenName   string
+	AuthentikApiKey     string
 	*commonCfg.CommonConfig
 }
 
@@ -36,6 +37,7 @@ func LoadConfig() (*Config, error) {
 		OidcIssuer:          commonCfg.GetEnv("OIDC_ISSUER", ""),
 		WhiteListOrigin:     commonCfg.GetEnvList("WHITE_LIST_ORIGIN", nil),
 		HeaderIDTokenName:   commonCfg.GetEnv("HEADER_ID_TOKEN_NAME", "X-ID-Token"),
+		AuthentikApiKey:     commonCfg.GetEnv("AUTHENTIK_API_KEY", ""),
 		CommonConfig:        common,
 	}
 	return config, nil

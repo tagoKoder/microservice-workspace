@@ -7,14 +7,13 @@ import (
 	"net"
 	"time"
 
-	"github.com/tagoKoder/clinic/internal/adapter/logger"
-	"github.com/tagoKoder/clinic/internal/adapter/observability"
 	"github.com/tagoKoder/clinic/internal/config"
+	"github.com/tagoKoder/clinic/pkg/sentryx"
 
-	"github.com/tagoKoder/clinic/internal/handler"
+	"github.com/tagoKoder/clinic/internal/controller"
+	commonLog "github.com/tagoKoder/common-kit/pkg/logging"
+	commonObs "github.com/tagoKoder/common-kit/pkg/observability"
 	examplepb "github.com/tagoKoder/proto/genproto/go/example"
-	otelgrpc "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -28,63 +27,38 @@ func main() {
 		log.Println("Error loading config:", err)
 	}
 
-	err = logger.InitSlog(cfg.LogLevel, cfg.LogFilePath) // "debug" | "info" | "warn" | "error"
-	if err != nil {
-		log.Fatal(err)
-	}
+	// 1) Logging
+	_ = commonLog.Init(commonLog.LogOptions{
+		Level: cfg.LogLevel, FilePath: cfg.LogFilePath,
+		Prefix: cfg.BaggagePrefix, MaxKeys: cfg.BaggageMaxKeys, MaxVal: cfg.BaggageMaxVal,
+	})
 
-	if cfg.SentryDNS != "" {
-		flush, err := observability.InitSentry(cfg.SentryDNS, cfg.Environment, cfg.Version, cfg.ServiceName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer flush()
-	}
+	// 2) Sentry
+	flush, _ := commonObs.Init(commonObs.SentryOptions{
+		DSN: cfg.SentryDSN, Environment: cfg.Environment, Release: cfg.Version, Service: cfg.ServiceName,
+		BaggagePrefix: cfg.BaggagePrefix, BaggageAllow: cfg.BaggageAllow, BaggageDeny: cfg.BaggageDeny,
+		BaggageMaxKeys: cfg.BaggageMaxKeys, BaggageMaxVal: cfg.BaggageMaxVal, UserIDKey: cfg.BaggageUserIDKey, UserEmailKey: cfg.BaggageUserEmailKey,
+		EnableTracing: true,
+	})
+	defer flush()
 
-	// Traces -> OTLP (Collector)
-	traceShutdown, err := observability.SetupTracer(ctx,
-		cfg.ServiceName,
-		cfg.Environment,
-		cfg.Version,
-		cfg.OtelExporterOtlpEndpoint,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer traceShutdown(context.Background())
-
-	// Metrics -> OTLP (Collector) **NO /metrics en el servicio**
-	metricsShutdown, err := observability.SetupMetricsOTLP(ctx,
-		cfg.ServiceName,
-		cfg.Environment,
-		cfg.Version,
-		cfg.OtelExporterOtlpEndpoint,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer metricsShutdown(context.Background())
+	// 3) OTel (traces + metrics + propagators)
+	stopAll, _ := commonObs.Start(ctx, commonObs.OtelOptions{
+		ServiceName: cfg.ServiceName, Environment: cfg.Environment, Version: cfg.Version, Endpoint: cfg.OtelExporterOtlpEndpoint, BlockOnExport: true,
+	})
+	defer stopAll(context.Background())
 
 	// gRPC server instrumentado con StatsHandler (trazas + métricas gRPC)
 	srv := grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler(
-			otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
-			otelgrpc.WithMeterProvider(otel.GetMeterProvider()),
-			otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
-		)),
-		grpc.ChainUnaryInterceptor(
-			observability.UnaryServerSentry(),
-		),
-		grpc.ChainStreamInterceptor(
-			observability.StreamServerSentry(),
-		),
+		sentryx.ServerOptions()...,
 	)
 
-	// Reflection (solo dev recomendable)
-	reflection.Register(srv) // <-- NUEVO
+	// Reflection just for development
+	if cfg.Environment == "dev" || cfg.Environment == "development" {
+		reflection.Register(srv)
+	}
 
-	// TODO: registra tus servicios aquí
-	examplepb.RegisterExampleServiceServer(srv, handler.NewExampleHandler())
+	examplepb.RegisterExampleServiceServer(srv, controller.NewExampleController())
 
 	lis, err := net.Listen("tcp", ":"+cfg.GrpcPort)
 	if err != nil {

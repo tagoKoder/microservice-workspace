@@ -8,12 +8,14 @@ import (
 
 	// sistema: administrator-web
 	adminweb "github.com/tagoKoder/gateway/internal/entrypoint/http/v1/administrator-web"
+	"github.com/tagoKoder/gateway/internal/entrypoint/http/v1/webhook"
 	idcli "github.com/tagoKoder/gateway/internal/integration/grpc/identity"
 )
 
 type V1RouterDeps struct {
-	Auth mw.AccessTokenVerifier
-	ID   idcli.IdentityAPI
+	Auth            mw.AccessTokenVerifier
+	ID              idcli.IdentityAPI
+	AuthentikApiKey string
 }
 
 type V1Router struct {
@@ -34,6 +36,15 @@ func (r *V1Router) Register(api *mux.Router) error {
 		Auth:           r.deps.Auth,
 	})
 	if err := admin.Register(v1); err != nil {
+		return err
+	}
+
+	// Webhook
+	webhook := webhook.NewWebhookRouter(&webhook.WebhookRouterDeps{
+		IdentityClient:  r.deps.ID,
+		AuthentikApiKey: r.deps.AuthentikApiKey,
+	})
+	if err := webhook.Register(v1); err != nil {
 		return err
 	}
 

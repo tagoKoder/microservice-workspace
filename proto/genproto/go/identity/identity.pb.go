@@ -194,6 +194,210 @@ func (x *WhoAmIResponse) GetPerson() *PersonView {
 	return nil
 }
 
+type AuthentikEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pk            string                 `protobuf:"bytes,1,opt,name=pk,proto3" json:"pk,omitempty"`
+	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ClientIp      string                 `protobuf:"bytes,4,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthentikEvent) Reset() {
+	*x = AuthentikEvent{}
+	mi := &file_identity_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthentikEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthentikEvent) ProtoMessage() {}
+
+func (x *AuthentikEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_identity_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthentikEvent.ProtoReflect.Descriptor instead.
+func (*AuthentikEvent) Descriptor() ([]byte, []int) {
+	return file_identity_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AuthentikEvent) GetPk() string {
+	if x != nil {
+		return x.Pk
+	}
+	return ""
+}
+
+func (x *AuthentikEvent) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *AuthentikEvent) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *AuthentikEvent) GetClientIp() string {
+	if x != nil {
+		return x.ClientIp
+	}
+	return ""
+}
+
+type AuthentikUser struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // UUID de Authentik (ak_uuid)
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthentikUser) Reset() {
+	*x = AuthentikUser{}
+	mi := &file_identity_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthentikUser) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthentikUser) ProtoMessage() {}
+
+func (x *AuthentikUser) ProtoReflect() protoreflect.Message {
+	mi := &file_identity_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthentikUser.ProtoReflect.Descriptor instead.
+func (*AuthentikUser) Descriptor() ([]byte, []int) {
+	return file_identity_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AuthentikUser) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AuthentikUser) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *AuthentikUser) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type AuthentikUserUpsertRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Event         *AuthentikEvent        `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	User          *AuthentikUser         `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	Created       bool                   `protobuf:"varint,3,opt,name=created,proto3" json:"created,omitempty"` // context.created
+	Groups        []string               `protobuf:"bytes,4,rep,name=groups,proto3" json:"groups,omitempty"`    // access:* u otros
+	Brand         string                 `protobuf:"bytes,5,opt,name=brand,proto3" json:"brand,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthentikUserUpsertRequest) Reset() {
+	*x = AuthentikUserUpsertRequest{}
+	mi := &file_identity_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthentikUserUpsertRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthentikUserUpsertRequest) ProtoMessage() {}
+
+func (x *AuthentikUserUpsertRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_identity_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthentikUserUpsertRequest.ProtoReflect.Descriptor instead.
+func (*AuthentikUserUpsertRequest) Descriptor() ([]byte, []int) {
+	return file_identity_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AuthentikUserUpsertRequest) GetEvent() *AuthentikEvent {
+	if x != nil {
+		return x.Event
+	}
+	return nil
+}
+
+func (x *AuthentikUserUpsertRequest) GetUser() *AuthentikUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+func (x *AuthentikUserUpsertRequest) GetCreated() bool {
+	if x != nil {
+		return x.Created
+	}
+	return false
+}
+
+func (x *AuthentikUserUpsertRequest) GetGroups() []string {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+func (x *AuthentikUserUpsertRequest) GetBrand() string {
+	if x != nil {
+		return x.Brand
+	}
+	return ""
+}
+
 var File_identity_proto protoreflect.FileDescriptor
 
 const file_identity_proto_rawDesc = "" +
@@ -212,11 +416,28 @@ const file_identity_proto_rawDesc = "" +
 	"\x0eWhoAmIResponse\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\x03R\taccountId\x12,\n" +
-	"\x06person\x18\x02 \x01(\v2\x14.identity.PersonViewR\x06person2\x85\x01\n" +
+	"\x06person\x18\x02 \x01(\v2\x14.identity.PersonViewR\x06person\"t\n" +
+	"\x0eAuthentikEvent\x12\x0e\n" +
+	"\x02pk\x18\x01 \x01(\tR\x02pk\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\tR\tcreatedAt\x12\x1b\n" +
+	"\tclient_ip\x18\x04 \x01(\tR\bclientIp\"Q\n" +
+	"\rAuthentikUser\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
+	"\busername\x18\x03 \x01(\tR\busername\"\xc1\x01\n" +
+	"\x1aAuthentikUserUpsertRequest\x12.\n" +
+	"\x05event\x18\x01 \x01(\v2\x18.identity.AuthentikEventR\x05event\x12+\n" +
+	"\x04user\x18\x02 \x01(\v2\x17.identity.AuthentikUserR\x04user\x12\x18\n" +
+	"\acreated\x18\x03 \x01(\bR\acreated\x12\x16\n" +
+	"\x06groups\x18\x04 \x03(\tR\x06groups\x12\x14\n" +
+	"\x05brand\x18\x05 \x01(\tR\x05brand2\xda\x01\n" +
 	"\x0fIdentityService\x126\n" +
 	"\x04Link\x12\x16.google.protobuf.Empty\x1a\x16.identity.LinkResponse\x12:\n" +
-	"\x06WhoAmI\x12\x16.google.protobuf.Empty\x1a\x18.identity.WhoAmIResponseBi\n" +
-	"\x1acom.evacent.identity.protoB\rIdentityProtoP\x01Z:github.com/tagoKoder/proto/genproto/go/identity;identitypbb\x06proto3"
+	"\x06WhoAmI\x12\x16.google.protobuf.Empty\x1a\x18.identity.WhoAmIResponse\x12S\n" +
+	"\x13UpsertFromAuthentik\x12$.identity.AuthentikUserUpsertRequest\x1a\x16.google.protobuf.EmptyBk\n" +
+	"\x1ccom.tagoKoder.identity.protoB\rIdentityProtoP\x01Z:github.com/tagoKoder/proto/genproto/go/identity;identitypbb\x06proto3"
 
 var (
 	file_identity_proto_rawDescOnce sync.Once
@@ -230,25 +451,32 @@ func file_identity_proto_rawDescGZIP() []byte {
 	return file_identity_proto_rawDescData
 }
 
-var file_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_identity_proto_goTypes = []any{
-	(*PersonView)(nil),     // 0: identity.PersonView
-	(*LinkResponse)(nil),   // 1: identity.LinkResponse
-	(*WhoAmIResponse)(nil), // 2: identity.WhoAmIResponse
-	(*emptypb.Empty)(nil),  // 3: google.protobuf.Empty
+	(*PersonView)(nil),                 // 0: identity.PersonView
+	(*LinkResponse)(nil),               // 1: identity.LinkResponse
+	(*WhoAmIResponse)(nil),             // 2: identity.WhoAmIResponse
+	(*AuthentikEvent)(nil),             // 3: identity.AuthentikEvent
+	(*AuthentikUser)(nil),              // 4: identity.AuthentikUser
+	(*AuthentikUserUpsertRequest)(nil), // 5: identity.AuthentikUserUpsertRequest
+	(*emptypb.Empty)(nil),              // 6: google.protobuf.Empty
 }
 var file_identity_proto_depIdxs = []int32{
 	0, // 0: identity.LinkResponse.person:type_name -> identity.PersonView
 	0, // 1: identity.WhoAmIResponse.person:type_name -> identity.PersonView
-	3, // 2: identity.IdentityService.Link:input_type -> google.protobuf.Empty
-	3, // 3: identity.IdentityService.WhoAmI:input_type -> google.protobuf.Empty
-	1, // 4: identity.IdentityService.Link:output_type -> identity.LinkResponse
-	2, // 5: identity.IdentityService.WhoAmI:output_type -> identity.WhoAmIResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 2: identity.AuthentikUserUpsertRequest.event:type_name -> identity.AuthentikEvent
+	4, // 3: identity.AuthentikUserUpsertRequest.user:type_name -> identity.AuthentikUser
+	6, // 4: identity.IdentityService.Link:input_type -> google.protobuf.Empty
+	6, // 5: identity.IdentityService.WhoAmI:input_type -> google.protobuf.Empty
+	5, // 6: identity.IdentityService.UpsertFromAuthentik:input_type -> identity.AuthentikUserUpsertRequest
+	1, // 7: identity.IdentityService.Link:output_type -> identity.LinkResponse
+	2, // 8: identity.IdentityService.WhoAmI:output_type -> identity.WhoAmIResponse
+	6, // 9: identity.IdentityService.UpsertFromAuthentik:output_type -> google.protobuf.Empty
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_identity_proto_init() }
@@ -262,7 +490,7 @@ func file_identity_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_identity_proto_rawDesc), len(file_identity_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

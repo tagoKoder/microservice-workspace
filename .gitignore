@@ -30,3 +30,16 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Ignorar TODO dentro de deploy/observability/data, pero mantener un placeholder
+deploy/observability/data/**
+!deploy/observability/data/.gitkeep
+
+# Ignorar TODO dentro de deploy/observability/logs, pero mantener un placeholder
+deploy/observability/logs/**
+!deploy/observability/logs/.gitkeep
+
+deploy/auth/.env
+deploy/auth/certs
+deploy/auth/custom-templates
+deploy/auth/media

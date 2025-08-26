@@ -54,8 +54,9 @@ func NewHttpServer(ctx context.Context, cfg *config.Config, clientProvider *Clie
 
 	// ---- v1 ----
 	v1Router := v1.NewRouter(v1.V1RouterDeps{
-		Auth: auth,
-		ID:   clientProvider.IdentityProvider().Identity(),
+		Auth:            auth,
+		ID:              clientProvider.IdentityProvider().Identity(),
+		AuthentikApiKey: cfg.AuthentikApiKey,
 	})
 	if err := v1Router.Register(api); err != nil {
 		return nil, err
@@ -65,23 +66,7 @@ func NewHttpServer(ctx context.Context, cfg *config.Config, clientProvider *Clie
 	// v2Router := v2.NewRouter(v2.Deps{ Services: v2Prov.Services(), Auth: auth })
 	// _ = v2Router.Register(api)
 
-	// ---- Wrappers de observabilidad en el borde ----
-	/*// 1) OTel HTTP (trazas/métricas HTTP, propagadores)
-	handler := otelhttp.NewHandler(r, "gateway-http",
-		otelhttp.WithTracerProvider(otel.GetTracerProvider()),
-		otelhttp.WithMeterProvider(otel.GetMeterProvider()),
-		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
-	)
-
-	// 2) Sentry HTTP (captura panic/errores y REPANIC para que nuestro Recover escriba JSON)
-	sentryH := sentryhttp.New(sentryhttp.Options{
-		Repanic:         true,
-		WaitForDelivery: true,
-		Timeout:         2 * time.Second,
-	})
-	handler = sentryH.Handle(handler)*/
-
-	handler := commonHttpx.Wrap(r, commonHttpx.Options{
+	handler := commonHttpx.Wrap(r, commonHttpx.HttpxWrapperOptions{
 		Operation:       "gateway-http",
 		WaitForDelivery: true,
 	})

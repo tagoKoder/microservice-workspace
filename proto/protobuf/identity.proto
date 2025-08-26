@@ -4,7 +4,7 @@ package identity;
 
 option go_package   = "github.com/tagoKoder/proto/genproto/go/identity;identitypb";
 option java_multiple_files = true;
-option java_package = "com.evacent.identity.proto";
+option java_package = "com.tagoKoder.identity.proto";
 option java_outer_classname = "IdentityProto";
 
 import "google/protobuf/empty.proto";
@@ -15,6 +15,8 @@ service IdentityService {
 
   // Usa el Access token en Authorization: Bearer <access_token>
   rpc WhoAmI (google.protobuf.Empty) returns (WhoAmIResponse);
+  rpc UpsertFromAuthentik (AuthentikUserUpsertRequest) returns (google.protobuf.Empty);
+
 }
 
 message PersonView {
@@ -32,4 +34,27 @@ message LinkResponse {
 message WhoAmIResponse {
   int64 account_id = 1;
   PersonView person = 2;
+}
+
+
+
+message AuthentikEvent {
+  string pk         = 1;
+  string action     = 2;
+  string created_at = 3;
+  string client_ip  = 4;
+}
+
+message AuthentikUser {
+  string id       = 1;  // UUID de Authentik (ak_uuid)
+  string email    = 2;
+  string username = 3;
+}
+
+message AuthentikUserUpsertRequest {
+  AuthentikEvent event    = 1;
+  AuthentikUser  user     = 2;
+  bool           created  = 3;              // context.created
+  repeated string groups  = 4;              // access:* u otros
+  string         brand    = 5;
 }
