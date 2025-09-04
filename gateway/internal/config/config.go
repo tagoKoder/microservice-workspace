@@ -11,7 +11,9 @@ type Config struct {
 	HttpPort            string
 	IdentityServiceAddr string
 	ClinicServiceAddr   string
-	OidcIssuer          string
+	OidcIssuers         []string
+	OidcAudience        string
+	OidcAudiencesMap    map[string]string
 	WhiteListOrigin     []string
 	HeaderIDTokenName   string
 	AuthentikApiKey     string
@@ -34,7 +36,9 @@ func LoadConfig() (*Config, error) {
 		HttpPort:            commonCfg.GetEnv("HTTP_PORT", ""),
 		IdentityServiceAddr: commonCfg.GetEnv("IDENTITY_SERVICE_ADDR", ""),
 		ClinicServiceAddr:   commonCfg.GetEnv("CLINIC_SERVICE_ADDR", ""),
-		OidcIssuer:          commonCfg.GetEnv("OIDC_ISSUER", ""),
+		OidcIssuers:         commonCfg.GetEnvList("OIDC_ISSUERS", nil),
+		OidcAudience:        commonCfg.GetEnv("OIDC_AUDIENCE", ""),
+		OidcAudiencesMap:    commonCfg.GetEnvMap("OIDC_AUDIENCES_MAP", nil),
 		WhiteListOrigin:     commonCfg.GetEnvList("WHITE_LIST_ORIGIN", nil),
 		HeaderIDTokenName:   commonCfg.GetEnv("HEADER_ID_TOKEN_NAME", "X-ID-Token"),
 		AuthentikApiKey:     commonCfg.GetEnv("AUTHENTIK_API_KEY", ""),
