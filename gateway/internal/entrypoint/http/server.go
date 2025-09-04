@@ -1,3 +1,4 @@
+// gateway/internal/entrypoint/http/server.go
 package http
 
 import (
@@ -22,11 +23,18 @@ type HttpServer struct {
 func NewHttpServer(ctx context.Context, cfg *config.Config, clientProvider *ClientProvider) (*HttpServer, error) {
 
 	// ---- Auth global (construido una sola vez) ----
-	ver, err := oidcpkg.NewVerifier(ctx, cfg.OidcIssuer, oidcpkg.OidcOptions{SkipClientIDCheck: true})
+	verifier, err := oidcpkg.NewMultiIssuerVerifier(
+		ctx,
+		cfg.OidcIssuers,
+		oidcpkg.OidcOptions{
+			Audience:        cfg.OidcAudience,
+			AudiencesPerIss: cfg.OidcAudiencesMap,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
-	auth := mw.NewOIDCAccessTokenVerifier(ver.VerifyAccessToken)
+	auth := mw.NewOIDCAccessTokenVerifier(verifier)
 
 	// ---- Router raíz ----
 	r := mux.NewRouter()
@@ -54,9 +62,10 @@ func NewHttpServer(ctx context.Context, cfg *config.Config, clientProvider *Clie
 
 	// ---- v1 ----
 	v1Router := v1.NewRouter(v1.V1RouterDeps{
-		Auth:            auth,
-		ID:              clientProvider.IdentityProvider().Identity(),
-		AuthentikApiKey: cfg.AuthentikApiKey,
+		Auth:              auth,
+		ID:                clientProvider.IdentityProvider().Identity(),
+		AuthentikApiKey:   cfg.AuthentikApiKey,
+		HeaderIDTokenName: cfg.HeaderIDTokenName,
 	})
 	if err := v1Router.Register(api); err != nil {
 		return nil, err

@@ -8,14 +8,16 @@ import (
 
 	// sistema: administrator-web
 	adminweb "github.com/tagoKoder/gateway/internal/entrypoint/http/v1/administrator-web"
+	enduserapp "github.com/tagoKoder/gateway/internal/entrypoint/http/v1/end-user-app"
 	"github.com/tagoKoder/gateway/internal/entrypoint/http/v1/webhook"
 	idcli "github.com/tagoKoder/gateway/internal/integration/grpc/identity"
 )
 
 type V1RouterDeps struct {
-	Auth            mw.AccessTokenVerifier
-	ID              idcli.IdentityAPI
-	AuthentikApiKey string
+	Auth              mw.AccessTokenVerifier
+	ID                idcli.IdentityAPI
+	AuthentikApiKey   string
+	HeaderIDTokenName string
 }
 
 type V1Router struct {
@@ -32,10 +34,21 @@ func (r *V1Router) Register(api *mux.Router) error {
 
 	// Sistema: administrator-web
 	admin := adminweb.NewAdminWebRouter(&adminweb.AdminWebRouterDeps{
-		IdentityClient: r.deps.ID,
-		Auth:           r.deps.Auth,
+		IdentityClient:    r.deps.ID,
+		Auth:              r.deps.Auth,
+		HeaderIDTokenName: r.deps.HeaderIDTokenName,
 	})
 	if err := admin.Register(v1); err != nil {
+		return err
+	}
+
+	// Sistema: end-user-app
+	endUserApp := enduserapp.NewEndUserAppRouter(&enduserapp.EndUserAppRouterDeps{
+		IdentityClient:    r.deps.ID,
+		Auth:              r.deps.Auth,
+		HeaderIDTokenName: r.deps.HeaderIDTokenName,
+	})
+	if err := endUserApp.Register(v1); err != nil {
 		return err
 	}
 
@@ -47,8 +60,6 @@ func (r *V1Router) Register(api *mux.Router) error {
 	if err := webhook.Register(v1); err != nil {
 		return err
 	}
-
-	// aquí puedes montar otros sistemas: end-user-app, etc.
 
 	return nil
 }
