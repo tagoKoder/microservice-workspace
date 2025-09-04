@@ -5,7 +5,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/tagoKoder/gateway/pkg/sentryx"
 	"google.golang.org/grpc"
 )
 
@@ -16,7 +15,7 @@ type DialOptions struct {
 
 // Dial crea la conexión con opciones razonables por defecto.
 func Dial(ctx context.Context, addr string, opts DialOptions) (*grpc.ClientConn, error) {
-	dialOpts := sentryx.ClientDialOptions()
+	dialOpts := ClientDialOptions()
 
 	if opts.Timeout > 0 {
 		cctx, cancel := context.WithTimeout(ctx, opts.Timeout)
