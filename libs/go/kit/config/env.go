@@ -63,6 +63,60 @@ func GetEnvList(key string, def []string) []string {
 	return compactStrings(parts)
 }
 
+// GetEnvMap lee un mapa desde el env. Acepta:
+// - JSON object: {"iss1":"aud1","iss2":"aud2"}
+// - Lista "k=v" separada por ';' o ',' : "iss1=aud1;iss2=aud2"
+func GetEnvMap(key string, def map[string]string) map[string]string {
+	raw, ok := os.LookupEnv(key)
+	out := make(map[string]string, len(def))
+	for k, v := range def { // copia del default
+		out[k] = v
+	}
+	if !ok || strings.TrimSpace(raw) == "" {
+		return out
+	}
+	s := strings.TrimSpace(raw)
+
+	// 1) JSON object
+	if strings.HasPrefix(s, "{") {
+		var m map[string]string
+		if err := json.Unmarshal([]byte(s), &m); err == nil {
+			for k, v := range m {
+				k = strings.TrimSpace(k)
+				v = strings.TrimSpace(v)
+				if k != "" && v != "" {
+					out[k] = v
+				}
+			}
+			return out
+		}
+		log.Printf("WARN: %s no es JSON válido, se intenta como lista k=v", key)
+	}
+
+	// 2) "k=v" separados por ';' o ','
+	sep := ";"
+	if !strings.Contains(s, ";") && strings.Contains(s, ",") {
+		sep = ","
+	}
+	for _, p := range strings.Split(s, sep) {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		kv := strings.SplitN(p, "=", 2)
+		if len(kv) != 2 {
+			log.Printf("WARN: %s: par inválido %q (se omite)", key, p)
+			continue
+		}
+		k := strings.TrimSpace(kv[0])
+		v := strings.TrimSpace(kv[1])
+		if k != "" && v != "" {
+			out[k] = v
+		}
+	}
+	return out
+}
+
 // GetEnvSet builds a set (map[string]struct{}) from an env list.
 func GetEnvSet(key string, def []string) map[string]struct{} {
 	out := make(map[string]struct{})

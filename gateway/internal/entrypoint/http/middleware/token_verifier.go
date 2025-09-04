@@ -1,3 +1,4 @@
+// gateway/internal/entrypoint/http/middleware
 package middleware
 
 import (
@@ -5,6 +6,7 @@ import (
 	"net/http"
 
 	pkgMiddleware "github.com/tagoKoder/gateway/pkg/middleware"
+	pkgOidc "github.com/tagoKoder/gateway/pkg/oidc"
 )
 
 type AccessTokenVerifier interface {
@@ -16,12 +18,22 @@ type OIDCAccessTokenVerifier struct {
 	VerifyFunc func(ctx context.Context, raw string) error
 }
 
-func NewOIDCAccessTokenVerifier(verify func(context.Context, string) error) *OIDCAccessTokenVerifier {
-	return &OIDCAccessTokenVerifier{VerifyFunc: verify}
+func NewOIDCAccessTokenVerifier(v *pkgOidc.Verifier) *OIDCAccessTokenVerifier {
+	return &OIDCAccessTokenVerifier{
+		VerifyFunc: func(ctx context.Context, raw string) error {
+			_, err := v.VerifyAccessToken(ctx, raw)
+			return err
+		},
+	}
 }
-
 func (m *OIDCAccessTokenVerifier) Verify(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Deja pasar preflight CORS
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		raw, err := pkgMiddleware.ExtractBearer(r.Header.Get("Authorization"))
 		if err != nil {
 			http.Error(w, "missing or invalid Authorization header", http.StatusUnauthorized)

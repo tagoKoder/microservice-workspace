@@ -9,7 +9,7 @@ import (
 )
 
 type HttpxWrapperOptions struct {
-	Operation       string // nombre del handler en OTel, ej. "gateway-http"
+	Operation       string
 	WaitForDelivery bool
 }
 
@@ -22,7 +22,7 @@ func Wrap(h http.Handler, opt HttpxWrapperOptions) http.Handler {
 		otelhttp.WithMeterProvider(otel.GetMeterProvider()),
 		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
 	)
-	sh := sentryhttp.New(sentryhttp.HttpxWrapperOptions{
+	sh := sentryhttp.New(sentryhttp.Options{
 		Repanic:         true,
 		WaitForDelivery: opt.WaitForDelivery,
 	})
