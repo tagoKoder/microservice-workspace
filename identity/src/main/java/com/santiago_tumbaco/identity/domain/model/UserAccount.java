@@ -34,9 +34,6 @@ public class UserAccount extends Base{
     @Column(name = "idp_sub", length = 255, nullable = false)
     private String idpSub;      // claim sub
 
-    @Column(name = "account_type", length = 32, nullable = false)
-    private String accountType; // p.ej. "OIDC", "AUTHENTIK", "LOCAL"
-
     @Column(length = 128)
     private String username;
 
