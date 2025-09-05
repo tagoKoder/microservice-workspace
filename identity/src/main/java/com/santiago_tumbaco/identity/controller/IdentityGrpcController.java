@@ -1,6 +1,7 @@
 package com.santiago_tumbaco.identity.controller;
 import com.google.protobuf.Empty;
 import com.santiago_tumbaco.identity.config.MetadataInterceptor;
+import com.santiago_tumbaco.identity.domain.dto.WhoAmIResult;
 import com.santiago_tumbaco.identity.domain.service.IdpService;
 // === STUBS GENERADOS POR PROTO ===
 import com.tagoKoder.identity.proto.*;
@@ -28,7 +29,7 @@ public class IdentityGrpcController extends IdentityServiceGrpc.IdentityServiceI
   @Override
   public void link(Empty req, io.grpc.stub.StreamObserver<LinkResponse> resp) {
     Jwt idt = idpService.verifyJWT(bearerFromContext());
-    var r = idpService.linkFromIdToken(idt);
+    WhoAmIResult r = idpService.linkFromIdToken(idt);
 
     PersonView pv = PersonView.newBuilder()
         .setId(r.person().id())
@@ -56,10 +57,10 @@ public class IdentityGrpcController extends IdentityServiceGrpc.IdentityServiceI
         .setEmail(Objects.toString(r.person().email(), ""))
         .build();
 
-    resp.onNext(WhoAmIResponse.newBuilder()
-        .setAccountId(r.accountId())
-        .setPerson(pv)
-        .build());
-    resp.onCompleted();
+      resp.onNext(WhoAmIResponse.newBuilder()
+          .setAccountId(r.accountId())
+          .setPerson(pv)
+          .build());
+      resp.onCompleted();
   }
 }
