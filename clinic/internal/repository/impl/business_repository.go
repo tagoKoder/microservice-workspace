@@ -12,23 +12,19 @@ import (
 	"github.com/tagoKoder/clinic/internal/repository"
 )
 
+// Ensure businessRepo implements the interfaces
+var _ repository.BusinessReadRepository = (*businessRepo)(nil)
+var _ repository.BusinessWriteRepository = (*businessRepo)(nil)
+
 type businessRepo struct {
-	db *gorm.DB // esta *db* es la transacción activa del UoW
+	db *gorm.DB // this *db* is the active transaction of the Unit of Work
 }
 
 func NewBusinessRepository(db *gorm.DB) repository.BusinessRepository {
 	return &businessRepo{db: db}
 }
 
-func (r *businessRepo) Create(ctx context.Context, b *model.Business) error {
-	now := time.Now().UTC()
-	if b.CreatedAt.IsZero() {
-		b.CreatedAt = now
-	}
-	b.UpdatedAt = now
-	return r.db.WithContext(ctx).Create(b).Error
-}
-
+// --- READ ---
 func (r *businessRepo) GetByID(ctx context.Context, id int64) (*model.Business, error) {
 	var m model.Business
 	err := r.db.WithContext(ctx).First(&m, "id = ?", id).Error
@@ -47,6 +43,16 @@ func (r *businessRepo) GetByGovernmentID(ctx context.Context, govID string) (*mo
 		return nil, nil
 	}
 	return &m, err
+}
+
+// --- WRITE ---
+func (r *businessRepo) Create(ctx context.Context, b *model.Business) error {
+	now := time.Now().UTC()
+	if b.CreatedAt.IsZero() {
+		b.CreatedAt = now
+	}
+	b.UpdatedAt = now
+	return r.db.WithContext(ctx).Create(b).Error
 }
 
 func (r *businessRepo) UpdateCore(ctx context.Context, b *model.Business) error {
