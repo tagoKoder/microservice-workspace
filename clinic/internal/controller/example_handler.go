@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"strings"
 
+	commonLog "github.com/tagoKoder/common-kit/pkg/logging"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/tagoKoder/clinic/internal/adapter/logger"
 	examplepb "github.com/tagoKoder/proto/genproto/go/example"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -27,12 +27,12 @@ func (h *ExampleController) GetExample(ctx context.Context, req *examplepb.Examp
 		span.AddEvent("handling GetExample")
 	}
 	// Log JSON correlacionado (incluye trace_id/span_id)
-	logger.Log(ctx).Info("GetExample called",
+	commonLog.From(ctx).Info("GetExample called",
 		slog.String("example_id", req.GetId()),
 	)
 
 	if strings.Contains(req.GetId(), "error") {
-		logger.Log(ctx).ErrorContext(ctx, fmt.Sprintf("Internal server error simulated: id=%s", req.GetId()))
+		commonLog.From(ctx).ErrorContext(ctx, fmt.Sprintf("Internal server error simulated: id=%s", req.GetId()))
 	}
 	msg := fmt.Sprintf("Hola %s 👋", req.GetId())
 	return &examplepb.ExampleResponse{
