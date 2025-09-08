@@ -2,6 +2,7 @@ package gormx
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	logx "github.com/tagoKoder/common-kit/pkg/logging"
@@ -26,20 +27,31 @@ func (a *LogxAdapter) LogMode(l glogger.LogLevel) glogger.Interface {
 
 func (a *LogxAdapter) Info(ctx context.Context, msg string, data ...any) {
 	if a.level >= glogger.Info {
-		logx.From(ctx).Info(msg, "data", data)
+		l := logx.From(ctx)
+		if len(data) > 0 {
+			l = l.With("gorm_args", fmt.Sprint(data...))
+		}
+		l.Info(msg)
 	}
 }
 func (a *LogxAdapter) Warn(ctx context.Context, msg string, data ...any) {
 	if a.level >= glogger.Warn {
-		logx.From(ctx).Warn(msg, "data", data)
+		l := logx.From(ctx)
+		if len(data) > 0 {
+			l = l.With("gorm_args", fmt.Sprint(data...))
+		}
+		l.Warn(msg)
 	}
 }
 func (a *LogxAdapter) Error(ctx context.Context, msg string, data ...any) {
 	if a.level >= glogger.Error {
-		logx.From(ctx).Error(msg, "data", data)
+		l := logx.From(ctx)
+		if len(data) > 0 {
+			l = l.With("gorm_args", fmt.Sprint(data...))
+		}
+		l.Error(msg)
 	}
 }
-
 func (a *LogxAdapter) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	if a.level == glogger.Silent {
 		return
