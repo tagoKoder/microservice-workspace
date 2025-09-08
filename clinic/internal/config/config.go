@@ -9,8 +9,9 @@ import (
 
 type Config struct {
 	// NOT SHARED
-	DbDNS    string
-	GrpcPort string
+	DbDSN         string
+	DbAutoMigrate bool
+	GrpcPort      string
 	*commonCfg.CommonConfig
 }
 
@@ -28,9 +29,10 @@ func LoadConfig() (*Config, error) {
 	}
 
 	config := &Config{
-		GrpcPort:     commonCfg.GetEnv("GRPC_PORT", ""),
-		DbDNS:        commonCfg.GetEnv("DB_DNS", ""),
-		CommonConfig: common,
+		GrpcPort:      commonCfg.GetEnv("GRPC_PORT", ""),
+		DbDSN:         commonCfg.GetEnv("DB_DSN", ""),
+		DbAutoMigrate: commonCfg.GetEnvBool("DB_AUTO_MIGRATE", false),
+		CommonConfig:  common,
 	}
 	return config, nil
 }

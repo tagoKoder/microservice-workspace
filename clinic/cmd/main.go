@@ -5,17 +5,23 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/tagoKoder/clinic/internal/config"
+	"github.com/tagoKoder/clinic/internal/domain/model"
+	"github.com/tagoKoder/clinic/internal/repository/uow"
+	"github.com/tagoKoder/clinic/internal/service/impl"
 	"github.com/tagoKoder/clinic/pkg/sentryx"
 
 	"github.com/tagoKoder/clinic/internal/controller"
+	ckpg "github.com/tagoKoder/common-kit/pkg/dbx/postgres"
 	commonLog "github.com/tagoKoder/common-kit/pkg/logging"
 	commonObs "github.com/tagoKoder/common-kit/pkg/observability"
 	examplepb "github.com/tagoKoder/proto/genproto/go/example"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	glogger "gorm.io/gorm/logger"
 )
 
 func main() {
@@ -48,6 +54,34 @@ func main() {
 	})
 	defer stopAll(context.Background())
 
+	// 2) DB write/read (por ahora el mismo DSN; cuando tengas réplica cambias el read)
+	writeDB, sqlDB, err := ckpg.OpenPostgres(ckpg.OpenOpts{
+		DSN: cfg.DbDSN, // ej: host=localhost user=postgres password=postgres dbname=clinic sslmode=disable TimeZone=UTC application_name=clinic options='-c search_path=clinic,public'
+		//SearchPath:  []string{"clinic", "public"},
+		LogLevel:    glogger.Warn, // Info en dev
+		Slow:        300 * time.Millisecond,
+		PrepareStmt: true,
+		UseOTel:     true,
+		DBName:      "clinic",
+	})
+	if err != nil {
+		log.Fatal("open db:", err)
+	}
+	defer sqlDB.Close()
+	readDB := writeDB // cuando haya réplica: abre otra con cfg.PGReadDSN
+
+	// 3) AutoMigrate opcional para local/dev (no lo uses en prod)
+	if os.Getenv("DB_AUTO_MIGRATE") == "true" {
+		if err := writeDB.AutoMigrate(&model.Business{}); err != nil {
+			log.Fatal("automigrate:", err)
+		}
+	}
+
+	// 4) Managers + service
+	txMgr := uow.NewTxManager(writeDB)
+	qMgr := uow.NewQueryManager(readDB)
+	bizSvc := impl.NewBusinessService(txMgr, qMgr)
+
 	// gRPC server instrumentado con StatsHandler (trazas + métricas gRPC)
 	srv := grpc.NewServer(
 		sentryx.ServerOptions()...,
@@ -58,7 +92,7 @@ func main() {
 		reflection.Register(srv)
 	}
 
-	examplepb.RegisterExampleServiceServer(srv, controller.NewExampleController())
+	examplepb.RegisterExampleServiceServer(srv, controller.NewExampleController(bizSvc))
 
 	lis, err := net.Listen("tcp", ":"+cfg.GrpcPort)
 	if err != nil {

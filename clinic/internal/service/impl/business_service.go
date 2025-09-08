@@ -22,15 +22,13 @@ func NewBusinessService(tx uow.TxManager, query uow.QueryManager) *BusinessServi
 // ---------- DTOs de entrada ----------
 
 type CreateBusinessInput struct {
-	TimeZoneID   int64
 	Name         string
 	GovernmentID string
 }
 
 type UpdateBusinessInput struct {
-	ID         int64
-	Name       string
-	TimeZoneID int64
+	ID   int64
+	Name string
 }
 
 // ------ READ --------
@@ -64,7 +62,6 @@ func (s *BusinessService) Create(ctx context.Context, in CreateBusinessInput) (i
 	var id int64
 	err := s.tx.Do(ctx, func(uow uow.UnitOfWork) error {
 		m := &model.Business{
-			TimeZoneID:   in.TimeZoneID,
 			Name:         in.Name,
 			GovernmentID: in.GovernmentID,
 		}
@@ -81,9 +78,8 @@ func (s *BusinessService) Create(ctx context.Context, in CreateBusinessInput) (i
 func (s *BusinessService) UpdateCore(ctx context.Context, in UpdateBusinessInput) error {
 	return s.tx.Do(ctx, func(uow uow.UnitOfWork) error {
 		m := &model.Business{
-			ID:         in.ID,
-			Name:       in.Name,
-			TimeZoneID: in.TimeZoneID,
+			ID:   in.ID,
+			Name: in.Name,
 		}
 		return uow.Businesses().UpdateCore(ctx, m)
 	})

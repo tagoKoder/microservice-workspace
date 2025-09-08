@@ -64,9 +64,8 @@ func (r *businessRepo) UpdateCore(ctx context.Context, b *model.Business) error 
 		Model(&model.Business{}).
 		Where("id = ?", b.ID).
 		Updates(map[string]any{
-			"name":         b.Name,
-			"time_zone_id": b.TimeZoneID,
-			"updated_at":   b.UpdatedAt,
+			"name":       b.Name,
+			"updated_at": b.UpdatedAt,
 		})
 	if res.Error != nil {
 		return res.Error
