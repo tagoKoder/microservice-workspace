@@ -22,6 +22,134 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type CreateBusinessRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	GovernmentId  string                 `protobuf:"bytes,2,opt,name=government_id,json=governmentId,proto3" json:"government_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateBusinessRequest) Reset() {
+	*x = CreateBusinessRequest{}
+	mi := &file_example_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateBusinessRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateBusinessRequest) ProtoMessage() {}
+
+func (x *CreateBusinessRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_example_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateBusinessRequest.ProtoReflect.Descriptor instead.
+func (*CreateBusinessRequest) Descriptor() ([]byte, []int) {
+	return file_example_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *CreateBusinessRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateBusinessRequest) GetGovernmentId() string {
+	if x != nil {
+		return x.GovernmentId
+	}
+	return ""
+}
+
+type CreateBusinessResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	GovernmentId  string                 `protobuf:"bytes,3,opt,name=government_id,json=governmentId,proto3" json:"government_id,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateBusinessResponse) Reset() {
+	*x = CreateBusinessResponse{}
+	mi := &file_example_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateBusinessResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateBusinessResponse) ProtoMessage() {}
+
+func (x *CreateBusinessResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_example_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateBusinessResponse.ProtoReflect.Descriptor instead.
+func (*CreateBusinessResponse) Descriptor() ([]byte, []int) {
+	return file_example_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CreateBusinessResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *CreateBusinessResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateBusinessResponse) GetGovernmentId() string {
+	if x != nil {
+		return x.GovernmentId
+	}
+	return ""
+}
+
+func (x *CreateBusinessResponse) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *CreateBusinessResponse) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
 type ExampleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -31,7 +159,7 @@ type ExampleRequest struct {
 
 func (x *ExampleRequest) Reset() {
 	*x = ExampleRequest{}
-	mi := &file_example_proto_msgTypes[0]
+	mi := &file_example_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +171,7 @@ func (x *ExampleRequest) String() string {
 func (*ExampleRequest) ProtoMessage() {}
 
 func (x *ExampleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_example_proto_msgTypes[0]
+	mi := &file_example_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +184,7 @@ func (x *ExampleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExampleRequest.ProtoReflect.Descriptor instead.
 func (*ExampleRequest) Descriptor() ([]byte, []int) {
-	return file_example_proto_rawDescGZIP(), []int{0}
+	return file_example_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ExampleRequest) GetId() string {
@@ -76,7 +204,7 @@ type ExampleResponse struct {
 
 func (x *ExampleResponse) Reset() {
 	*x = ExampleResponse{}
-	mi := &file_example_proto_msgTypes[1]
+	mi := &file_example_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -88,7 +216,7 @@ func (x *ExampleResponse) String() string {
 func (*ExampleResponse) ProtoMessage() {}
 
 func (x *ExampleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_example_proto_msgTypes[1]
+	mi := &file_example_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -101,7 +229,7 @@ func (x *ExampleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExampleResponse.ProtoReflect.Descriptor instead.
 func (*ExampleResponse) Descriptor() ([]byte, []int) {
-	return file_example_proto_rawDescGZIP(), []int{1}
+	return file_example_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ExampleResponse) GetMessage() string {
@@ -122,15 +250,27 @@ var File_example_proto protoreflect.FileDescriptor
 
 const file_example_proto_rawDesc = "" +
 	"\n" +
-	"\rexample.proto\x12\aexample\x1a\x1fgoogle/protobuf/timestamp.proto\" \n" +
+	"\rexample.proto\x12\aexample\x1a\x1fgoogle/protobuf/timestamp.proto\"P\n" +
+	"\x15CreateBusinessRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
+	"\rgovernment_id\x18\x02 \x01(\tR\fgovernmentId\"\xd7\x01\n" +
+	"\x16CreateBusinessResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
+	"\rgovernment_id\x18\x03 \x01(\tR\fgovernmentId\x129\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\" \n" +
 	"\x0eExampleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"e\n" +
 	"\x0fExampleResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x128\n" +
-	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp2Q\n" +
+	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp2\xa4\x01\n" +
 	"\x0eExampleService\x12?\n" +
 	"\n" +
-	"GetExample\x12\x17.example.ExampleRequest\x1a\x18.example.ExampleResponseB:Z8github.com/tagoKoder/proto/genproto/go/example;examplepbb\x06proto3"
+	"GetExample\x12\x17.example.ExampleRequest\x1a\x18.example.ExampleResponse\x12Q\n" +
+	"\x0eCreateBusiness\x12\x1e.example.CreateBusinessRequest\x1a\x1f.example.CreateBusinessResponseB:Z8github.com/tagoKoder/proto/genproto/go/example;examplepbb\x06proto3"
 
 var (
 	file_example_proto_rawDescOnce sync.Once
@@ -144,21 +284,27 @@ func file_example_proto_rawDescGZIP() []byte {
 	return file_example_proto_rawDescData
 }
 
-var file_example_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_example_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_example_proto_goTypes = []any{
-	(*ExampleRequest)(nil),        // 0: example.ExampleRequest
-	(*ExampleResponse)(nil),       // 1: example.ExampleResponse
-	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
+	(*CreateBusinessRequest)(nil),  // 0: example.CreateBusinessRequest
+	(*CreateBusinessResponse)(nil), // 1: example.CreateBusinessResponse
+	(*ExampleRequest)(nil),         // 2: example.ExampleRequest
+	(*ExampleResponse)(nil),        // 3: example.ExampleResponse
+	(*timestamppb.Timestamp)(nil),  // 4: google.protobuf.Timestamp
 }
 var file_example_proto_depIdxs = []int32{
-	2, // 0: example.ExampleResponse.timestamp:type_name -> google.protobuf.Timestamp
-	0, // 1: example.ExampleService.GetExample:input_type -> example.ExampleRequest
-	1, // 2: example.ExampleService.GetExample:output_type -> example.ExampleResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: example.CreateBusinessResponse.created_at:type_name -> google.protobuf.Timestamp
+	4, // 1: example.CreateBusinessResponse.updated_at:type_name -> google.protobuf.Timestamp
+	4, // 2: example.ExampleResponse.timestamp:type_name -> google.protobuf.Timestamp
+	2, // 3: example.ExampleService.GetExample:input_type -> example.ExampleRequest
+	0, // 4: example.ExampleService.CreateBusiness:input_type -> example.CreateBusinessRequest
+	3, // 5: example.ExampleService.GetExample:output_type -> example.ExampleResponse
+	1, // 6: example.ExampleService.CreateBusiness:output_type -> example.CreateBusinessResponse
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_example_proto_init() }
@@ -172,7 +318,7 @@ func file_example_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_example_proto_rawDesc), len(file_example_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
