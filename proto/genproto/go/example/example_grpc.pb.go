@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ExampleService_GetExample_FullMethodName = "/example.ExampleService/GetExample"
+	ExampleService_GetExample_FullMethodName     = "/example.ExampleService/GetExample"
+	ExampleService_CreateBusiness_FullMethodName = "/example.ExampleService/CreateBusiness"
 )
 
 // ExampleServiceClient is the client API for ExampleService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ExampleServiceClient interface {
 	GetExample(ctx context.Context, in *ExampleRequest, opts ...grpc.CallOption) (*ExampleResponse, error)
+	CreateBusiness(ctx context.Context, in *CreateBusinessRequest, opts ...grpc.CallOption) (*CreateBusinessResponse, error)
 }
 
 type exampleServiceClient struct {
@@ -47,11 +49,22 @@ func (c *exampleServiceClient) GetExample(ctx context.Context, in *ExampleReques
 	return out, nil
 }
 
+func (c *exampleServiceClient) CreateBusiness(ctx context.Context, in *CreateBusinessRequest, opts ...grpc.CallOption) (*CreateBusinessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateBusinessResponse)
+	err := c.cc.Invoke(ctx, ExampleService_CreateBusiness_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExampleServiceServer is the server API for ExampleService service.
 // All implementations must embed UnimplementedExampleServiceServer
 // for forward compatibility.
 type ExampleServiceServer interface {
 	GetExample(context.Context, *ExampleRequest) (*ExampleResponse, error)
+	CreateBusiness(context.Context, *CreateBusinessRequest) (*CreateBusinessResponse, error)
 	mustEmbedUnimplementedExampleServiceServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedExampleServiceServer struct{}
 
 func (UnimplementedExampleServiceServer) GetExample(context.Context, *ExampleRequest) (*ExampleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetExample not implemented")
+}
+func (UnimplementedExampleServiceServer) CreateBusiness(context.Context, *CreateBusinessRequest) (*CreateBusinessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateBusiness not implemented")
 }
 func (UnimplementedExampleServiceServer) mustEmbedUnimplementedExampleServiceServer() {}
 func (UnimplementedExampleServiceServer) testEmbeddedByValue()                        {}
@@ -104,6 +120,24 @@ func _ExampleService_GetExample_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ExampleService_CreateBusiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateBusinessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExampleServiceServer).CreateBusiness(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ExampleService_CreateBusiness_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExampleServiceServer).CreateBusiness(ctx, req.(*CreateBusinessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ExampleService_ServiceDesc is the grpc.ServiceDesc for ExampleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var ExampleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetExample",
 			Handler:    _ExampleService_GetExample_Handler,
+		},
+		{
+			MethodName: "CreateBusiness",
+			Handler:    _ExampleService_CreateBusiness_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
