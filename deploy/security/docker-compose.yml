@@ -1,0 +1,40 @@
+version: "3.9"
+name: env-opa-sidecars
+services:
+  opa:
+    image: openpolicyagent/opa:latest-envoy
+    command: >
+      run --server --addr=0.0.0.0:8181
+      --set=plugins.envoy_ext_authz_grpc.addr=:9191
+      /policies/policy.rego
+    volumes:
+      - ./opa/policy.rego:/policies/policy.rego:ro
+    ports:
+      - "8181:8181"
+      - "9191:9191"
+
+  envoy-ou:
+    image: envoyproxy/envoy:v1.31-latest
+    depends_on: [opa]
+    volumes:
+      - ./envoy/ou/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./envoy/certs/ou:/etc/ssl/ou:ro
+      - ./envoy/certs/ca:/etc/ssl/ca:ro
+    ports:
+      - "8443:8443"
+      - "9901:9901"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # necesario en Linux
+
+  envoy-java:
+    image: envoyproxy/envoy:v1.31-latest
+    depends_on: [opa]
+    volumes:
+      - ./envoy/java/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./envoy/certs/java:/etc/ssl/java:ro
+      - ./envoy/certs/ca:/etc/ssl/ca:ro
+    ports:
+      - "9443:8443"
+      - "9902:9901"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

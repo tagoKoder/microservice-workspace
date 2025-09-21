@@ -1,0 +1,146 @@
+admin:
+  address: { socket_address: { address: 0.0.0.0, port_value: 9901 } }
+
+static_resources:
+  listeners:
+  - name: inbound_https
+    address: { socket_address: { address: 0.0.0.0, port_value: 8443 } }
+    filter_chains:
+    - transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+          require_client_certificate: true
+          common_tls_context:
+            tls_certificates:
+            - certificate_chain: { filename: "/etc/ssl/ou/server.crt" }
+              private_key:       { filename: "/etc/ssl/ou/server.key" }
+            validation_context:
+              trusted_ca: { filename: "/etc/ssl/ca/ca.crt" }
+      filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: ou_hcm
+          route_config:
+            name: local
+            virtual_hosts:
+            - name: app
+              domains: ["*"]
+              routes:
+              - match: { prefix: "/" }
+                route: { cluster: app-local }
+          http_filters:
+          # 1) Validación JWT multi-tenant (Authentik)
+          - name: envoy.filters.http.jwt_authn
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+              providers:
+                tenantA_web:
+                  issuer: "https://auth.tenantA.tld/application/o/web/"
+                  audiences: ["api://tenantA/web"]
+                  remote_jwks:
+                    http_uri:
+                      uri: "https://auth.tenantA.tld/application/o/web/jwks/"
+                      cluster: jwks-tenantA
+                      timeout: 2s
+                    cache_duration: { seconds: 600 }
+                  payload_in_metadata: "jwt_payload"
+                tenantA_mobile:
+                  issuer: "https://auth.tenantA.tld/application/o/mobile/"
+                  audiences: ["api://tenantA/mobile"]
+                  remote_jwks:
+                    http_uri:
+                      uri: "https://auth.tenantA.tld/application/o/mobile/jwks/"
+                      cluster: jwks-tenantA
+                      timeout: 2s
+                    cache_duration: { seconds: 600 }
+                  payload_in_metadata: "jwt_payload"
+                tenantB_web:
+                  issuer: "https://auth.tenantB.tld/application/o/web/"
+                  audiences: ["api://tenantB/web"]
+                  remote_jwks:
+                    http_uri:
+                      uri: "https://auth.tenantB.tld/application/o/web/jwks/"
+                      cluster: jwks-tenantB
+                      timeout: 2s
+                    cache_duration: { seconds: 600 }
+                  payload_in_metadata: "jwt_payload"
+              rules:
+              - match:
+                  headers: [{ name: ":authority", exact_match: "api.tenantA.tld" }]
+                requires:
+                  requires_any:
+                    requirements:
+                      - provider_name: "tenantA_web"
+                      - provider_name: "tenantA_mobile"
+              - match:
+                  headers: [{ name: ":authority", exact_match: "api.tenantB.tld" }]
+                requires:
+                  provider_name: "tenantB_web"
+              - match: { prefix: "/" }
+                requires:
+                  requires_any:
+                    requirements:
+                      - provider_name: "tenantA_web"
+                      - provider_name: "tenantA_mobile"
+                      - provider_name: "tenantB_web"
+
+          # 2) AutZ ABAC vía OPA (ext_authz)
+          - name: envoy.filters.http.ext_authz
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+              grpc_service: { envoy_grpc: { cluster_name: opa-ext-authz } }
+              transport_api_version: V3
+              with_request_body: { max_request_bytes: 8192, allow_partial_message: true }
+              metadata_context_namespaces: ["envoy.filters.http.jwt_authn"]
+              failure_mode_allow: false
+
+          - name: envoy.filters.http.router
+
+  clusters:
+  # micro OU corriendo en el host (local)
+  - name: app-local
+    type: LOGICAL_DNS
+    connect_timeout: 0.25s
+    load_assignment:
+      cluster_name: app-local
+      endpoints:
+      - lb_endpoints:
+        - endpoint: { address: { socket_address: { address: host.docker.internal, port_value: 8080 } } }
+
+  - name: opa-ext-authz
+    type: STRICT_DNS
+    connect_timeout: 0.25s
+    load_assignment:
+      cluster_name: opa-ext-authz
+      endpoints:
+      - lb_endpoints:
+        - endpoint: { address: { socket_address: { address: opa, port_value: 9191 } } }
+
+  # JWKS de Authentik por tenant
+  - name: jwks-tenantA
+    type: LOGICAL_DNS
+    connect_timeout: 1s
+    load_assignment:
+      cluster_name: jwks-tenantA
+      endpoints:
+      - lb_endpoints:
+        - endpoint: { address: { socket_address: { address: auth.tenantA.tld, port_value: 443 } } }
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+
+  - name: jwks-tenantB
+    type: LOGICAL_DNS
+    connect_timeout: 1s
+    load_assignment:
+      cluster_name: jwks-tenantB
+      endpoints:
+      - lb_endpoints:
+        - endpoint: { address: { socket_address: { address: auth.tenantB.tld, port_value: 443 } } }
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
