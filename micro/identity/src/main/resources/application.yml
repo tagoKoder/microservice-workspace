@@ -1,0 +1,12 @@
+identity:
+  oidc:
+    provider: authentik
+    bffCallbackUrl: https://bff.bank.local/web/oidc/callback
+    issuer: https://idp.bank.local
+    authUrl: https://idp.bank.local/application/o/authorize/
+    tokenUrl: https://idp.bank.local/application/o/token/
+    userInfoUrl: https://idp.bank.local/application/o/userinfo/
+    parUrl: https://idp.bank.local/application/o/par/
+    clientId: banking-bff
+    clientSecret: super-secret
+    usePar: true

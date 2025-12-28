@@ -1,0 +1,79 @@
+static_resources:
+  listeners:
+    - name: payments_grpc_listener
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 9090 }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: payments_grpc
+                codec_type: AUTO
+                http2_protocol_options: {}   # IMPORTANTE para gRPC
+                route_config:
+                  name: payments_grpc_routes
+                  virtual_hosts:
+                    - name: payments_grpc
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route:
+                            cluster: payments_grpc_upstream
+                            timeout: 30s
+                            request_headers_to_add:
+                              - header: { key: "x-target-service", value: "payments_ledger_grpc" }
+                http_filters:
+                  - name: envoy.filters.http.ext_authz
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                      transport_api_version: V3
+                      failure_mode_allow: false
+                      grpc_service:
+                        envoy_grpc:
+                          cluster_name: opa
+                        timeout: 0.5s
+                      # En gRPC casi nunca necesitas body para authz.
+                      allowed_headers:
+                        patterns:
+                          - exact: ":method"
+                          - exact: ":path"
+                          - exact: "content-type"
+                          - exact: "authorization"
+                          - exact: "x-sub"
+                          - exact: "x-roles"
+                          - exact: "x-scopes"
+                          - exact: "x-customer-id"
+                          - exact: "x-caller-service"
+                          - exact: "x-target-service"
+                          - exact: "x-trace-id"
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: payments_grpc_upstream
+      type: STRICT_DNS
+      connect_timeout: 1s
+      lb_policy: ROUND_ROBIN
+      http2_protocol_options: {}  # IMPORTANTE para upstream gRPC
+      load_assignment:
+        cluster_name: payments_grpc_upstream
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address: { address: payments_ledger_grpc, port_value: 50051 }
+
+    - name: opa
+      type: STRICT_DNS
+      connect_timeout: 1s
+      lb_policy: ROUND_ROBIN
+      http2_protocol_options: {}
+      load_assignment:
+        cluster_name: opa
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address: { address: opa, port_value: 9191 }

@@ -1,0 +1,44 @@
+version: 1
+metadata:
+  name: banking-oidc
+  labels:
+    app: banking
+
+entries:
+  # Provider OIDC para tu BFF
+  - model: authentik_providers_oauth2.Provider
+    attrs:
+      name: "banking-oidc-provider"
+      client_type: "confidential"
+      authorization_flow: !Find [authentik_flows, {"slug": "default-provider-authorization-flow"}]
+      # Authentik ya trae flows por defecto, puedes luego cambiarlos.
+      client_id: "banking-bff"
+      client_secret: "super-secret"   # en real, cambia por algo fuerte o usa client assertion
+      redirect_uris:
+        - "https://bff.bank.local/auth/callback"
+      response_type: "code"
+      access_code_validity: 300
+      refresh_token_validity: 86400
+      signing_key: !Find [authentik_crypto_certificatekeypair, {"name": "authentik Self-signed Certificate"}]
+      allowed_scopes:
+        - "openid"
+        - "profile"
+        - "email"
+        - "offline_access"
+        - "ak_groups"    # si mapeas grupos/roles
+      include_claims_in_id_token: true
+
+  # Aplicación que verá el usuario en Authentik
+  - model: authentik_core.Application
+    attrs:
+      name: "Banking Web"
+      slug: "banking-web"
+      provider: !KeyOf "banking-oidc-provider"
+
+  # Grupos / roles para clientes
+  - model: authentik_core.Group
+    attrs:
+      name: "ROLE_customer"
+  - model: authentik_core.Group
+    attrs:
+      name: "ROLE_support"

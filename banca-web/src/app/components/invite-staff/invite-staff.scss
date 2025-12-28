@@ -1,0 +1,6 @@
+.container { padding: 2rem; display: grid; gap: 1rem; }
+.card { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; display: grid; gap: .8rem; max-width: 520px; }
+label { display: grid; gap: .4rem; }
+input, select { padding: .6rem .7rem; border: 1px solid #d1d5db; border-radius: 10px; }
+.btn { padding: .6rem 1rem; border-radius: 10px; border: 1px solid #ddd; background: #1f6feb; color: #fff; cursor: pointer; }
+.back { text-decoration: none; color: #374151; }

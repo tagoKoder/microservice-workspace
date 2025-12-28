@@ -5,10 +5,10 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.4</version>
+		<version>4.0.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.santiago_tumbaco</groupId>
+	<groupId>com.tagokoder</groupId>
 	<artifactId>identity</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>identity</name>
@@ -27,198 +27,216 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>24</java.version>
-		<grpc.version>1.72.0</grpc.version>
-		<protobuf-java.version>4.30.2</protobuf-java.version>
-		<spring-grpc.version>0.10.0</spring-grpc.version>
-		<logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
+		<java.version>25</java.version>
+		<mapstruct.version>1.5.5.Final</mapstruct.version>
+		<lombok.version>1.18.32</lombok.version>
+		<openapi.generator.version>7.5.0</openapi.generator.version>
+
 	</properties>
 	<dependencies>
-    <!-- Spring básicos -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <!-- Para llamar Discovery/JWKS con WebClient -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webflux</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
 
-    <!-- Spring for gRPC (arranca servidor y autoconfigura interceptores) -->
-    <dependency>
-      <groupId>org.springframework.grpc</groupId>
-      <artifactId>spring-grpc-spring-boot-starter</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
 
-    <!-- Runtime gRPC/Protobuf para el código generado -->
-    <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-      <version>${protobuf-java.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-stub</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-protobuf</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-netty-shaded</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <!-- Reflection service para depuración/grpcurl -->
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-services</artifactId>
-    </dependency>
+		<!-- Redis (para guardar state + code_verifier) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
 
-    <!-- Para decodificar/verificar JWT/JWKS con Spring Security -->
-	<dependency>
-	<groupId>org.springframework.security</groupId>
-	<artifactId>spring-security-oauth2-jose</artifactId>
-	</dependency>
+		<!-- WebClient reactivo para llamar al IdP -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
 
-    <!-- Caché opcional para JWKS -->
-    <dependency>
-      <groupId>com.github.ben-manes.caffeine</groupId>
-      <artifactId>caffeine</artifactId>
-    </dependency>
+		<!-- springdoc (opcional, para ver Swagger UI local) -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.6.0</version>
+		</dependency>
 
-    <!-- Tracing con Micrometer + exportador OTLP -->
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-tracing-bridge-otel</artifactId>
-    </dependency>
-    <dependency>
-		<groupId>io.opentelemetry</groupId>
-		<artifactId>opentelemetry-exporter-otlp</artifactId>
-	</dependency>
-	<!-- Autoconfig OTel (respeta variables de entorno OTEL_*) -->
-	<dependency>
-		<groupId>io.opentelemetry</groupId>
-		<artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
-	</dependency>
-	<!-- API OTel para spans manuales en interceptores -->
-	<dependency>
-		<groupId>io.opentelemetry</groupId>
-		<artifactId>opentelemetry-api</artifactId>
-	</dependency>
+		<!-- Mapstruct -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
 
-	<!-- Logs JSON + Sentry -->
-	<dependency>
-		<groupId>io.sentry</groupId>
-		<artifactId>sentry-spring-boot-starter-jakarta</artifactId>
-		<version>8.19.1</version>
-	</dependency>
-	<dependency>
-		<groupId>io.sentry</groupId>
-		<artifactId>sentry-logback</artifactId>
-		<version>8.19.1</version>
-	</dependency>
-	<dependency>
-		<groupId>net.logstash.logback</groupId>
-		<artifactId>logstash-logback-encoder</artifactId>
-		<version>${logstash-logback-encoder.version}</version>
-	</dependency>
+		  <!-- gRPC server -->
+		<dependency>
+			<groupId>org.springframework.grpc</groupId>
+			<artifactId>spring-grpc-server-spring-boot-starter</artifactId>
+		</dependency>
 
-	<dependency>
-		<groupId>com.google.protobuf</groupId>
-		<artifactId>protobuf-java-util</artifactId>
-		<version>${protobuf-java.version}</version>
-	</dependency>
+		<!-- Protobuf runtime -->
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+		</dependency>
 
-    <!-- DB -->
-    <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <scope>runtime</scope>
-    </dependency>
+		<!-- Si tu identity va a llamar a otros micros por gRPC (opcional) -->
+		<dependency>
+			<groupId>org.springframework.grpc</groupId>
+			<artifactId>spring-grpc-client-spring-boot-starter</artifactId>
+		</dependency>
 
-    <!-- Calidad de vida -->
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-	
-
-    <!-- Tests -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.grpc</groupId>
-      <artifactId>spring-grpc-test</artifactId>
-      <scope>test</scope>
-    </dependency>
 	</dependencies>
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.springframework.grpc</groupId>
-				<artifactId>spring-grpc-dependencies</artifactId>
-				<version>${spring-grpc.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 
 	<build>
+		<sourceDirectory>src/main/java</sourceDirectory>
+		<resources>
+			<resource>
+			<directory>src/main/resources</directory>
+			</resource>
+		</resources>
+
 		<plugins>
+			<!--  MapStruct y Lombok -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.11.0</version>
 				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</path>
-					</annotationProcessorPaths>
+				<release>25</release>
+				<annotationProcessorPaths>
+					<path>
+					<groupId>org.mapstruct</groupId>
+					<artifactId>mapstruct-processor</artifactId>
+					<version>${mapstruct.version}</version>
+					</path>
+					<path>
+					<groupId>org.projectlombok</groupId>
+					<artifactId>lombok</artifactId>
+					<version>${lombok.version}</version>
+					</path>
+					<path>
+					<groupId>org.projectlombok</groupId>
+					<artifactId>lombok-mapstruct-binding</artifactId>
+					<version>0.2.0</version>
+					</path>
+				</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+
+			<!-- Generar interfaces y DTOs a partir de identity-api.yaml -->
 			<plugin>
-				<groupId>io.github.ascopes</groupId>
-				<artifactId>protobuf-maven-plugin</artifactId>
-				<version>3.4.2</version>
-				<configuration>
-					<protocVersion>${protobuf-java.version}</protocVersion>
-					 <!-- Ruta compartida de .proto (relativa al módulo) -->
-    				<!--<protoSourceRoot>${project.basedir}/../proto</protoSourceRoot>-->
-					<binaryMavenPlugins>
-						<binaryMavenPlugin>
-							<groupId>io.grpc</groupId>
-							<artifactId>protoc-gen-grpc-java</artifactId>
-							<version>${grpc.version}</version>
-							<options>@generated=omit</options>
-						</binaryMavenPlugin>
-					</binaryMavenPlugins>
-					<!-- Incluye todos los .proto de ese root -->
-					<includes>
-						<include>identity.proto</include>
-					</includes>
-				</configuration>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>${openapi.generator.version}</version>
 				<executions>
 					<execution>
-						<id>generate</id>
+						<id>generate-identity-api</id>
+						<phase>generate-sources</phase>
 						<goals>
 							<goal>generate</goal>
 						</goals>
+						<configuration>
+							<!-- Ruta al YAML -->
+							<inputSpec>${project.basedir}/src/main/resources/openapi/identity-api.yaml</inputSpec>
+
+							<!-- Generador -->
+							<generatorName>spring</generatorName>
+
+							<!-- Paquetes -->
+							<apiPackage>com.tagokoder.identity.infra.in.api</apiPackage>
+							<modelPackage>com.tagokoder.identity.infra.in.api.model</modelPackage>
+
+							<!-- Carpeta donde se genera el código -->
+							<output>${project.build.directory}/generated-sources/openapi</output>
+
+							<!-- Sufijo para los modelos -->
+							<modelNameSuffix>Dto</modelNameSuffix>
+
+							<!-- Qué generar -->
+							<generateApis>true</generateApis>
+							<generateModels>true</generateModels>
+
+							<configOptions>
+								<interfaceOnly>true</interfaceOnly>
+								<useSpringBoot3>true</useSpringBoot3>
+								<useBeanValidation>true</useBeanValidation>
+								<dateLibrary>java8</dateLibrary>
+							</configOptions>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<executions>
+					<execution>
+						<id>add-openapi-sources</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/generated-sources/openapi/src/main/java</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -230,25 +248,6 @@
 						</exclude>
 					</excludes>
 				</configuration>
-			</plugin>
-			<plugin>
-			<groupId>io.sentry</groupId>
-			<artifactId>sentry-maven-plugin</artifactId>
-			<version>0.7.1</version>
-			<extensions>true</extensions>
-			<configuration>
-				<debugSentryCli>true</debugSentryCli>
-				<org>santiago-0q</org>
-				<project>identity-service</project>
-				<authToken>${env.SENTRY_AUTH_TOKEN}</authToken>
-			</configuration>
-			<executions>
-				<execution>
-				<goals>
-					<goal>uploadSourceBundle</goal>
-				</goals>
-				</execution>
-			</executions>
 			</plugin>
 		</plugins>
 	</build>

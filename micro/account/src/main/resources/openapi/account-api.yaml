@@ -1,0 +1,410 @@
+openapi: 3.0.3
+info:
+  title: Accounts API
+  version: 1.0.0
+servers:
+  - url: https://account.bank.local/api/v1
+
+paths:
+  /customers:
+    post:
+      operationId: createCustomer
+      summary: Crea customer + contactos + direcciones (si vienen) + preferences por defecto
+      tags: [Customers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreateRequest'
+      responses:
+        '201':
+          description: Customer creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerCreateResponse'
+
+  /customers/{id}:
+    patch:
+      operationId: patchCustomer
+      summary: Actualiza customers, customer_contacts y/o preferences
+      tags: [Customers]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerPatchRequest'
+      responses:
+        '200':
+          description: Customer actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerPatchResponse'
+
+  /accounts:
+    get:
+      operationId: listAccounts
+      summary: Lista accounts por customer_id y compone balances
+      tags: [Accounts]
+      parameters:
+        - in: query
+          name: customer_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de cuentas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountListResponse'
+    post:
+      operationId: createAccount
+      summary: Crea account + inicializa balances + limits por defecto
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreateRequest'
+      responses:
+        '201':
+          description: Account creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountCreateResponse'
+
+  /accounts/{id}/balances:
+    get:
+      operationId: getAccountBalances
+      summary: Devuelve balances de una cuenta
+      tags: [Accounts]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Balances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalancesResponse'
+
+  /accounts/{id}/limits:
+    patch:
+      operationId: patchAccountLimits
+      summary: Actualiza límites (validaciones numéricas)
+      tags: [Accounts]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountLimitsPatchRequest'
+      responses:
+        '200':
+          description: Límites actualizados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountLimitsPatchResponse'
+  
+  # =========================================================
+  # INTERNAL (para ledger/payments) - proteger con mTLS/API key
+  # =========================================================
+
+  /internal/accounts/validate:
+    post:
+      operationId: validateAccountsAndLimits
+      summary: (INTERNAL) Valida cuentas, estado, currency, límites y available >= amount
+      tags: [InternalAccounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateAccountsRequest'
+      responses:
+        '200':
+          description: Validación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateAccountsResponse'
+        '400':
+          description: Validación fallida
+
+  /internal/accounts/{id}/hold/reserve:
+    post:
+      operationId: reserveHold
+      summary: (INTERNAL) Incrementa hold en account_balances (reserva fondos)
+      tags: [InternalAccounts]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HoldRequest'
+      responses:
+        '200':
+          description: Hold reservado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HoldResponse'
+        '400':
+          description: No se pudo reservar
+
+  /internal/accounts/{id}/hold/release:
+    post:
+      operationId: releaseHold
+      summary: (INTERNAL) Decrementa hold en account_balances (libera fondos)
+      tags: [InternalAccounts]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HoldRequest'
+      responses:
+        '200':
+          description: Hold liberado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HoldResponse'
+        '400':
+          description: No se pudo liberar
+
+
+components:
+  schemas:
+    # ---------- Customers ----------
+    CustomerCreateRequest:
+      type: object
+      properties:
+        fullName: { type: string }
+        birthDate: { type: string, format: date }
+        tin: { type: string, maxLength: 32 }
+        riskSegment:
+          type: string
+          enum: [low, medium, high]
+          default: low
+        email: { type: string, format: email }
+        phone: { type: string, maxLength: 15 }
+        address:
+          $ref: '#/components/schemas/CustomerAddressCreate'
+      required: [fullName, birthDate, tin, email, phone]
+
+    CustomerAddressCreate:
+      type: object
+      properties:
+        country: { type: string, minLength: 2, maxLength: 2 }
+        line1: { type: string }
+        line2: { type: string }
+        city: { type: string }
+        province: { type: string }
+        postalCode: { type: string }
+      required: [country, line1, city, province]
+
+    CustomerCreateResponse:
+      type: object
+      properties:
+        customerId:
+          type: string
+          format: uuid
+      required: [customerId]
+
+    CustomerPatchRequest:
+      type: object
+      properties:
+        fullName: { type: string, nullable: true }
+        riskSegment:
+          type: string
+          enum: [low, medium, high]
+          nullable: true
+        customerStatus:
+          type: string
+          enum: [active, suspended]
+          nullable: true
+        contact:
+          $ref: '#/components/schemas/CustomerContactPatch'
+        preferences:
+          $ref: '#/components/schemas/PreferencesPatch'
+      additionalProperties: false
+
+    CustomerContactPatch:
+      type: object
+      properties:
+        email: { type: string, format: email, nullable: true }
+        phone: { type: string, maxLength: 15, nullable: true }
+      additionalProperties: false
+
+    PreferencesPatch:
+      type: object
+      properties:
+        channel:
+          type: string
+          enum: [email, sms, push]
+          nullable: true
+        optIn: { type: boolean, nullable: true }
+      additionalProperties: false
+
+    CustomerPatchResponse:
+      type: object
+      properties:
+        customerId:
+          type: string
+          format: uuid
+      required: [customerId]
+
+    # ---------- Accounts ----------
+    AccountCreateRequest:
+      type: object
+      properties:
+        customerId:
+          type: string
+          format: uuid
+        productType:
+          type: string
+          enum: [checking, savings]
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+      required: [customerId, productType, currency]
+
+    AccountCreateResponse:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+      required: [accountId]
+
+    AccountListResponse:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountView'
+      required: [accounts]
+
+    AccountView:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        productType: { type: string }
+        currency: { type: string }
+        status: { type: string }
+        openedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        balances:
+          $ref: '#/components/schemas/AccountBalances'
+      required: [id, customerId, productType, currency, status, balances]
+
+    AccountBalances:
+      type: object
+      properties:
+        ledger: { type: number, format: double }
+        available: { type: number, format: double }
+        hold: { type: number, format: double }
+      required: [ledger, available, hold]
+
+    AccountBalancesResponse:
+      type: object
+      properties:
+        accountId: { type: string, format: uuid }
+        balances:
+          $ref: '#/components/schemas/AccountBalances'
+      required: [accountId, balances]
+
+    AccountLimitsPatchRequest:
+      type: object
+      properties:
+        dailyOut: { type: number, format: double, nullable: true }
+        dailyIn: { type: number, format: double, nullable: true }
+      additionalProperties: false
+
+    AccountLimitsPatchResponse:
+      type: object
+      properties:
+        accountId: { type: string, format: uuid }
+        dailyOut: { type: number, format: double }
+        dailyIn: { type: number, format: double }
+      required: [accountId, dailyOut, dailyIn]
+    
+    # ---------- INTERNAL ----------
+    ValidateAccountsRequest:
+      type: object
+      properties:
+        sourceAccountId: { type: string, format: uuid }
+        destinationAccountId: { type: string, format: uuid }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        amount: { type: number, format: double }
+      required: [sourceAccountId, destinationAccountId, currency, amount]
+      additionalProperties: false
+
+    ValidateAccountsResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        reason: { type: string, nullable: true }
+      required: [ok]
+
+    HoldRequest:
+      type: object
+      properties:
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        amount: { type: number, format: double }
+        reason: { type: string, nullable: true }
+      required: [currency, amount]
+      additionalProperties: false
+
+    HoldResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        newHold: { type: number, format: double }
+      required: [ok]

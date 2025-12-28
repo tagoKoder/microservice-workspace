@@ -1,40 +1,174 @@
-version: "3.9"
-name: env-opa-sidecars
 services:
   opa:
-    image: openpolicyagent/opa:latest-envoy
-    command: >
-      run --server --addr=0.0.0.0:8181
-      --set=plugins.envoy_ext_authz_grpc.addr=:9191
-      /policies/policy.rego
-    volumes:
-      - ./opa/policy.rego:/policies/policy.rego:ro
+    image: openpolicyagent/opa:latest
+    command:
+      - "run"
+      - "--server"
+      - "--config-file=/config/opa-config.yaml"
+      - "--addr=0.0.0.0:8181"
+    user: "65532:65532"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
     ports:
-      - "8181:8181"
-      - "9191:9191"
+      - "8181:8181"   # HTTP API OPA (debug)
+      - "9191:9191"   # gRPC ext_authz (Envoy -> OPA)
+    volumes:
+      - ./opa/opa-config.yaml:/config/opa-config.yaml:ro
+      - ./opa/policies:/policies:ro
+      - ./opa/data:/data:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8181/health?plugins >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+    networks: ["banking-net"]
 
-  envoy-ou:
-    image: envoyproxy/envoy:v1.31-latest
-    depends_on: [opa]
-    volumes:
-      - ./envoy/ou/envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - ./envoy/certs/ou:/etc/ssl/ou:ro
-      - ./envoy/certs/ca:/etc/ssl/ca:ro
-    ports:
-      - "8443:8443"
-      - "9901:9901"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"   # necesario en Linux
+  # --------------------------
+  # BFF (Go) - en demo lo dejamos como echo-server
+  # --------------------------
+  bff:
+    image: ealen/echo-server:latest
+    environment:
+      - PORT=3000
+    networks: ["banking-net"]
 
-  envoy-java:
-    image: envoyproxy/envoy:v1.31-latest
-    depends_on: [opa]
+  # --------------------------
+  # Identity/Onboarding (Spring Boot REST) - demo
+  # --------------------------
+  identity:
+    image: ealen/echo-server:latest
+    environment:
+      - PORT=3004
+    networks: ["banking-net"]
+
+  # --------------------------
+  # Accounts (Spring Boot REST) - demo
+  # --------------------------
+  accounts:
+    image: ealen/echo-server:latest
+    environment:
+      - PORT=3001
+    networks: ["banking-net"]
+
+  # --------------------------
+  # Ops (Spring Boot REST) - demo
+  # --------------------------
+  ops:
+    image: ealen/echo-server:latest
+    environment:
+      - PORT=3003
+    networks: ["banking-net"]
+
+  # --------------------------
+  # Ledger+Payments (Go gRPC) - demo
+  # En tu real: sería tu binario gRPC exponiendo 50051
+  # --------------------------
+  payments_ledger_grpc:
+    image: moul/grpcbin:latest
+    command: ["grpcbin", "-port", "50051"]
+    networks: ["banking-net"]
+
+  # ==========================
+  # Envoy PEP por servicio (sidecar simulado)
+  # ==========================
+
+  # Entrada pública: Frontend -> Envoy -> BFF
+  bff-envoy:
+    image: envoyproxy/envoy:latest
+    user: "101:101"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
     volumes:
-      - ./envoy/java/envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - ./envoy/certs/java:/etc/ssl/java:ro
-      - ./envoy/certs/ca:/etc/ssl/ca:ro
+      - ./envoy/bff-envoy.yaml:/etc/envoy/envoy.yaml:ro
+    depends_on:
+      opa:
+        condition: service_healthy
+      bff:
+        condition: service_started
     ports:
-      - "9443:8443"
-      - "9902:9901"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "8080:8080"
+    networks: ["banking-net"]
+
+  # BFF -> Identity (REST)
+  identity-envoy:
+    image: envoyproxy/envoy:latest
+    user: "101:101"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./envoy/identity-envoy.yaml:/etc/envoy/envoy.yaml:ro
+    depends_on:
+      opa:
+        condition: service_healthy
+      identity:
+        condition: service_started
+    ports:
+      - "8084:8084"
+    networks: ["banking-net"]
+
+  # BFF -> Accounts (REST)
+  accounts-envoy:
+    image: envoyproxy/envoy:latest
+    user: "101:101"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./envoy/accounts-envoy.yaml:/etc/envoy/envoy.yaml:ro
+    depends_on:
+      opa:
+        condition: service_healthy
+      accounts:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    networks: ["banking-net"]
+
+  # BFF -> Ops (REST)
+  ops-envoy:
+    image: envoyproxy/envoy:latest
+    user: "101:101"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./envoy/ops-envoy.yaml:/etc/envoy/envoy.yaml:ro
+    depends_on:
+      opa:
+        condition: service_healthy
+      ops:
+        condition: service_started
+    ports:
+      - "8083:8083"
+    networks: ["banking-net"]
+
+  # BFF -> Payments/Ledger (gRPC): Envoy listener HTTP/2 -> upstream HTTP/2
+  payments-envoy:
+    image: envoyproxy/envoy:latest
+    user: "101:101"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./envoy/payments-envoy.yaml:/etc/envoy/envoy.yaml:ro
+    depends_on:
+      opa:
+        condition: service_healthy
+      payments_ledger_grpc:
+        condition: service_started
+    ports:
+      - "9090:9090"  # gRPC entrypoint protegido
+    networks: ["banking-net"]
+
+networks:
+  banking-net:
+    driver: bridge
