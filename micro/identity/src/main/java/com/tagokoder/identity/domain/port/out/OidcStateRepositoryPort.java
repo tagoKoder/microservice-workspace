@@ -4,18 +4,9 @@ import java.time.Duration;
 
 public interface OidcStateRepositoryPort {
 
-    void saveState(String state, String codeVerifier, String redirectAfterLogin, Duration ttl);
+    void saveState(String state, String codeVerifier, String redirectAfterLogin, String nonce, Duration ttl);
 
     OidcState loadAndRemove(String state);
 
-    class OidcState {
-        public final String codeVerifier;
-        public final String redirectAfterLogin;
-
-        public OidcState(String codeVerifier, String redirectAfterLogin) {
-            this.codeVerifier = codeVerifier;
-            this.redirectAfterLogin = redirectAfterLogin;
-        }
-    }
+    record OidcState(String codeVerifier, String redirectAfterLogin, String nonce) {}
 }
-

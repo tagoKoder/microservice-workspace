@@ -1,44 +1,56 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+---
 version: 1
 metadata:
   name: banking-oidc
   labels:
     app: banking
+    blueprints.goauthentik.io/instantiate: "true"
 
 entries:
-  # Provider OIDC para tu BFF
-  - model: authentik_providers_oauth2.Provider
+  # === GRUPOS ===
+  - model: authentik_core.group
+    identifiers:
+      name: ROLE_customer
     attrs:
-      name: "banking-oidc-provider"
-      client_type: "confidential"
-      authorization_flow: !Find [authentik_flows, {"slug": "default-provider-authorization-flow"}]
-      # Authentik ya trae flows por defecto, puedes luego cambiarlos.
-      client_id: "banking-bff"
-      client_secret: "super-secret"   # en real, cambia por algo fuerte o usa client assertion
+      name: ROLE_customer
+
+  - model: authentik_core.group
+    identifiers:
+      name: ROLE_support
+    attrs:
+      name: ROLE_support
+
+  # === PROVIDER OIDC ===
+  - model: authentik_providers_oauth2.oauth2provider
+    id: banking-oidc-provider
+    identifiers:
+      name: banking-oidc-provider
+    attrs:
+      name: banking-oidc-provider
+      client_type: confidential
+
+      # Si este flow existe en tu instalación, esto funciona.
+      # Si no existe, bórralo y luego lo defines desde UI.
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-flow]]
+
+      client_id: !Env BANKING_BFF_OIDC_CLIENT_ID
+      client_secret: !Env BANKING_BFF_OIDC_CLIENT_SECRET
+
       redirect_uris:
-        - "https://bff.bank.local/auth/callback"
-      response_type: "code"
-      access_code_validity: 300
-      refresh_token_validity: 86400
-      signing_key: !Find [authentik_crypto_certificatekeypair, {"name": "authentik Self-signed Certificate"}]
-      allowed_scopes:
-        - "openid"
-        - "profile"
-        - "email"
-        - "offline_access"
-        - "ak_groups"    # si mapeas grupos/roles
-      include_claims_in_id_token: true
+        - url: !Env BANKING_OIDC_REDIRECT_URI_LOCAL
+          matching_mode: strict
+        - url: !Env BANKING_OIDC_REDIRECT_URI_PROD
+          matching_mode: strict
 
-  # Aplicación que verá el usuario en Authentik
-  - model: authentik_core.Application
-    attrs:
-      name: "Banking Web"
-      slug: "banking-web"
-      provider: !KeyOf "banking-oidc-provider"
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
 
-  # Grupos / roles para clientes
-  - model: authentik_core.Group
+  # === APLICACIÓN ===
+  - model: authentik_core.application
+    id: banking-web-app
+    identifiers:
+      slug: banking-web
     attrs:
-      name: "ROLE_customer"
-  - model: authentik_core.Group
-    attrs:
-      name: "ROLE_support"
+      name: Banking Web
+      slug: banking-web
+      provider: !KeyOf banking-oidc-provider

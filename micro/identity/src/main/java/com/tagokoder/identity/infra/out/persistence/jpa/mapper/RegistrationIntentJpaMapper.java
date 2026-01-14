@@ -2,7 +2,8 @@ package com.tagokoder.identity.infra.out.persistence.jpa.mapper;
 
 import com.tagokoder.identity.domain.model.RegistrationIntent;
 import com.tagokoder.identity.infra.config.MappingConfig;
-import com.tagokoder.identity.infra.out.persistence.jpa.RegistrationIntentEntity;
+import com.tagokoder.identity.infra.out.persistence.jpa.entity.RegistrationIntentEntity;
+
 import org.mapstruct.Mapper;
 
 @Mapper(config = MappingConfig.class)

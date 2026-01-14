@@ -1,0 +1,11 @@
+
+    <div class="p-4 flex flex-column gap-3">
+      <p-card header="Sesión actual">
+        <pre class="m-0">{{ session$ | async | json }}</pre>
+        <button pButton type="button" class="mt-3" label="Cerrar sesión" (click)="logout()"></button>
+      </p-card>
+
+      <p-card header="Cuentas (overview)">
+        <pre class="m-0">{{ accounts$ | async | json }}</pre>
+      </p-card>
+    </div>

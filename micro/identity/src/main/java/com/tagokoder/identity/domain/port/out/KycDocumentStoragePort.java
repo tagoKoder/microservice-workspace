@@ -1,10 +1,10 @@
 package com.tagokoder.identity.domain.port.out;
 
-import java.io.InputStream;
-
 public interface KycDocumentStoragePort {
 
-    String store(String registrationId, String type, InputStream content);
+  StoredObject store(String registrationId, String type, byte[] content, String contentType);
 
-    // type: "ID_FRONT", "SELFIE"
+  void delete(StoredObject obj);
+
+  record StoredObject(String bucket, String key) {}
 }

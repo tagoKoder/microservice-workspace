@@ -1,12 +1,56 @@
+server:
+  port: 8080
+
+grpc:
+  server:
+    port: 9091
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/identity
+    username: identity
+    password: identity
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+
 identity:
+  session:
+    ttl-seconds: 1800
+    absolute-ttl-seconds: 43200  # 12h
+  kyc:
+    storage:
+      type: ${IDENTITY_KYC_STORAGE_TYPE:s3}
+      bucket: ${IDENTITY_KYC_BUCKET:imaginarybank-kyc-dev}
+      region: ${AWS_REGION:us-east-1}
+      kms-key-id: ${IDENTITY_KYC_KMS_KEY_ID:}
+      staging-prefix: ${IDENTITY_KYC_STAGING_PREFIX:staging/}
+      final-prefix: ${IDENTITY_KYC_FINAL_PREFIX:kyc/}
+      max-bytes-id-front: ${IDENTITY_KYC_MAX_ID_FRONT:5242880}
+      max-bytes-selfie: ${IDENTITY_KYC_MAX_SELFIE:5242880}
   oidc:
-    provider: authentik
-    bffCallbackUrl: https://bff.bank.local/web/oidc/callback
-    issuer: https://idp.bank.local
-    authUrl: https://idp.bank.local/application/o/authorize/
-    tokenUrl: https://idp.bank.local/application/o/token/
-    userInfoUrl: https://idp.bank.local/application/o/userinfo/
-    parUrl: https://idp.bank.local/application/o/par/
-    clientId: banking-bff
-    clientSecret: super-secret
-    usePar: true
+    issuer: ${IDENTITY_OIDC_ISSUER:}
+    client-id: ${IDENTITY_OIDC_CLIENT_ID:}
+    client-secret: ${IDENTITY_OIDC_CLIENT_SECRET:}
+    bff-callback-url: ${IDENTITY_OIDC_BFF_CALLBACK_URL:}
+
+    allowed-redirect-prefixes:
+      - "/"
+      - "/app"
+      - "/dashboard"
+      
+  webauthn:
+    rp-id: "tu-dominio.com"
+    rp-name: "ImaginaryBank"
+    origins:
+      - "https://app.tu-dominio.com"

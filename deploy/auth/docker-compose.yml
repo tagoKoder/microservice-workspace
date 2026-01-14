@@ -10,6 +10,7 @@ services:
       timeout: 3s
     volumes:
       - redis:/data
+    networks: [authnet]
 
   postgresql:
     image: postgres:16-alpine
@@ -25,18 +26,22 @@ services:
       retries: 5
     volumes:
       - database:/var/lib/postgresql/data
+    networks: [authnet]
 
   server:
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.6.4}
     restart: unless-stopped
     command: server
-    env_file:
+    env_file: 
       - .env
+    #user: "1000:1000"
     volumes:
       - ./media:/media
-      - ./custom-templates:/
-      - ./blueprints:/blueprints          
+      - ./custom-templates:/templates          # <- ruta correcta
+      - ./blueprints:/blueprints
     ports:
+      # Local: OK exponer.
+      # Prod: normalmente NO expones directo; usa reverse proxy TLS.
       - "${COMPOSE_PORT_HTTP}:9000"
       - "${COMPOSE_PORT_HTTPS}:9443"
     depends_on:
@@ -52,7 +57,7 @@ services:
       AUTHENTIK_POSTGRESQL__NAME: ${PG_DB}
       AUTHENTIK_REDIS__HOST: ${REDIS_HOST}
       AUTHENTIK_REDIS__PORT: ${REDIS_PORT}
-
+    networks: [authnet]
 
   worker:
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.6.4}
@@ -60,11 +65,11 @@ services:
     command: worker
     env_file:
       - .env
-    user: "1000:1000" # evita root
+    #user: "1000:1000"
     volumes:
       - ./media:/media
       - ./certs:/certs
-      - ./custom-templates:/
+      - ./custom-templates:/templates
       - ./blueprints:/blueprints
     depends_on:
       postgresql:
@@ -79,10 +84,14 @@ services:
       AUTHENTIK_POSTGRESQL__NAME: ${PG_DB}
       AUTHENTIK_REDIS__HOST: ${REDIS_HOST}
       AUTHENTIK_REDIS__PORT: ${REDIS_PORT}
-
+    networks: [authnet]
 
 volumes:
   database:
     driver: local
   redis:
     driver: local
+
+networks:
+  authnet:
+    driver: bridge

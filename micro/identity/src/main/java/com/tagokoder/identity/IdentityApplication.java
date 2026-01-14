@@ -2,11 +2,13 @@ package com.tagokoder.identity;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import com.tagokoder.identity.application.OidcProperties;
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 @EnableConfigurationProperties(OidcProperties.class)
 public class IdentityApplication {
 

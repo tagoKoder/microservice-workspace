@@ -20,9 +20,8 @@ public interface CompleteLoginUseCase {
             String provider,
             String name,
             String email,
-            List<String> roles,
-            String accessToken,
-            String refreshToken,
+            List<String> groups,
+            UUID sessionId,
             long expiresIn,
             String redirectAfterLogin
     ) {}

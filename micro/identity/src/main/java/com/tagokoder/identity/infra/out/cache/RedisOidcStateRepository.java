@@ -1,6 +1,6 @@
 package com.tagokoder.identity.infra.out.cache;
 
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tagokoder.identity.domain.port.out.OidcStateRepositoryPort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -11,15 +11,21 @@ import java.time.Duration;
 public class RedisOidcStateRepository implements OidcStateRepositoryPort {
 
     private final StringRedisTemplate redis;
+    private final ObjectMapper om;
 
-    public RedisOidcStateRepository(StringRedisTemplate redis) {
+    public RedisOidcStateRepository(StringRedisTemplate redis, ObjectMapper om) {
         this.redis = redis;
+        this.om = om;
     }
 
     @Override
-    public void saveState(String state, String codeVerifier, String redirectAfterLogin, Duration ttl) {
-        String value = codeVerifier + "|" + redirectAfterLogin;
-        redis.opsForValue().set(key(state), value, ttl);
+    public void saveState(String state, String codeVerifier, String redirectAfterLogin, String nonce, Duration ttl) {
+        try {
+            var payload = new Payload(codeVerifier, redirectAfterLogin, nonce);
+            redis.opsForValue().set(key(state), om.writeValueAsString(payload), ttl);
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot persist OIDC state", e);
+        }
     }
 
     @Override
@@ -27,14 +33,18 @@ public class RedisOidcStateRepository implements OidcStateRepositoryPort {
         String k = key(state);
         String value = redis.opsForValue().get(k);
         if (value == null) return null;
+
         redis.delete(k);
-        String[] parts = value.split("\\|", 2);
-        String verifier = parts[0];
-        String redirect = parts.length > 1 ? parts[1] : "/";
-        return new OidcState(verifier, redirect);
+
+        try {
+            var p = om.readValue(value, Payload.class);
+            return new OidcState(p.codeVerifier, p.redirectAfterLogin, p.nonce);
+        } catch (Exception e) {
+            throw new IllegalStateException("Invalid OIDC state payload", e);
+        }
     }
 
-    private String key(String state) {
-        return "oidc:state:" + state;
-    }
+    private String key(String state) { return "oidc:state:" + state; }
+
+    record Payload(String codeVerifier, String redirectAfterLogin, String nonce) {}
 }

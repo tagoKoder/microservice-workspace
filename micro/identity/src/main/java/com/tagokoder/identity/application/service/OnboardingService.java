@@ -1,16 +1,18 @@
 package com.tagokoder.identity.application.service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.tagokoder.identity.domain.model.RegistrationIntent;
 import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase;
 import com.tagokoder.identity.domain.port.out.KycDocumentStoragePort;
 import com.tagokoder.identity.domain.port.out.RegistrationIntentRepositoryPort;
-import org.springframework.stereotype.Service;
-
-import java.io.ByteArrayInputStream;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.UUID;
 
 @Service
 public class OnboardingService implements StartRegistrationUseCase {
@@ -25,28 +27,25 @@ public class OnboardingService implements StartRegistrationUseCase {
     }
 
     @Override
+    @Transactional
     public StartRegistrationResponse start(StartRegistrationCommand c) {
         UUID id = UUID.randomUUID();
 
-        // 1) Guardar imágenes vía puerto de storage
-        byte[] idBytes = Base64.getDecoder().decode(c.idDocumentFrontBase64());
-        String idUrl = storage.store(
-                id.toString(),
-                "ID_FRONT",
-                new ByteArrayInputStream(idBytes)
-        );
+        List<KycDocumentStoragePort.StoredObject> created = new ArrayList<>();
+        try {
+            // content-type: idealmente viene del request; como tu proto no lo trae, usa octet-stream o sniff
+            String idCt = "application/octet-stream";
+            String selfieCt = "application/octet-stream";
 
-        byte[] selfieBytes = Base64.getDecoder().decode(c.selfieBase64());
-        String selfieUrl = storage.store(
-                id.toString(),
-                "SELFIE",
-                new ByteArrayInputStream(selfieBytes)
-        );
+            var idObj = storage.store(id.toString(), "ID_FRONT", c.idDocumentFront(), idCt);
+            created.add(idObj);
 
-        Instant now = Instant.now();
+            var selfieObj = storage.store(id.toString(), "SELFIE", c.selfie(), selfieCt);
+            created.add(selfieObj);
 
-        // 2) Construir el agregado de dominio
-        RegistrationIntent intent = new RegistrationIntent(
+            Instant now = Instant.now();
+
+            RegistrationIntent intent = new RegistrationIntent(
                 id,
                 c.email(),
                 c.phone(),
@@ -55,22 +54,32 @@ public class OnboardingService implements StartRegistrationUseCase {
                 c.nationalId(),
                 c.nationalIdIssueDate(),
                 c.fingerprintCode(),
-                idUrl,
-                selfieUrl,
+
+                // IMPORTANTE: ya no guardes URLs públicas
+                // guarda referencias (bucket/key) en campos del dominio (ver punto 5)
+                idObj.bucket(), idObj.key(),
+                selfieObj.bucket(), selfieObj.key(),
+
                 BigDecimal.valueOf(c.monthlyIncome()),
                 c.occupationType(),
                 now,
                 now
-        );
+            );
 
-        // 3) Persistir usando el port
-        RegistrationIntent saved = registrationRepo.save(intent);
+            RegistrationIntent saved = registrationRepo.save(intent);
 
-        // 4) Respuesta DTO para el caso de uso
-        return new StartRegistrationResponse(
+            return new StartRegistrationResponse(
                 saved.getId(),
-                saved.getState().name().toLowerCase(), // "started"
+                saved.getState().name().toLowerCase(),
                 saved.getCreatedAt()
-        );
+            );
+
+        } catch (Exception e) {
+            // rollback best-effort
+            for (int i = created.size() - 1; i >= 0; i--) {
+                storage.delete(created.get(i));
+            }
+            throw e;
+        }
     }
 }

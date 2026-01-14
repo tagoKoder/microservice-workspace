@@ -1,0 +1,14 @@
+<div class="min-h-screen flex align-items-center justify-content-center p-4">
+      <p-card header="ImaginaryBank - Banca Web" styleClass="w-full md:w-30rem">
+      <p class="mt-0 mb-4 text-600">
+        Accede con tu identidad (AWS Cognito / OIDC). No manejamos contraseñas ni tokens en el frontend.
+      </p>
+
+        <button pButton type="button" class="w-full mb-3"
+          label="Iniciar sesión"
+          icon="pi pi-sign-in"
+          (click)="login()"></button>
+
+        <a class="text-sm" routerLink="/register">Crear cuenta / Onboarding</a>
+      </p-card>
+    </div>

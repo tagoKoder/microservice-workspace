@@ -32,8 +32,11 @@ public class RegistrationIntent {
     private  String nationalId;
     private  LocalDate nationalIdIssueDate;
     private  String fingerprintCode;
-    private  String idDocumentFrontUrl;
-    private  String selfieUrl;
+    private String idDocumentFrontBucket;
+    private String idDocumentFrontKey;
+    private String selfieBucket;
+    private String selfieKey;
+
     private  BigDecimal monthlyIncome;
     private  String occupationType;
 
