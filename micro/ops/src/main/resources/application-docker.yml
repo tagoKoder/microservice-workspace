@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: ${OPS_DB_URL}
+    username: ${OPS_DB_USER}
+    password: ${OPS_DB_PASSWORD}
+ops:
+  kafka:
+    bootstrapServers: ${KAFKA_BOOTSTRAP}

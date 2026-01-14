@@ -1,102 +1,97 @@
----
-
 services:
-  mailhog:
-    image: mailhog/mailhog:latest
-    ports: ["8025:8025"]  # UI
-  postgresql:
-    image: docker.io/library/postgres:16-alpine
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      start_period: 20s
-      interval: 30s
-      retries: 5
-      timeout: 5s
-    volumes:
-      - database:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: ${PG_PASS:?database password required}
-      POSTGRES_USER: ${PG_USER:-authentik}
-      POSTGRES_DB: ${PG_DB:-authentik}
-    env_file:
-      - .env
   redis:
-    image: docker.io/library/redis:alpine
+    image: redis:alpine
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      start_period: 20s
       interval: 30s
       retries: 5
       timeout: 3s
     volumes:
       - redis:/data
+    networks: [authnet]
+
+  postgresql:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASS}
+      POSTGRES_DB: ${PG_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - database:/var/lib/postgresql/data
+    networks: [authnet]
+
   server:
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.6.4}
     restart: unless-stopped
     command: server
-    environment:
-      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
-      AUTHENTIK_REDIS__HOST: redis
-      AUTHENTIK_POSTGRESQL__HOST: postgresql
-      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
-      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
-      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
-      # …tus variables actuales…
-      AUTHENTIK_CORS__ALLOW_ALL_ORIGINS: "true"
-      AUTHENTIK_CORS__ALLOW_CREDENTIALS: "true"
-      # Si prefieres ser estricto, usa ALLOWED_ORIGINS en vez de ALLOW_ALL_ORIGINS:
-      AUTHENTIK_CORS__ALLOWED_ORIGINS: "http://localhost:4200,http://127.0.0.1:4200"
-      AUTHENTIK_CORS__ALLOW_HEADERS: "authorization,content-type"
-      AUTHENTIK_CORS__EXPOSE_HEADERS: "authorization,content-type"
+    env_file: 
+      - .env
+    #user: "1000:1000"
     volumes:
       - ./media:/media
-      - ./custom-templates:/templates
-    env_file:
-      - .env
+      - ./custom-templates:/templates          # <- ruta correcta
+      - ./blueprints:/blueprints
     ports:
-      - "${COMPOSE_PORT_HTTP:-9000}:9000"
-      - "${COMPOSE_PORT_HTTPS:-9443}:9443"
+      # Local: OK exponer.
+      # Prod: normalmente NO expones directo; usa reverse proxy TLS.
+      - "${COMPOSE_PORT_HTTP}:9000"
+      - "${COMPOSE_PORT_HTTPS}:9443"
     depends_on:
       postgresql:
         condition: service_healthy
       redis:
         condition: service_healthy
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: ${PG_HOST}
+      AUTHENTIK_POSTGRESQL__PORT: ${PG_PORT}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB}
+      AUTHENTIK_REDIS__HOST: ${REDIS_HOST}
+      AUTHENTIK_REDIS__PORT: ${REDIS_PORT}
+    networks: [authnet]
+
   worker:
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.6.4}
     restart: unless-stopped
     command: worker
-    environment:
-      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
-      AUTHENTIK_REDIS__HOST: redis
-      AUTHENTIK_POSTGRESQL__HOST: postgresql
-      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
-      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
-      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
-    # `user: root` and the docker socket volume are optional.
-    # See more for the docker socket integration here:
-    # https://goauthentik.io/docs/outposts/integrations/docker
-    # Removing `user: root` also prevents the worker from fixing the permissions
-    # on the mounted folders, so when removing this make sure the folders have the correct UID/GID
-    # (1000:1000 by default)
-    user: root
+    env_file:
+      - .env
+    #user: "1000:1000"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ./media:/media
       - ./certs:/certs
       - ./custom-templates:/templates
-    env_file:
-      - .env
+      - ./blueprints:/blueprints
     depends_on:
       postgresql:
         condition: service_healthy
       redis:
         condition: service_healthy
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: ${PG_HOST}
+      AUTHENTIK_POSTGRESQL__PORT: ${PG_PORT}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB}
+      AUTHENTIK_REDIS__HOST: ${REDIS_HOST}
+      AUTHENTIK_REDIS__PORT: ${REDIS_PORT}
+    networks: [authnet]
 
 volumes:
   database:
     driver: local
   redis:
     driver: local
+
+networks:
+  authnet:
+    driver: bridge

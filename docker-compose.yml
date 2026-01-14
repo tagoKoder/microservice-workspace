@@ -1,0 +1,19 @@
+version: '3.9'
+services:
+  bff:
+    build: ../bff
+    restart: unless-stopped
+    environment:
+      BFF_PORT: 8080
+      BFF_BASE_URL: "https://bff.bank.local"
+      AUTHENTIK_ISSUER: "https://idp.bank.local"
+      AUTHENTIK_AUTH_URL: "https://idp.bank.local/application/o/authorize/"
+      AUTHENTIK_TOKEN_URL: "https://idp.bank.local/application/o/token/"
+      AUTHENTIK_USERINFO_URL: "https://idp.bank.local/application/o/userinfo/"
+      AUTHENTIK_CLIENT_ID: "banking-bff"
+      AUTHENTIK_CLIENT_SECRET: "super-secret"
+      BFF_REDIS_ADDR: "redis:6379"
+      BFF_COOKIE_DOMAIN: ".bank.local"
+    depends_on:
+      redis:
+        condition: service_healthy

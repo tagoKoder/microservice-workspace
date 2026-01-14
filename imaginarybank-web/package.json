@@ -1,0 +1,42 @@
+{
+  "name": "imaginarybank-web",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --proxy-config proxy.conf.json",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "gen:bff": "openapi-generator-cli generate -i node_modules/@tagokoder/bff-openapi/openapi/bff.openapi.yaml -g typescript-angular -o src/app/api/bff --additional-properties=providedInRoot=true,serviceSuffix=Api,modelSuffix=Dto,ngVersion=20,useSingleRequestParameter=true,modelPropertyNaming=original --type-mappings=Date=string --import-mappings=Date=string"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/common": "^20.3.16",
+    "@angular/compiler": "^20.3.16",
+    "@angular/core": "^20.3.16",
+    "@angular/forms": "^20.3.16",
+    "@angular/platform-browser": "^20.3.16",
+    "@angular/router": "^20.3.16",
+    "primeng": "^20.4.0",
+    "primeflex": "^4.0.0",
+    "primeicons": "^7.0.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^20.3.14",
+    "@angular/cli": "^20.3.14",
+    "@angular/compiler-cli": "^20.3.16",
+    "@openapitools/openapi-generator-cli": "^2.27.0",
+    "@tagokoder/bff-openapi": "^0.0.13",
+    "@types/jasmine": "~5.1.0",
+    "jasmine-core": "~5.7.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~5.8.2"
+  }
+}

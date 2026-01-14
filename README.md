@@ -9,6 +9,17 @@ protoc -I=protobuf --go-grpc_out=genproto/go/example --go-grpc_opt=paths=source_
 protoc -I=protobuf --go_out=genproto/go/identity --go_opt=paths=source_relative protobuf/identity.proto
 protoc -I=protobuf --go-grpc_out=genproto/go/identity --go-grpc_opt=paths=source_relative protobuf/identity.proto
 
+# Accounts
+protoc -I=proto --go_out=proto/genproto/go/accounts --go_opt=paths=source_relative proto/accounts.proto
+protoc -I=proto --go-grpc_out=proto/genproto/go/accounts --go-grpc_opt=paths=source_relative proto/accounts.proto
+
+
+protoc --go_out=genproto/go/accounts --go_opt=paths=source_relative proto/accounts.proto
+protoc --go-grpc_out=genproto/go/accounts --go-grpc_opt=paths=source_relative proto/accounts.proto
+
+
+protoc -I=proto --go_out=proto/genproto/go/sof --go_opt=paths=source_relative proto/sof_records.proto
+protoc -I=proto --go-grpc_out=proto/genproto/go/sof --go-grpc_opt=paths=source_relative proto/sof_records.proto
 
 # Testing
 ### Install testing dependencies

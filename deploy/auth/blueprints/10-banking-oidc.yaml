@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+---
+version: 1
+metadata:
+  name: banking-oidc
+  labels:
+    app: banking
+    blueprints.goauthentik.io/instantiate: "true"
+
+entries:
+  # === GRUPOS ===
+  - model: authentik_core.group
+    identifiers:
+      name: ROLE_customer
+    attrs:
+      name: ROLE_customer
+
+  - model: authentik_core.group
+    identifiers:
+      name: ROLE_support
+    attrs:
+      name: ROLE_support
+
+  # === PROVIDER OIDC ===
+  - model: authentik_providers_oauth2.oauth2provider
+    id: banking-oidc-provider
+    identifiers:
+      name: banking-oidc-provider
+    attrs:
+      name: banking-oidc-provider
+      client_type: confidential
+
+      # Si este flow existe en tu instalación, esto funciona.
+      # Si no existe, bórralo y luego lo defines desde UI.
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-flow]]
+
+      client_id: !Env BANKING_BFF_OIDC_CLIENT_ID
+      client_secret: !Env BANKING_BFF_OIDC_CLIENT_SECRET
+
+      redirect_uris:
+        - url: !Env BANKING_OIDC_REDIRECT_URI_LOCAL
+          matching_mode: strict
+        - url: !Env BANKING_OIDC_REDIRECT_URI_PROD
+          matching_mode: strict
+
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+
+  # === APLICACIÓN ===
+  - model: authentik_core.application
+    id: banking-web-app
+    identifiers:
+      slug: banking-web
+    attrs:
+      name: Banking Web
+      slug: banking-web
+      provider: !KeyOf banking-oidc-provider

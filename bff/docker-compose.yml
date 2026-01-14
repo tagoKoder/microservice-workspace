@@ -1,0 +1,30 @@
+services:
+  bff:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      ENV: local
+      HTTP_ADDR: ":8080"
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: "lax"
+      RATE_LIMIT_RPS: "50"
+      IDENTITY_GRPC_ADDR: "identity:9090"
+      ACCOUNTS_GRPC_ADDR: "accounts:9090"
+      LEDGERPAYMENTS_GRPC_ADDR: "ledgerpayments:9090"
+      OPS_GRPC_ADDR: "ops:9090"
+    depends_on:
+      - identity
+      - accounts
+      - ledgerpayments
+      - ops
+
+  # Los siguientes son placeholders: tus servicios reales tendrán su propia imagen
+  identity:
+    image: imaginary/identity:latest
+  accounts:
+    image: imaginary/accounts:latest
+  ledgerpayments:
+    image: imaginary/ledgerpayments:latest
+  ops:
+    image: imaginary/ops:latest

@@ -3,6 +3,6 @@ package constant
 const (
 	// [Methods]: GET
 	IdentityWhoAmIRoute = "/whoami"
-	// [Methods]: POST
+	// [Methods]: POST, GET, DELETE
 	IdentityLinkRoute = "/link"
 )

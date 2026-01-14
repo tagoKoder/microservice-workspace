@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+option go_package = "github.com/tagoKoder/accounts/proto/genproto/go/accounts;accountspb";
+package accounts.v1;
+
+import "../../accounts/proto/google/protobuf/timestamp.proto";
+import "../../accounts/proto/validate/validate.proto";
+
+service AccountsService {
+  rpc CreateCustomerAccount(CreateCustomerAccountRequest) returns (CreateCustomerAccountResponse);
+  rpc GetCustomerAccountByIDAndType(GetCustomerAccountByIDAndTypeRequest) returns (GetCustomerAccountByIDAndTypeResponse);
+}
+
+message GetCustomerAccountByIDAndTypeRequest {
+  int64 customer_id = 1;
+  string account_type = 2;
+}
+
+message GetCustomerAccountByIDAndTypeResponse {
+  Account account = 1;
+}
+
+message CreateCustomerAccountRequest {
+  int64 customer_id = 1 [(validate.rules).int64 = {gt: 0}];
+  string account_type = 2 [(validate.rules).string.in = {values: ["checking","savings"]}];
+  double initial_deposit = 3 [(validate.rules).double = {gt: 0}];
+  string currency = 4 [(validate.rules).string.len = 3];
+}
+
+message CreateCustomerAccountResponse {
+  Account account = 1;
+}
+
+
+message Account {
+  int64 account_id = 1;
+  int64 customer_id = 2;
+  string account_type = 3;
+  double balance = 4;
+  string currency = 5;
+  string status = 6;
+  google.protobuf.Timestamp open_at = 7;
+}
