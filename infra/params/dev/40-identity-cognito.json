@@ -1,0 +1,4 @@
+[
+  { "ParameterKey": "BffCallbackUrl", "ParameterValue": "https://api-dev.tu-dominio.com/bff/login/callback" },
+  { "ParameterKey": "BffLogoutUrl", "ParameterValue": "https://web-dev.tu-dominio.com/login" }
+]
