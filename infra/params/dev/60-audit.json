@@ -1,0 +1,12 @@
+[
+  { "ParameterKey": "AppName", "ParameterValue": "imabank" },
+  { "ParameterKey": "Env", "ParameterValue": "dev" },
+  { "ParameterKey": "RegionShort", "ParameterValue": "use1" },
+
+  { "ParameterKey": "AuditEventBusName", "ParameterValue": "imabank-dev-use1-audit-bus" },
+  { "ParameterKey": "AuditFirehoseName", "ParameterValue": "imabank-dev-use1-audit-firehose" },
+  { "ParameterKey": "AuditTopicName", "ParameterValue": "imabank-dev-use1-audit-topic" },
+  { "ParameterKey": "AuditQueueName", "ParameterValue": "imabank-dev-use1-audit-queue" },
+
+  { "ParameterKey": "LogRetentionDays", "ParameterValue": "30" }
+]

@@ -1,4 +1,14 @@
 [
-  { "ParameterKey": "BffCallbackUrl", "ParameterValue": "https://api-dev.tu-dominio.com/bff/login/callback" },
-  { "ParameterKey": "BffLogoutUrl", "ParameterValue": "https://web-dev.tu-dominio.com/login" }
+  { "ParameterKey": "AppName", "ParameterValue": "imabank" },
+  { "ParameterKey": "Env", "ParameterValue": "dev" },
+  { "ParameterKey": "RegionShort", "ParameterValue": "use1" },
+
+  { "ParameterKey": "CognitoDomainPrefix", "ParameterValue": "imabank-dev-use1-auth" },
+
+  { "ParameterKey": "PublicAppUrl", "ParameterValue": "http://localhost:4200" },
+
+  { "ParameterKey": "CallbackPaths", "ParameterValue": "/bff/login/callback" },
+  { "ParameterKey": "LogoutPaths", "ParameterValue": "/login" },
+
+  { "ParameterKey": "MfaMode", "ParameterValue": "OPTIONAL" }
 ]

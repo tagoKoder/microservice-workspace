@@ -1,8 +1,21 @@
 [
-  { "ParameterKey": "VpcCidr", "ParameterValue": "10.10.0.0/16" },
-  { "ParameterKey": "PublicSubnet1Cidr", "ParameterValue": "10.10.0.0/24" },
-  { "ParameterKey": "PublicSubnet2Cidr", "ParameterValue": "10.10.1.0/24" },
-  { "ParameterKey": "PrivateSubnet1Cidr", "ParameterValue": "10.10.10.0/24" },
-  { "ParameterKey": "PrivateSubnet2Cidr", "ParameterValue": "10.10.11.0/24" },
-  { "ParameterKey": "NatGateways", "ParameterValue": "1" }
+  { "ParameterKey": "AppName", "ParameterValue": "imabank" },
+  { "ParameterKey": "Env", "ParameterValue": "dev" },
+  { "ParameterKey": "RegionShort", "ParameterValue": "use1" },
+
+  { "ParameterKey": "EksClusterName", "ParameterValue": "imabank-dev-eks" },
+
+  { "ParameterKey": "VpcCidr", "ParameterValue": "10.40.0.0/16" },
+
+  { "ParameterKey": "Az1", "ParameterValue": "us-east-1a" },
+  { "ParameterKey": "Az2", "ParameterValue": "us-east-1b" },
+
+  { "ParameterKey": "PublicSubnet1Cidr", "ParameterValue": "10.40.0.0/20" },
+  { "ParameterKey": "PublicSubnet2Cidr", "ParameterValue": "10.40.16.0/20" },
+
+  { "ParameterKey": "PrivateSubnet1Cidr", "ParameterValue": "10.40.128.0/20" },
+  { "ParameterKey": "PrivateSubnet2Cidr", "ParameterValue": "10.40.144.0/20" },
+
+  { "ParameterKey": "EnableNatGateway", "ParameterValue": "true" },
+  { "ParameterKey": "EnableInterfaceEndpoints", "ParameterValue": "false" }
 ]
