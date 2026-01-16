@@ -11,16 +11,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/sony/gobreaker"
+	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
+
 )
 
 type AccountsHTTPGateway struct {
 	baseURL string
 	token   string
 	client  *http.Client
+	internalHeader string
 	cb      *gobreaker.CircuitBreaker
 }
 
-func NewAccountsHTTPGateway(baseURL, token string) *AccountsHTTPGateway {
+func NewAccountsHTTPGateway(baseURL, token, internalHeader string) *AccountsHTTPGateway {
 	st := gobreaker.Settings{
 		Name:        "accounts-http",
 		MaxRequests: 5,
@@ -31,6 +34,7 @@ func NewAccountsHTTPGateway(baseURL, token string) *AccountsHTTPGateway {
 	return &AccountsHTTPGateway{
 		baseURL: baseURL,
 		token:   token,
+		internalHeader: internalHeader,
 		client:  &http.Client{Timeout: 3 * time.Second},
 		cb:      gobreaker.NewCircuitBreaker(st),
 	}
@@ -58,12 +62,27 @@ type holdResp struct {
 
 func (g *AccountsHTTPGateway) do(ctx context.Context, method, path string, body any, out any) error {
 	b, _ := json.Marshal(body)
-	req, err := http.NewRequestWithContext(ctx, method, g.baseURL+path, bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, method, g.baseURLpath, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Internal-Token", g.token)
+	// 1) Propagar Bearer (BFF-first): micro recibe Bearer y lo reusa para llamadas internas
+	if tok := authctx.AccessToken(ctx); tok != "" {
+		req.Header.Set("Authorization", "Bearer "tok)
+	}
+	// 2) Correlation-ID
+	if cid := authctx.CorrelationID(ctx); cid != "" {
+		req.Header.Set("X-Correlation-Id", cid)
+	}
+	// 3) Header interno opcional (si mantienes un “shared secret” entre servicios)
+	h := g.internalHeader
+	if h == "" {
+		h = "X-Internal-Token"
+	}
+	if g.token != "" {
+		req.Header.Set(h, g.token)
+	}
 
 	resp, err := g.client.Do(req)
 	if err != nil {

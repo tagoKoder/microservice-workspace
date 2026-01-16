@@ -82,6 +82,7 @@ func toDomainPayment(m *entity.PaymentEntity) *dm.Payment {
 		DestAccount:    m.DestAccount,
 		Amount:         m.Amount,
 		Currency:       m.Currency,
+		CustomerID:     m.CustomerID,
 		Status:         dm.PaymentStatus(m.Status),
 		CreatedAt:      m.CreatedAt,
 	}
@@ -93,6 +94,7 @@ func fromDomainPayment(p *dm.Payment) entity.PaymentEntity {
 		ID:             p.ID,
 		IdempotencyKey: p.IdempotencyKey,
 		SourceAccount:  p.SourceAccount,
+		CustomerID:     p.CustomerID,
 		DestAccount:    p.DestAccount,
 		Amount:         p.Amount,
 		Currency:       p.Currency,

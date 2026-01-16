@@ -11,6 +11,7 @@ import (
 	dm "github.com/tagoKoder/ledger/internal/domain/model"
 	in "github.com/tagoKoder/ledger/internal/domain/port/in"
 	out "github.com/tagoKoder/ledger/internal/domain/port/out"
+	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
 )
 
 type ledgerAppService struct {
@@ -24,6 +25,12 @@ func NewLedgerAppService(uow uow.UnitOfWorkManager, accounts out.AccountsGateway
 }
 
 func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccountCommand) (in.CreditAccountResult, error) {
+	actor := authctx.ActorFrom(ctx)
+	initiatedBy := actor.Subject
+	if initiatedBy == "" {
+		initiatedBy = cmd.InitiatedBy
+	}
+
 	amt, err := decimal.NewFromString(cmd.Amount)
 	if err != nil {
 		return in.CreditAccountResult{}, err
@@ -87,6 +94,7 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 			CreatedBy:   cmd.InitiatedBy,
 			Status:      dm.JournalPosted,
 			Currency:    cmd.Currency,
+			CreatedBy:   initiatedBy,
 			Lines:       lines,
 		}
 		if err := w.Journals().InsertJournal(ctx, j); err != nil {
@@ -134,7 +142,7 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 		return in.CreditAccountResult{}, err
 	}
 
-	_ = s.audit.Record(ctx, "POST_TOPUP", "journal_entries", journalID.String(), cmd.InitiatedBy, now, map[string]any{
+	_ = s.audit.Record(ctx, "POST_TOPUP", "journal_entries", journalID.String(), initiatedBy, now, map[string]any{
 		"account_id": cmd.AccountID.String(),
 		"currency":   cmd.Currency,
 		"amount":     amt.StringFixed(6),
@@ -144,6 +152,7 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 }
 
 func (s *ledgerAppService) ListAccountJournalEntries(ctx context.Context, q in.ListAccountJournalEntriesQuery) (in.ListAccountJournalEntriesResult, error) {
+
 	from := time.Time{}
 	to := time.Now().UTC()
 
@@ -205,6 +214,12 @@ func (s *ledgerAppService) ListAccountJournalEntries(ctx context.Context, q in.L
 }
 
 func (s *ledgerAppService) CreateManualJournalEntry(ctx context.Context, cmd in.CreateManualJournalEntryCommand) (in.CreateManualJournalEntryResult, error) {
+	actor := authctx.ActorFrom(ctx)
+	createdBy := actor.Subject
+	if createdBy == "" {
+		createdBy = cmd.CreatedBy // fallback temporal
+	}
+
 	bookedAt := time.Now().UTC()
 	if cmd.BookedAtRFC3339 != "" {
 		t, err := time.Parse(time.RFC3339Nano, cmd.BookedAtRFC3339)
@@ -253,6 +268,7 @@ func (s *ledgerAppService) CreateManualJournalEntry(ctx context.Context, cmd in.
 			CreatedBy:   cmd.CreatedBy,
 			Status:      dm.JournalPosted,
 			Currency:    cmd.Currency,
+			CreatedBy:   createdBy,
 			Lines:       lines,
 		}
 		if err := w.Journals().InsertJournal(ctx, j); err != nil {
@@ -276,7 +292,7 @@ func (s *ledgerAppService) CreateManualJournalEntry(ctx context.Context, cmd in.
 		return in.CreateManualJournalEntryResult{}, err
 	}
 
-	_ = s.audit.Record(ctx, "CREATE_JOURNAL_ENTRY", "journal_entries", jid.String(), cmd.CreatedBy, now, map[string]any{
+	_ = s.audit.Record(ctx, "CREATE_JOURNAL_ENTRY", "journal_entries", jid.String(), createdBy, now, map[string]any{
 		"currency": cmd.Currency,
 		"lines":    len(lines),
 	})

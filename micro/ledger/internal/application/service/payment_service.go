@@ -12,6 +12,7 @@ import (
 	dm "github.com/tagoKoder/ledger/internal/domain/model"
 	in "github.com/tagoKoder/ledger/internal/domain/port/in"
 	out "github.com/tagoKoder/ledger/internal/domain/port/out"
+	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
 )
 
 type paymentService struct {
@@ -25,6 +26,13 @@ func NewPaymentService(u uow.UnitOfWorkManager, accounts out.AccountsGatewayPort
 }
 
 func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentCommand) (in.PostPaymentResult, error) {
+	actor := authctx.ActorFrom(ctx)
+	initiatedBy := actor.Subject
+	if initiatedBy == "" {
+		// fallback temporal (compat)
+		initiatedBy = cmd.InitiatedBy
+	}
+
 	amt, err := decimal.NewFromString(cmd.Amount)
 	if err != nil {
 		return in.PostPaymentResult{}, err
@@ -42,7 +50,7 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 		return pr, nil
 	}
 
-	// 2) Validación en Accounts (breaker + timeout ya en gateway)
+	// 2) Validación en Accounts (breaker  timeout ya en gateway)
 	if err := s.accounts.ValidateAccountsAndLimits(ctx, cmd.SourceAccountID, cmd.DestinationAccount, cmd.Currency, amt); err != nil {
 		return in.PostPaymentResult{}, err
 	}
@@ -50,7 +58,7 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 	paymentID := uuid.New()
 	now := time.Now().UTC()
 
-	// 3) TX: reserve hold + ledger + payment + outbox + idempotency
+	// 3) TX: reserve hold  ledger  payment  outbox  idempotency
 	var result in.PostPaymentResult
 	err = s.uow.DoWrite(ctx, func(w uow.WriteRepos) error {
 		// 3.1 reserve hold (external)
@@ -68,6 +76,7 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 			Amount:         amt,
 			Currency:       cmd.Currency,
 			Status:         dm.PaymentPosted,
+			CustomerID:     uuidFromStringOrNil(actor.CustomerID),
 			CreatedAt:      now,
 		}
 		if err := w.Payments().Insert(ctx, p); err != nil {
@@ -93,11 +102,12 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 
 		j := &dm.JournalEntry{
 			ID:          jid,
-			ExternalRef: "payment:" + paymentID.String(),
+			ExternalRef: "payment:"  paymentID.String(),
 			BookedAt:    now,
 			CreatedBy:   cmd.InitiatedBy,
 			Status:      dm.JournalPosted,
 			Currency:    cmd.Currency,
+			CreatedBy:   initiatedBy,
 			Lines:       lines,
 		}
 		if err := w.Journals().InsertJournal(ctx, j); err != nil {
@@ -109,12 +119,12 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 		_ = w.Payments().InsertStep(ctx, &dm.PaymentStep{
 			ID: uuid.New(), PaymentID: paymentID,
 			Step: "reserve_hold", State: "ok",
-			DetailsJSON: `{"account":"` + srcRef + `"}`, AttemptedAt: now,
+			DetailsJSON: `{"account":"`  srcRef  `"}`, AttemptedAt: now,
 		})
 		_ = w.Payments().InsertStep(ctx, &dm.PaymentStep{
 			ID: uuid.New(), PaymentID: paymentID,
 			Step: "post_ledger", State: "ok",
-			DetailsJSON: `{"journal_id":"` + jid.String() + `"}`, AttemptedAt: now,
+			DetailsJSON: `{"journal_id":"`  jid.String()  `"}`, AttemptedAt: now,
 		})
 
 		// 3.5 outbox payment.posted
@@ -160,7 +170,7 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 		return in.PostPaymentResult{}, err
 	}
 
-	_ = s.audit.Record(ctx, "POST_PAYMENT", "payments", paymentID.String(), cmd.InitiatedBy, now, map[string]any{
+	_ = s.audit.Record(ctx, "POST_PAYMENT", "payments", paymentID.String(), initiatedBy, now, map[string]any{
 		"currency": cmd.Currency,
 		"amount":   amt.StringFixed(6),
 	})
@@ -197,4 +207,13 @@ func (s *paymentService) GetPayment(ctx context.Context, paymentID uuid.UUID) (i
 		return nil
 	})
 	return res, err
+}
+
+
+func uuidFromStringOrNil(s string) uuid.UUID {
+	u, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.Nil
+	}
+	return u
 }

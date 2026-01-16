@@ -24,6 +24,7 @@ type Payment struct {
 	Amount         decimal.Decimal
 	Currency       string
 	Status         PaymentStatus
+	CustomerID     uuid.UUID
 	CreatedAt      time.Time
 }
 

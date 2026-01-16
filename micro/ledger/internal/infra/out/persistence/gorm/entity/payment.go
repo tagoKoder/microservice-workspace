@@ -15,6 +15,7 @@ type PaymentEntity struct {
 	Amount         decimal.Decimal     `gorm:"type:numeric(20,6);not null"`
 	Currency       string              `gorm:"type:char(3);not null"`
 	Status         string              `gorm:"type:text;not null"`
+	CustomerID     uuid.UUID           `gorm:"type:uuid;not null;index"`
 	CreatedAt      time.Time           `gorm:"type:timestamptz;not null"`
 	Steps          []PaymentStepEntity `gorm:"foreignKey:PaymentID;constraint:OnDelete:CASCADE"`
 }

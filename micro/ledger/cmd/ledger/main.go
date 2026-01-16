@@ -7,7 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
+	"github.com/aws/aws-sdk-go-v2/config as awscfg"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
+	"github.com/aws/aws-sdk-go-v2/service/verifiedpermissions"
+	securitygrpc "github.com/tagoKoder/ledger/internal/infra/security/grpc"
+	"github.com/tagoKoder/ledger/internal/infra/security/avp"
+	"github.com/tagoKoder/ledger/internal/infra/security/authz"
+	jwtvalidator "github.com/tagoKoder/ledger/internal/infra/security/jwt"
 	"github.com/tagoKoder/ledger/internal/application/service"
 	"github.com/tagoKoder/ledger/internal/infra/config"
 	"github.com/tagoKoder/ledger/internal/infra/in/grpc/handler"
@@ -45,14 +51,29 @@ func main() {
 	// UoW (infra -> implements application.UnitOfWork)
 	uow := gormuow.NewGormUnitOfWork(readDB, writeDB)
 
-	// Kafka publisher (EventPublisherPort)
-	pub := messaging.NewKafkaPublisher(cfg.KafkaBrokers, cfg.KafkaClientID)
+	// AWS SDK (EventBridge  AVP)
+	awsCfg, err := awscfg.LoadDefaultConfig(
+		context.Background(),
+		awscfg.WithRegion(cfg.AWSRegion),
+	)
+	if err != nil {
+		log.Fatalf("aws cfg: %v", err)
+	}
+	eb := eventbridge.NewFromConfig(awsCfg)
+	vp := verifiedpermissions.NewFromConfig(awsCfg)
 
-	// AuditPort
-	auditPort := audit.NewKafkaAudit(pub, cfg.AuditTopic)
+	// AuditPort: EventBridge best-effort (fallback a logs interno)
+	auditPort := audit.NewEventBridgeAudit(
+		eb,
+		cfg.AuditEventBusName,
+		cfg.AuditSource,
+		cfg.AuditDetailType,
+		cfg.ServiceName,
+		cfg.AppEnv,
+	)
 
 	// AccountsGatewayPort (REST internal)
-	accountsGW := gateway.NewAccountsHTTPGateway(cfg.AccountsBaseURL, cfg.AccountsInternalTok)
+	accountsGW := gateway.NewAccountsHTTPGateway(cfg.AccountsBaseURL, cfg.AccountsInternalTok, cfg.InternalTokenHeader)
 
 	// Application services
 	paySvc := service.NewPaymentService(uow, accountsGW, auditPort)
@@ -66,6 +87,22 @@ func main() {
 	outboxWorker := messaging.NewOutboxWorker(uow, pub, cfg.OutboxBatchSize, cfg.OutboxPollInterval)
 	outboxWorker.Start()
 
+	
+	// Security: JWT validator  AVP  resolver  interceptor
+	jv := jwtvalidator.New(cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTJWKSURL)
+	avpClient := avp.New(vp, cfg.AVPPolicyStoreID)
+	actRes := authz.NewActionResolver()
+	resRes := authz.NewResourceResolver(uow)
+	authzItc := securitygrpc.NewAuthzInterceptor(
+		jv,
+		avpClient,
+		actRes,
+		resRes,
+		auditPort,
+		cfg.HashSaltIP,
+		cfg.HashSaltUA,
+	)
+
 	// gRPC server
 	lis, err := net.Listen("tcp", cfg.GrpcAddr)
 	if err != nil {
@@ -73,7 +110,9 @@ func main() {
 	}
 
 	grpcSrv := grpc.NewServer(
-	// aquí puedes meter interceptors: auth, logging, rate-limit, etc.
+		grpc.ChainUnaryInterceptor(
+			authzItc.Unary(),
+		),
 	)
 
 	ledgerpb.RegisterPaymentsServiceServer(grpcSrv, payH)

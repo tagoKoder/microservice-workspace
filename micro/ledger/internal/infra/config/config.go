@@ -10,7 +10,27 @@ import (
 type Config struct {
 	AppEnv   string
 	GrpcAddr string
+	ServiceName string
 
+	// AWS
+	AWSRegion string
+
+	// JWT (Cognito)
+	JWTIssuer   string
+	JWTAudience string
+	JWTJWKSURL  string
+
+	// AVP
+	AVPPolicyStoreID string
+
+	// Audit EventBridge
+	AuditEventBusName string
+	AuditSource       string
+	AuditDetailType   string
+
+	// Hash salts (no PII cruda)
+	HashSaltIP string
+	HashSaltUA string
 	// DB
 	DBReadDSN  string
 	DBWriteDSN string
@@ -38,7 +58,22 @@ func Load() Config {
 	return Config{
 		AppEnv:   getEnv("APP_ENV", "dev"),
 		GrpcAddr: getEnv("GRPC_ADDR", ":8082"),
+		ServiceName: getEnv("SERVICE_NAME", "ledger-payments"),
 
+		AWSRegion: getEnv("AWS_REGION", "us-east-1"),
+
+		JWTIssuer:   getEnv("JWT_ISSUER", ""),
+		JWTAudience: getEnv("JWT_AUDIENCE", ""),
+		JWTJWKSURL:  getEnv("JWT_JWKS_URL", ""),
+
+		AVPPolicyStoreID: getEnv("AVP_POLICY_STORE_ID", ""),
+
+		AuditEventBusName: getEnv("AUDIT_EVENTBUS_NAME", "default"),
+		AuditSource:       getEnv("AUDIT_SOURCE", "banking.ledger"),
+		AuditDetailType:   getEnv("AUDIT_DETAIL_TYPE", "AuditEvent"),
+
+		HashSaltIP: getEnv("HASH_SALT_IP", "ip_salt"),
+		HashSaltUA: getEnv("HASH_SALT_UA", "ua_salt"),
 		DBReadDSN:  getEnv("DB_READ_DSN", getEnv("DB_DSN", "")),
 		DBWriteDSN: getEnv("DB_WRITE_DSN", getEnv("DB_DSN", "")),
 
