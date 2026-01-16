@@ -78,13 +78,22 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 		// 2) request context (hash ip/ua sin PII cruda)
 		ip := readIncoming(ctx, "x-forwarded-for")
 		ua := readIncoming(ctx, "user-agent")
-		ctx = authctx.WithIPHash(ctx, shaHex(i.hashSaltIP+ip))
-		ctx = authctx.WithUAHash(ctx, shaHex(i.hashSaltUA+ua))
+		ctx = authctx.WithIPHash(ctx, shaHex(i.hashSaltIPip))
+		ctx = authctx.WithUAHash(ctx, shaHex(i.hashSaltUAua))
 
-		// 3) action + route_template (obligatorio)
+		// 3) action  route_template (obligatorio)
 		act := i.acts.Resolve(info.FullMethod)
 		ctx = authctx.WithActionID(ctx, act.ID)
 		ctx = authctx.WithRouteTemplate(ctx, act.RouteTemplate)
+		
+		// IdempotencyKey (si existe en request)
+		if info.FullMethod == "/bank.ledgerpayments.v1.PaymentsService/PostPayment" {
+			if k := extractStringField(req, "IdempotencyKey"); k != "" {
+				ctx = authctx.WithIdempotencyKey(ctx, k)
+			} else if k := extractStringField(req, "idempotency_key"); k != "" {
+				ctx = authctx.WithIdempotencyKey(ctx, k)
+			}
+		}
 
 		// 4) resource
 		res := i.res.Resolve(ctx, info.FullMethod, req)

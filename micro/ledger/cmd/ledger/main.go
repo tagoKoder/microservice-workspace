@@ -59,6 +59,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("aws cfg: %v", err)
 	}
+
+		// Kafka publisher (outbox events del dominio)
+	pub := messaging.NewKafkaPublisher(cfg.KafkaBrokers, cfg.KafkaClientID)
+	
 	eb := eventbridge.NewFromConfig(awsCfg)
 	vp := verifiedpermissions.NewFromConfig(awsCfg)
 
