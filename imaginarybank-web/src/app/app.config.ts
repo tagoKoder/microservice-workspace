@@ -24,10 +24,10 @@ export const appConfig: ApplicationConfig = {
     
     providePrimeNG({
       theme: {
-        preset: Lara // 👈 aquí defines el tema
+        preset: Lara
       },
-      ripple: true,           // opcional
-      inputVariant: 'filled', // opcional
+      ripple: true,
+      inputVariant: 'filled',
     }),
 
     provideHttpClient(
