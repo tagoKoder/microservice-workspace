@@ -1,0 +1,30 @@
+[
+  { "ParameterKey": "ProjectName", "ParameterValue": "bank" },
+  { "ParameterKey": "Env", "ParameterValue": "prod" },
+
+  { "ParameterKey": "LogsBucketName", "ParameterValue": "bank-logs-prod" },
+
+  { "ParameterKey": "AuditBusName", "ParameterValue": "audit-bus-prod" },
+  { "ParameterKey": "AuditArchiveRetentionDays", "ParameterValue": "180" },
+
+  { "ParameterKey": "CloudTrailName", "ParameterValue": "bank-trail-prod" },
+  { "ParameterKey": "CloudTrailS3Prefix", "ParameterValue": "cloudtrail" },
+  { "ParameterKey": "EnableLogFileValidation", "ParameterValue": "true" },
+
+  { "ParameterKey": "EnableKycS3DataEvents", "ParameterValue": "false" },
+  { "ParameterKey": "KycBucketArn", "ParameterValue": "" },
+
+  { "ParameterKey": "EnableWafLogging", "ParameterValue": "true" },
+  { "ParameterKey": "WafWebAclArn", "ParameterValue": "REEMPLAZAR_WEBACL_ARN" },
+  { "ParameterKey": "WafLogRetentionDays", "ParameterValue": "365" },
+
+  { "ParameterKey": "EnableAlbAlarms", "ParameterValue": "true" },
+  { "ParameterKey": "AlbArn", "ParameterValue": "REEMPLAZAR_ALB_ARN" },
+
+  { "ParameterKey": "EnableEcsAlarms", "ParameterValue": "true" },
+  { "ParameterKey": "EcsClusterName", "ParameterValue": "REEMPLAZAR_CLUSTER_NAME" },
+  { "ParameterKey": "BffServiceName", "ParameterValue": "REEMPLAZAR_BFF_SERVICE_NAME" },
+  { "ParameterKey": "IdentityServiceName", "ParameterValue": "REEMPLAZAR_IDENTITY_SERVICE_NAME" },
+  { "ParameterKey": "AccountServiceName", "ParameterValue": "REEMPLAZAR_ACCOUNT_SERVICE_NAME" },
+  { "ParameterKey": "LedgerServiceName", "ParameterValue": "REEMPLAZAR_LEDGER_SERVICE_NAME" }
+]

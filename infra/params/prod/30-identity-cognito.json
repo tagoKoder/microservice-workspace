@@ -1,0 +1,12 @@
+{
+  "ProjectName": "imaginarybank",
+  "Env": "prod",
+  "CognitoDomainPrefix": "imaginarybank-prod-auth-1234",
+  "CallbackUrl": "https://api.tudominio.com/api/v1/auth/oidc/callback",
+  "LogoutUrl": "https://app.tudominio.com/",
+  "LogoutUrl2": "https://api.tudominio.com/",
+  "MfaConfiguration": "ON",
+  "AccessTokenMinutes": 60,
+  "IdTokenMinutes": 60,
+  "RefreshTokenDays": 30
+}

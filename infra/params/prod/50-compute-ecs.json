@@ -1,0 +1,38 @@
+{
+  "Env": "prod",
+  "ProjectName": "imaginarybank",
+  "DomainName": "tudominio.com",
+  "HostedZoneId": "ZXXXXXXXXXXXXX",
+  "ApiSubdomain": "api",
+  "AcmCertArnApi": "arn:aws:acm:us-east-1:123456789012:certificate/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy",
+  "AlbSslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06",
+
+  "BffImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/imaginarybank-prod-bff:REEMPLAZA_TAG",
+  "BffContainerPort": 8080,
+  "BffDesiredCount": 2,
+  "BffCpu": 512,
+  "BffMemory": 1024,
+  "HealthCheckPath": "/health",
+  "LogRetentionDays": 30,
+  "EnableContainerInsights": "true",
+
+  "NetworkStackName": "imaginarybank-prod-10-network",
+
+  "ApiDomainName": "api.tudominio.com",
+
+  "IdentityImageUri": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/identity:prod-latest",
+  "AccountImageUri": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/account:prod-latest",
+  "LedgerImageUri": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/ledger:prod-latest",
+
+  "IdentityGrpcPort": 7001,
+  "AccountGrpcPort": 7002,
+  "LedgerGrpcPort": 7003,
+
+  "IdentityDesiredCount": 2,
+  "AccountDesiredCount": 2,
+  "LedgerDesiredCount": 2,
+
+  "IdentityDbSecretArn": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:bank/prod/db/identity-xxxxx",
+  "AccountDbSecretArn": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:bank/prod/db/account-xxxxx",
+  "LedgerDbSecretArn": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:bank/prod/db/ledger-xxxxx"
+}

@@ -1,0 +1,272 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "60-audit-observability: CloudTrail + Audit Bus + WAF logs + Alarms"
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: "bank"
+  Env:
+    Type: String
+    AllowedValues: ["dev", "prod"]
+
+  LogsBucketName:
+    Type: String
+    Description: "bank-logs-<env> creado en 00-foundation"
+
+  # EventBridge (audit)
+  AuditBusName:
+    Type: String
+    Default: ""
+    Description: "Si vacío: audit-bus-<env>"
+  AuditArchiveRetentionDays:
+    Type: Number
+    Default: 90
+
+  # CloudTrail
+  CloudTrailName:
+    Type: String
+    Default: ""
+    Description: "Si vacío: bank-trail-<env>"
+  CloudTrailS3Prefix:
+    Type: String
+    Default: "cloudtrail"
+  EnableLogFileValidation:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+
+  # Opcional: S3 data events (KYC bucket)
+  EnableKycS3DataEvents:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+  KycBucketArn:
+    Type: String
+    Default: ""
+    Description: "arn:aws:s3:::<kyc-bucket>"
+
+  # WAF logging (CloudFront WebACL)
+  EnableWafLogging:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+  WafWebAclArn:
+    Type: String
+    Default: ""
+    Description: "WebACL ARN (scope CLOUDFRONT). Si vacío: no crea LoggingConfiguration."
+  WafLogRetentionDays:
+    Type: Number
+    Default: 30
+
+  # Alarms
+  EnableAlbAlarms:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+  AlbArn:
+    Type: String
+    Default: ""
+    Description: "ALB ARN (desde stack 50). Si vacío: no crea alarmas ALB."
+
+  EnableEcsAlarms:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+  EcsClusterName:
+    Type: String
+    Default: ""
+  BffServiceName:
+    Type: String
+    Default: ""
+  IdentityServiceName:
+    Type: String
+    Default: ""
+  AccountServiceName:
+    Type: String
+    Default: ""
+  LedgerServiceName:
+    Type: String
+    Default: ""
+
+Conditions:
+  UseAuditBusName: !Not [!Equals [!Ref AuditBusName, ""]]
+  UseCloudTrailName: !Not [!Equals [!Ref CloudTrailName, ""]]
+  EnableTrailValidation: !Equals [!Ref EnableLogFileValidation, "true"]
+
+  EnableS3DataEvents: !And
+    - !Equals [!Ref EnableKycS3DataEvents, "true"]
+    - !Not [!Equals [!Ref KycBucketArn, ""]]
+
+  EnableWafLogs: !And
+    - !Equals [!Ref EnableWafLogging, "true"]
+    - !Not [!Equals [!Ref WafWebAclArn, ""]]
+
+  EnableAlbAlarmSet: !And
+    - !Equals [!Ref EnableAlbAlarms, "true"]
+    - !Not [!Equals [!Ref AlbArn, ""]]
+
+  EnableEcsAlarmSet: !And
+    - !Equals [!Ref EnableEcsAlarms, "true"]
+    - !Not [!Equals [!Ref EcsClusterName, ""]]
+    - !Not [!Equals [!Ref BffServiceName, ""]]
+
+Resources:
+  # -------------------------
+  # EventBridge Audit Bus + Archive
+  # -------------------------
+  AuditEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !If
+        - UseAuditBusName
+        - !Ref AuditBusName
+        - !Sub "audit-bus-${Env}"
+
+  AuditArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      ArchiveName: !Sub "audit-archive-${Env}"
+      SourceArn: !GetAtt AuditEventBus.Arn
+      RetentionDays: !Ref AuditArchiveRetentionDays
+      Description: !Sub "Archive of audit events (${Env})"
+
+  # -------------------------
+  # CloudTrail -> S3 logs bucket
+  # -------------------------
+  CloudTrailTrail:
+    Type: AWS::CloudTrail::Trail
+    Properties:
+      TrailName: !If
+        - UseCloudTrailName
+        - !Ref CloudTrailName
+        - !Sub "bank-trail-${Env}"
+      IsLogging: true
+      IsMultiRegionTrail: true
+      IncludeGlobalServiceEvents: true
+      EnableLogFileValidation: !If [EnableTrailValidation, true, false]
+      S3BucketName: !Ref LogsBucketName
+      S3KeyPrefix: !Ref CloudTrailS3Prefix
+      EventSelectors: !If
+        - EnableS3DataEvents
+        - - ReadWriteType: All
+            IncludeManagementEvents: true
+            DataResources:
+              - Type: AWS::S3::Object
+                Values:
+                  - !Sub "${KycBucketArn}/"
+        - - ReadWriteType: All
+            IncludeManagementEvents: true
+
+  # -------------------------
+  # WAF Logging (CloudWatch Logs)
+  # -------------------------
+  WafLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: EnableWafLogs
+    Properties:
+      LogGroupName: !Sub "aws-waf-logs-${ProjectName}-${Env}-cloudfront"
+      RetentionInDays: !Ref WafLogRetentionDays
+
+  WafLoggingConfiguration:
+    Type: AWS::WAFv2::LoggingConfiguration
+    Condition: EnableWafLogs
+    Properties:
+      ResourceArn: !Ref WafWebAclArn
+      LogDestinationConfigs:
+        - !GetAtt WafLogGroup.Arn
+      RedactedFields:
+        - SingleHeader:
+            Name: "authorization"
+        - SingleHeader:
+            Name: "cookie"
+        - SingleHeader:
+            Name: "x-csrf-token"
+
+  # -------------------------
+  # CloudWatch Alarms (ALB)
+  # -------------------------
+  Alb5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: EnableAlbAlarmSet
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Env}-alb-5xx"
+      Namespace: "AWS/ApplicationELB"
+      MetricName: "HTTPCode_ELB_5XX_Count"
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Select [1, !Split ["loadbalancer/", !Ref AlbArn]]
+
+  AlbLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: EnableAlbAlarmSet
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Env}-alb-latency"
+      Namespace: "AWS/ApplicationELB"
+      MetricName: "TargetResponseTime"
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Select [1, !Split ["loadbalancer/", !Ref AlbArn]]
+
+  # -------------------------
+  # CloudWatch Alarms (ECS)
+  # -------------------------
+  BffCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: EnableEcsAlarmSet
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Env}-ecs-bff-cpu"
+      Namespace: "AWS/ECS"
+      MetricName: "CPUUtilization"
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 10
+      Threshold: 80
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref EcsClusterName
+        - Name: ServiceName
+          Value: !Ref BffServiceName
+
+  BffMemAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: EnableEcsAlarmSet
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Env}-ecs-bff-mem"
+      Namespace: "AWS/ECS"
+      MetricName: "MemoryUtilization"
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 10
+      Threshold: 80
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref EcsClusterName
+        - Name: ServiceName
+          Value: !Ref BffServiceName
+
+Outputs:
+  AuditBusNameOut:
+    Value: !Ref AuditEventBus
+  AuditBusArnOut:
+    Value: !GetAtt AuditEventBus.Arn
+  CloudTrailNameOut:
+    Value: !Ref CloudTrailTrail
+  WafLogGroupNameOut:
+    Condition: EnableWafLogs
+    Value: !Ref WafLogGroup

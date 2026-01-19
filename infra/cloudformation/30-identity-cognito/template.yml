@@ -1,0 +1,173 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "30-identity-cognito: Cognito User Pool + Domain Prefix + App Client (Auth Code + PKCE) for BFF callback."
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: imaginarybank
+
+  Env:
+    Type: String
+    AllowedValues: [dev, prod]
+
+  # Cognito Hosted UI / Managed Login domain prefix (must be globally unique in region)
+  CognitoDomainPrefix:
+    Type: String
+    Description: "Prefix only. Example: imaginarybank-dev-auth-1234"
+    AllowedPattern: '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$'
+
+  # Exact callback for Authorization Code
+  CallbackUrl:
+    Type: String
+    Description: "Example: https://api.tudominio.com/api/v1/auth/oidc/callback"
+
+  # Exact post-logout redirect
+  LogoutUrl:
+    Type: String
+    Description: "Example: https://app.tudominio.com/"
+
+  # Optional: second logout url (api root)
+  LogoutUrl2:
+    Type: String
+    Default: ""
+
+  # MFA configuration (Cognito-managed)
+  MfaConfiguration:
+    Type: String
+    AllowedValues: [OFF, OPTIONAL, ON]
+    Default: OPTIONAL
+
+  # Token validity (BFF stores refresh server-side)
+  AccessTokenMinutes:
+    Type: Number
+    Default: 60
+  IdTokenMinutes:
+    Type: Number
+    Default: 60
+  RefreshTokenDays:
+    Type: Number
+    Default: 30
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${ProjectName}-${Env}-userpool"
+
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: 7
+
+      MfaConfiguration: !Ref MfaConfiguration
+      EnabledMfas:
+        - SOFTWARE_TOKEN_MFA
+
+
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+
+      UserPoolAddOns:
+        AdvancedSecurityMode: ENFORCED
+
+  UserPoolClientBff:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${ProjectName}-${Env}-bff"
+      UserPoolId: !Ref UserPool
+
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+
+      SupportedIdentityProviders: [COGNITO]
+
+      CallbackURLs:
+        - !Ref CallbackUrl
+
+      LogoutURLs:
+        - !Ref LogoutUrl
+        - !If
+          - HasLogout2
+          - !Ref LogoutUrl2
+          - !Ref "AWS::NoValue"
+
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      AccessTokenValidity: !Ref AccessTokenMinutes
+      IdTokenValidity: !Ref IdTokenMinutes
+      RefreshTokenValidity: !Ref RefreshTokenDays
+      
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !Ref CognitoDomainPrefix
+
+Conditions:
+  HasLogout2: !Not [!Equals [!Ref LogoutUrl2, ""]]
+
+
+
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoUserPoolId"
+
+  UserPoolClientId:
+    Value: !Ref UserPoolClientBff
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoClientId"
+
+  CognitoHostedDomain:
+    Value: !Sub "${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoHostedDomain"
+
+  HostedUiBaseUrl:
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoHostedUiBaseUrl"
+
+  AuthorizationEndpoint:
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/oauth2/authorize"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoAuthorizeEndpoint"
+
+  TokenEndpoint:
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/oauth2/token"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoTokenEndpoint"
+
+  LogoutEndpoint:
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/logout"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoLogoutEndpoint"
+
+  IssuerUri:
+    # Nota: discovery (.well-known) vive en cognito-idp.<region>.amazonaws.com/<poolId>/...
+    # NO en el domain prefix.
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoIssuerUri"
+
+  OidcDiscoveryUrl:
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}/.well-known/openid-configuration"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CognitoDiscoveryUrl"

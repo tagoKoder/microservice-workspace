@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "70-authz-avp: Amazon Verified Permissions Policy Store (per env)"
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: "bank"
+  Env:
+    Type: String
+    AllowedValues: ["dev", "prod"]
+  PolicyStoreDescription:
+    Type: String
+    Default: "ImaginaryBank AVP Policy Store"
+  DeletionProtectionMode:
+    Type: String
+    AllowedValues: ["ENABLED", "DISABLED"]
+    Default: "DISABLED"
+
+Resources:
+  AvpPolicyStore:
+    Type: AWS::VerifiedPermissions::PolicyStore
+    Properties:
+      Description: !Sub "${PolicyStoreDescription} (${Env})"
+      DeletionProtection:
+        Mode: !Ref DeletionProtectionMode
+      ValidationSettings:
+        Mode: "OFF"  # luego: script -> put schema -> update-policy-store mode=STRICT
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Env
+
+Outputs:
+  PolicyStoreId:
+    Value: !GetAtt AvpPolicyStore.PolicyStoreId
+  PolicyStoreArn:
+    Value: !GetAtt AvpPolicyStore.Arn

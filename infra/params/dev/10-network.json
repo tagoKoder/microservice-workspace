@@ -1,21 +1,14 @@
-[
-  { "ParameterKey": "AppName", "ParameterValue": "imabank" },
-  { "ParameterKey": "Env", "ParameterValue": "dev" },
-  { "ParameterKey": "RegionShort", "ParameterValue": "use1" },
-
-  { "ParameterKey": "EksClusterName", "ParameterValue": "imabank-dev-eks" },
-
-  { "ParameterKey": "VpcCidr", "ParameterValue": "10.40.0.0/16" },
-
-  { "ParameterKey": "Az1", "ParameterValue": "us-east-1a" },
-  { "ParameterKey": "Az2", "ParameterValue": "us-east-1b" },
-
-  { "ParameterKey": "PublicSubnet1Cidr", "ParameterValue": "10.40.0.0/20" },
-  { "ParameterKey": "PublicSubnet2Cidr", "ParameterValue": "10.40.16.0/20" },
-
-  { "ParameterKey": "PrivateSubnet1Cidr", "ParameterValue": "10.40.128.0/20" },
-  { "ParameterKey": "PrivateSubnet2Cidr", "ParameterValue": "10.40.144.0/20" },
-
-  { "ParameterKey": "EnableNatGateway", "ParameterValue": "true" },
-  { "ParameterKey": "EnableInterfaceEndpoints", "ParameterValue": "false" }
-]
+{
+  "Env": "dev",
+  "ProjectName": "imaginarybank",
+  "Owner": "platform",
+  "CostCenter": "thesis",
+  "DataClassification": "internal",
+  "VpcCidr": "10.10.0.0/16",
+  "PublicSubnet1Cidr": "10.10.0.0/24",
+  "PublicSubnet2Cidr": "10.10.1.0/24",
+  "PrivateSubnet1Cidr": "10.10.10.0/24",
+  "PrivateSubnet2Cidr": "10.10.11.0/24",
+  "NatGatewayCount": 1,
+  "EnableVpcEndpoints": "true"
+}

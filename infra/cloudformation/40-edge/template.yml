@@ -1,0 +1,342 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "40-edge: Private S3 (Angular) + CloudFront (OAC) + WAFv2 (CLOUDFRONT) + Route53 app.<domain>"
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: imaginarybank
+  Env:
+    Type: String
+    AllowedValues: [dev, prod]
+
+  DomainName:
+    Type: String
+    Description: "Root domain, e.g. tudominio.com"
+
+  HostedZoneId:
+    Type: String
+    Description: "Route53 HostedZoneId for DomainName"
+
+  AppSubdomain:
+    Type: String
+    Default: app
+    AllowedPattern: '^[a-z0-9-]{1,20}$'
+
+  AcmCertArnApp:
+    Type: String
+    Description: "ACM cert ARN for app.<domain>. MUST be in us-east-1 for CloudFront."
+
+  ApiOriginForCsp:
+    Type: String
+    Default: ""
+    Description: "Optional. Example: https://api.tudominio.com (added to CSP connect-src)."
+
+  WebBucketName:
+    Type: String
+    Default: ""
+    Description: "Optional fixed bucket name. If empty, CloudFormation generates one."
+
+  EnableCloudFrontLogs:
+    Type: String
+    AllowedValues: ['true','false']
+    Default: 'false'
+
+  LogsBucketDomainName:
+    Type: String
+    Default: ""
+    Description: "Required if EnableCloudFrontLogs=true. Example: bank-logs-dev.s3.amazonaws.com"
+
+  WafRateLimit:
+    Type: Number
+    Default: 2000
+    Description: "Requests per 5 minutes per IP (RateBased)."
+
+Conditions:
+  HasApiOriginForCsp: !Not [!Equals [!Ref ApiOriginForCsp, ""]]
+  UseFixedBucketName: !Not [!Equals [!Ref WebBucketName, ""]]
+  EnableCfLogs: !Equals [!Ref EnableCloudFrontLogs, 'true']
+
+Resources:
+  # -----------------------------
+  # S3 bucket (private) for Angular build artifacts
+  # -----------------------------
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [UseFixedBucketName, !Ref WebBucketName, !Ref "AWS::NoValue"]
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # -----------------------------
+  # CloudFront OAC for S3
+  # -----------------------------
+  WebOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${ProjectName}-${Env}-web-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # -----------------------------
+  # WAFv2 Web ACL (Scope CLOUDFRONT)
+  # Must be created in us-east-1
+  # -----------------------------
+  WebAcl:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub "${ProjectName}-${Env}-web-acl"
+      Scope: CLOUDFRONT
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub "${ProjectName}-${Env}-web-acl"
+        SampledRequestsEnabled: true
+      Rules:
+        - Name: RateLimit
+          Priority: 1
+          Action:
+            Block: {}
+          Statement:
+            RateBasedStatement:
+              Limit: !Ref WafRateLimit
+              AggregateKeyType: IP
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub "${ProjectName}-${Env}-rate"
+            SampledRequestsEnabled: true
+
+        - Name: AWSManagedRulesCommonRuleSet
+          Priority: 10
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub "${ProjectName}-${Env}-common"
+            SampledRequestsEnabled: true
+
+        - Name: AWSManagedRulesKnownBadInputsRuleSet
+          Priority: 20
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub "${ProjectName}-${Env}-badinputs"
+            SampledRequestsEnabled: true
+
+  # -----------------------------
+  # Response headers policy (security headers)
+  # -----------------------------
+  ResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub "${ProjectName}-${Env}-security-headers"
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Preload: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: no-referrer
+            Override: true
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: !If
+              - HasApiOriginForCsp
+              - !Sub "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ${ApiOriginForCsp}; form-action 'self'; upgrade-insecure-requests"
+              - "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; form-action 'self'; upgrade-insecure-requests"
+            Override: true
+
+  # -----------------------------
+  # Cache policies (self-contained; evita IDs managed externos)
+  # -----------------------------
+  CachePolicyStatic:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub "${ProjectName}-${Env}-static"
+        DefaultTTL: 86400
+        MaxTTL: 31536000
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  CachePolicyNoCache:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub "${ProjectName}-${Env}-no-cache"
+        DefaultTTL: 0
+        MaxTTL: 0
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  # -----------------------------
+  # CloudFront distribution
+  # -----------------------------
+  WebDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "${ProjectName}-${Env}-web"
+        HttpVersion: http2and3
+        DefaultRootObject: index.html
+        Aliases:
+          - !Sub "${AppSubdomain}.${DomainName}"
+        WebACLId: !GetAtt WebAcl.Arn
+
+        Origins:
+          - Id: s3-web
+            DomainName: !GetAtt WebBucket.RegionalDomainName
+            OriginAccessControlId: !Ref WebOac
+            S3OriginConfig: {}
+
+        DefaultCacheBehavior:
+          TargetOriginId: s3-web
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          Compress: true
+          CachePolicyId: !Ref CachePolicyStatic
+          ResponseHeadersPolicyId: !Ref ResponseHeadersPolicy
+
+        # SPA routing: si el usuario pide /cualquier-ruta, y S3 devuelve 403/404, servimos index.html
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+        # index.html sin cache agresivo
+        CacheBehaviors:
+          - PathPattern: /index.html
+            TargetOriginId: s3-web
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            Compress: true
+            CachePolicyId: !Ref CachePolicyNoCache
+            ResponseHeadersPolicyId: !Ref ResponseHeadersPolicy
+
+        ViewerCertificate:
+          AcmCertificateArn: !Ref AcmCertArnApp
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+
+        Logging: !If
+          - EnableCfLogs
+          - Bucket: !Ref LogsBucketDomainName
+            IncludeCookies: false
+            Prefix: !Sub "cloudfront/${ProjectName}/${Env}/"
+          - !Ref "AWS::NoValue"
+
+  # -----------------------------
+  # S3 bucket policy: allow read ONLY from this CloudFront distribution (OAC)
+  # -----------------------------
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${WebBucket}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}"
+
+  # -----------------------------
+  # Route53: app.<domain> -> CloudFront
+  # -----------------------------
+  AppRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "${AppSubdomain}.${DomainName}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt WebDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+Outputs:
+  WebBucketName:
+    Value: !Ref WebBucket
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-WebBucketName"
+
+  CloudFrontDistributionId:
+    Value: !Ref WebDistribution
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-WebDistributionId"
+
+  CloudFrontDomainName:
+    Value: !GetAtt WebDistribution.DomainName
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-WebDistributionDomain"
+
+  WebAclArn:
+    Value: !GetAtt WebAcl.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-WebAclArn"
+
+  AppFqdn:
+    Value: !Sub "${AppSubdomain}.${DomainName}"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-AppFqdn"
+
+  AppUrl:
+    Value: !Sub "https://${AppSubdomain}.${DomainName}"
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-AppUrl"

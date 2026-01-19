@@ -1,0 +1,6 @@
+[
+  { "ParameterKey": "ProjectName", "ParameterValue": "bank" },
+  { "ParameterKey": "Env", "ParameterValue": "dev" },
+  { "ParameterKey": "PolicyStoreDescription", "ParameterValue": "ImaginaryBank AVP Policy Store" },
+  { "ParameterKey": "DeletionProtectionMode", "ParameterValue": "DISABLED" }
+]

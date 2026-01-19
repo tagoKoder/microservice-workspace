@@ -1,0 +1,14 @@
+{
+  "Env": "prod",
+  "ProjectName": "imaginarybank",
+  "Owner": "platform",
+  "CostCenter": "thesis",
+  "DataClassification": "confidential",
+  "VpcCidr": "10.20.0.0/16",
+  "PublicSubnet1Cidr": "10.20.0.0/24",
+  "PublicSubnet2Cidr": "10.20.1.0/24",
+  "PrivateSubnet1Cidr": "10.20.10.0/24",
+  "PrivateSubnet2Cidr": "10.20.11.0/24",
+  "NatGatewayCount": 2,
+  "EnableVpcEndpoints": "true"
+}

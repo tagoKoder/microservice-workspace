@@ -1,0 +1,179 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "20-data: RDS Postgres (private) + Secrets (DB_DSN per service) + KYC S3 bucket (private)"
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: bank
+  Env:
+    Type: String
+    AllowedValues: [dev, prod]
+
+  NetworkStackName:
+    Type: String
+    Description: "Nombre del stack 10-network para ImportValue"
+
+  DbEngineVersion:
+    Type: String
+    Default: "16.3"
+  DbInstanceClass:
+    Type: String
+    Default: "db.t4g.micro"
+  DbAllocatedStorageGb:
+    Type: Number
+    Default: 20
+  DbMultiAz:
+    Type: String
+    AllowedValues: ["true","false"]
+    Default: "false"
+  DbBackupRetentionDays:
+    Type: Number
+    Default: 7
+  DbDeletionProtection:
+    Type: String
+    AllowedValues: ["true","false"]
+    Default: "false"
+
+  DbName:
+    Type: String
+    Default: "bank"
+
+  DbMasterUsername:
+    Type: String
+    Default: "bankadmin"
+  DbMasterPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+
+  # KYC bucket
+  KycBucketName:
+    Type: String
+    Default: ""
+    Description: "Si vacío, se genera uno. Recomendado: bank-kyc-<env>-<account>"
+
+Conditions:
+  UseFixedKycBucketName: !Not [!Equals [!Ref KycBucketName, ""]]
+
+Resources:
+  # --- DB subnet group (private subnets) ---
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub "${ProjectName}-${Env} private subnets"
+      SubnetIds: !Split [",", !ImportValue
+        Fn::Sub: "${NetworkStackName}-PrivateSubnetIds"
+      ]
+
+  # --- DB SG: allow 5432 ONLY from Micros SG (from 10-network outputs) ---
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName}-${Env} postgres sg"
+      VpcId: !ImportValue
+        Fn::Sub: "${NetworkStackName}-VpcId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !ImportValue
+            Fn::Sub: "${NetworkStackName}-MicrosSecurityGroupId"
+
+  PostgresDb:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub "${ProjectName}-${Env}-pg"
+      Engine: postgres
+      EngineVersion: !Ref DbEngineVersion
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: !Ref DbAllocatedStorageGb
+      StorageType: gp3
+      StorageEncrypted: true
+      PubliclyAccessible: false
+      MultiAZ: !Equals [!Ref DbMultiAz, "true"]
+      BackupRetentionPeriod: !Ref DbBackupRetentionDays
+      DeletionProtection: !Equals [!Ref DbDeletionProtection, "true"]
+      DBName: !Ref DbName
+      MasterUsername: !Ref DbMasterUsername
+      MasterUserPassword: !Ref DbMasterPassword
+      VPCSecurityGroups:
+        - !Ref DbSecurityGroup
+      DBSubnetGroupName: !Ref DbSubnetGroup
+
+  # --- Secrets with DB_DSN for each service ---
+  IdentityDbSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "bank/${Env}/db/identity"
+      SecretString: !Sub |
+        {"DB_DSN":"postgres://${DbMasterUsername}:${DbMasterPassword}@${PostgresDb.Endpoint.Address}:${PostgresDb.Endpoint.Port}/${DbName}?sslmode=require"}
+
+  AccountDbSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "bank/${Env}/db/account"
+      SecretString: !Sub |
+        {"DB_DSN":"postgres://${DbMasterUsername}:${DbMasterPassword}@${PostgresDb.Endpoint.Address}:${PostgresDb.Endpoint.Port}/${DbName}?sslmode=require"}
+
+  LedgerDbSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "bank/${Env}/db/ledger"
+      SecretString: !Sub |
+        {"DB_DSN":"postgres://${DbMasterUsername}:${DbMasterPassword}@${PostgresDb.Endpoint.Address}:${PostgresDb.Endpoint.Port}/${DbName}?sslmode=require"}
+
+  # --- KYC bucket (private) ---
+  KycBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [UseFixedKycBucketName, !Ref KycBucketName, !Ref "AWS::NoValue"]
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  KycBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref KycBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !Sub "arn:aws:s3:::${KycBucket}"
+              - !Sub "arn:aws:s3:::${KycBucket}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+Outputs:
+  DbEndpoint:
+    Value: !GetAtt PostgresDb.Endpoint.Address
+  DbPort:
+    Value: !GetAtt PostgresDb.Endpoint.Port
+
+  IdentityDbSecretArn:
+    Value: !Ref IdentityDbSecret
+  AccountDbSecretArn:
+    Value: !Ref AccountDbSecret
+  LedgerDbSecretArn:
+    Value: !Ref LedgerDbSecret
+
+  KycBucketNameOut:
+    Value: !Ref KycBucket
+  KycBucketArnOut:
+    Value: !Sub "arn:aws:s3:::${KycBucket}"

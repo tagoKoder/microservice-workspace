@@ -1,426 +1,606 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description: "00-foundation: KMS keys + base S3 buckets (audit immutable with Object Lock) + baseline bucket policies"
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  00-foundation - Base compliance/support: mandatory tags, KMS keys (s3, secrets, optional logs),
+  base S3 buckets (logs, optional artifacts), and a deployer IAM role.
 
 Parameters:
-  AppName:
-    Type: String
-    Default: imabank
-  SystemName:
-    Type: String
-    Default: banking
   Env:
     Type: String
     AllowedValues: [dev, prod]
-    Default: dev
-  RegionShort:
+    Description: Environment name.
+
+  ProjectName:
     Type: String
-    Default: use1
+    Default: imaginarybank
+    AllowedPattern: '^[a-z0-9-]{3,30}$'
+    Description: Short project name used in resource naming (lowercase).
 
   Owner:
     Type: String
-    Default: thesis
+    Default: platform
+    MaxLength: 64
+
   CostCenter:
     Type: String
     Default: thesis
-  Compliance:
-    Type: String
-    Default: asvs-l3
+    MaxLength: 64
+
   DataClassification:
     Type: String
-    AllowedValues: [public, internal, confidential]
-    Default: confidential
-  Repo:
-    Type: String
-    Default: imaginarybank
+    Default: internal
+    AllowedValues: [public, internal, confidential, restricted]
 
-  EnableAccessLogsBucket:
+  EnableKeyRotation:
     Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
+    AllowedValues: ['true', 'false']
+    Default: 'true'
 
-  AuditObjectLockMode:
+  EnableLogsKmsKey:
     Type: String
-    AllowedValues: [GOVERNANCE, COMPLIANCE]
-    Default: GOVERNANCE
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+    Description: If true, creates a dedicated KMS key for logs.
 
-  AuditDefaultRetentionDays:
+  CreateArtifactsBucket:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+    Description: If true, creates an artifacts bucket.
+
+  LogsBucketRetentionDays:
     Type: Number
     Default: 365
+    MinValue: 30
+    MaxValue: 3650
 
-  KycRetentionDays:
+  ArtifactsBucketRetentionDays:
     Type: Number
-    Default: 90
+    Default: 180
+    MinValue: 30
+    MaxValue: 3650
 
-  ArtifactsRetentionDays:
-    Type: Number
-    Default: 30
+  DeployerRoleName:
+    Type: String
+    Default: ''
+    Description: >
+      Optional explicit name for the deployer role. If empty, a default name is used.
 
-  AccessLogsRetentionDays:
+  DeployerPrincipalArn:
+    Type: String
+    Default: ''
+    Description: >
+      Optional principal ARN allowed to assume the deployer role. If empty, trusts account root.
+  
+  CreateEcrRepositories:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+    Description: If true, creates ECR repositories for bff/identity/account/ledger.
+
+  EcrScanOnPush:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+
+  EcrTagMutability:
+    Type: String
+    AllowedValues: [IMMUTABLE, MUTABLE]
+    Default: IMMUTABLE
+
+  EcrLifecycleMaxImages:
     Type: Number
-    Default: 30
+    Default: 50
+    MinValue: 10
+    MaxValue: 500
+
+  EcrRepoBff:
+    Type: String
+    Default: ''
+    Description: ECR repository name for BFF (e.g. imaginarybank-dev-bff)
+
+  EcrRepoIdentity:
+    Type: String
+    Default: ''
+    Description: ECR repository name for Identity (e.g. imaginarybank-dev-identity)
+
+  EcrRepoAccount:
+    Type: String
+    Default: ''
+    Description: ECR repository name for Account (e.g. imaginarybank-dev-account)
+
+  EcrRepoLedger:
+    Type: String
+    Default: ''
+    Description: ECR repository name for Ledger (e.g. imaginarybank-dev-ledger)
+
 
 Conditions:
-  CreateAccessLogsBucket: !Equals [!Ref EnableAccessLogsBucket, "true"]
+  UseLogsKey: !Equals [!Ref EnableLogsKmsKey, 'true']
+  CreateArtifacts: !Equals [!Ref CreateArtifactsBucket, 'true']
+  HasDeployerRoleName: !Not [!Equals [!Ref DeployerRoleName, '']]
+  HasDeployerPrincipalArn: !Not [!Equals [!Ref DeployerPrincipalArn, '']]
+  CreateEcr: !Equals [!Ref CreateEcrRepositories, 'true']
 
-Mappings: {}
 
 Resources:
-
-  ############################
-  # KMS KEYS
-  ############################
-
-  KmsLogsKey:
+  KmsKeyS3:
     Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
-      Description: !Sub "${AppName}-${Env} logs/audit KMS key"
-      EnableKeyRotation: true
+      Description: !Sub "${ProjectName}-${Env}-kms-s3"
+      EnableKeyRotation: !Ref EnableKeyRotation
       KeyPolicy:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
-          - Sid: AllowRootAccountFullAccess
+          - Sid: AllowAccountRootFullAccess
             Effect: Allow
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
             Action: "kms:*"
             Resource: "*"
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
 
-  KmsLogsAlias:
+  KmsAliasS3:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: !Sub "alias/${AppName}/${Env}/kms-logs"
-      TargetKeyId: !Ref KmsLogsKey
+      AliasName: !Sub "alias/${ProjectName}-${Env}-kms-s3"
+      TargetKeyId: !Ref KmsKeyS3
 
-  KmsDataKey:
+  KmsKeySecrets:
     Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
-      Description: !Sub "${AppName}-${Env} data (S3 KYC/general) KMS key"
-      EnableKeyRotation: true
+      Description: !Sub "${ProjectName}-${Env}-kms-secrets"
+      EnableKeyRotation: !Ref EnableKeyRotation
       KeyPolicy:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
-          - Sid: AllowRootAccountFullAccess
+          - Sid: AllowAccountRootFullAccess
             Effect: Allow
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
             Action: "kms:*"
             Resource: "*"
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
 
-  KmsDataAlias:
+  KmsAliasSecrets:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: !Sub "alias/${AppName}/${Env}/kms-data"
-      TargetKeyId: !Ref KmsDataKey
+      AliasName: !Sub "alias/${ProjectName}-${Env}-kms-secrets"
+      TargetKeyId: !Ref KmsKeySecrets
 
-  KmsSecretsKey:
+  KmsKeyLogs:
+    Condition: UseLogsKey
     Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
-      Description: !Sub "${AppName}-${Env} secrets KMS key"
-      EnableKeyRotation: true
+      Description: !Sub "${ProjectName}-${Env}-kms-logs"
+      EnableKeyRotation: !Ref EnableKeyRotation
       KeyPolicy:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
-          - Sid: AllowRootAccountFullAccess
+          - Sid: AllowAccountRootFullAccess
             Effect: Allow
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
             Action: "kms:*"
             Resource: "*"
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
 
-  KmsSecretsAlias:
+  KmsAliasLogs:
+    Condition: UseLogsKey
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: !Sub "alias/${AppName}/${Env}/kms-secrets"
-      TargetKeyId: !Ref KmsSecretsKey
+      AliasName: !Sub "alias/${ProjectName}-${Env}-kms-logs"
+      TargetKeyId: !Ref KmsKeyLogs
 
-
-  ############################
-  # S3 BUCKETS
-  ############################
-
-  AccessLogsBucket:
-    Condition: CreateAccessLogsBucket
+  LogsBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub "${AppName}-${Env}-${RegionShort}-${AWS::AccountId}-access-logs"
+      BucketName: !Sub "${ProjectName}-logs-${Env}-${AWS::AccountId}-${AWS::Region}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
-        IgnorePublicAcls: true
         BlockPublicPolicy: true
+        IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
       OwnershipControls:
         Rules:
-          - ObjectOwnership: BucketOwnerEnforced
+          - ObjectOwnership: BucketOwnerPreferred
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: aws:kms
-              KMSMasterKeyID: !GetAtt KmsLogsKey.Arn
+              KMSMasterKeyID: !If
+                - UseLogsKey
+                - !GetAtt KmsKeyLogs.Arn
+                - !GetAtt KmsKeyS3.Arn
       LifecycleConfiguration:
         Rules:
-          - Id: expire-access-logs
+          - Id: expire-logs
             Status: Enabled
-            ExpirationInDays: !Ref AccessLogsRetentionDays
+            ExpirationInDays: !Ref LogsBucketRetentionDays
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
+
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LogsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${LogsBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${LogsBucket}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+          - Sid: DenyUnencryptedObjectUploads
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:PutObject"
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${LogsBucket}/*"
+            Condition:
+              StringNotEquals:
+                s3:x-amz-server-side-encryption: "aws:kms"
 
   ArtifactsBucket:
+    Condition: CreateArtifacts
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub "${AppName}-${Env}-${RegionShort}-${AWS::AccountId}-artifacts"
+      BucketName: !Sub "${ProjectName}-artifacts-${Env}-${AWS::AccountId}-${AWS::Region}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
-        IgnorePublicAcls: true
         BlockPublicPolicy: true
+        IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
       OwnershipControls:
         Rules:
-          - ObjectOwnership: BucketOwnerEnforced
+          - ObjectOwnership: BucketOwnerPreferred
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: aws:kms
-              KMSMasterKeyID: !GetAtt KmsDataKey.Arn
-      LoggingConfiguration: !If
-        - CreateAccessLogsBucket
-        - DestinationBucketName: !Ref AccessLogsBucket
-          LogFilePrefix: !Sub "s3-access/artifacts/"
-        - !Ref "AWS::NoValue"
+              KMSMasterKeyID: !GetAtt KmsKeyS3.Arn
       LifecycleConfiguration:
         Rules:
           - Id: expire-artifacts
             Status: Enabled
-            ExpirationInDays: !Ref ArtifactsRetentionDays
-
-  KycBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      BucketName: !Sub "${AppName}-${Env}-${RegionShort}-${AWS::AccountId}-kyc"
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        IgnorePublicAcls: true
-        BlockPublicPolicy: true
-        RestrictPublicBuckets: true
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerEnforced
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-              KMSMasterKeyID: !GetAtt KmsDataKey.Arn
-      LoggingConfiguration: !If
-        - CreateAccessLogsBucket
-        - DestinationBucketName: !Ref AccessLogsBucket
-          LogFilePrefix: !Sub "s3-access/kyc/"
-        - !Ref "AWS::NoValue"
-      LifecycleConfiguration:
-        Rules:
-          - Id: expire-kyc
-            Status: Enabled
-            ExpirationInDays: !Ref KycRetentionDays
-
-  AuditImmutableBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      # Object Lock requiere que el bucket nazca con esta propiedad.
-      BucketName: !Sub "${AppName}-${Env}-${RegionShort}-${AWS::AccountId}-audit-immutable"
-      ObjectLockEnabled: true
-      VersioningConfiguration:
-        Status: Enabled
-      ObjectLockConfiguration:
-        ObjectLockEnabled: Enabled
-        Rule:
-          DefaultRetention:
-            Mode: !Ref AuditObjectLockMode
-            Days: !Ref AuditDefaultRetentionDays
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        IgnorePublicAcls: true
-        BlockPublicPolicy: true
-        RestrictPublicBuckets: true
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerEnforced
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-              KMSMasterKeyID: !GetAtt KmsLogsKey.Arn
-      LoggingConfiguration: !If
-        - CreateAccessLogsBucket
-        - DestinationBucketName: !Ref AccessLogsBucket
-          LogFilePrefix: !Sub "s3-access/audit/"
-        - !Ref "AWS::NoValue"
-
-  ############################
-  # BUCKET POLICIES (DENY-BASED)
-  ############################
+            ExpirationInDays: !Ref ArtifactsBucketRetentionDays
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
 
   ArtifactsBucketPolicy:
+    Condition: CreateArtifacts
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref ArtifactsBucket
       PolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Sid: DenyInsecureTransport
             Effect: Deny
             Principal: "*"
             Action: "s3:*"
             Resource:
-              - !Sub "arn:aws:s3:::${ArtifactsBucket}"
-              - !Sub "arn:aws:s3:::${ArtifactsBucket}/*"
+              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactsBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactsBucket}/*"
             Condition:
               Bool:
                 aws:SecureTransport: "false"
 
-          - Sid: DenySSE_S3_AES256
+          - Sid: DenyUnencryptedObjectUploads
             Effect: Deny
             Principal: "*"
-            Action:
-              - "s3:PutObject"
-              - "s3:InitiateMultipartUpload"
-            Resource: !Sub "arn:aws:s3:::${ArtifactsBucket}/*"
-            Condition:
-              StringEquals:
-                s3:x-amz-server-side-encryption: "AES256"
-
-          - Sid: DenyWrongKmsKeyIfSpecified
-            Effect: Deny
-            Principal: "*"
-            Action:
-              - "s3:PutObject"
-              - "s3:InitiateMultipartUpload"
-            Resource: !Sub "arn:aws:s3:::${ArtifactsBucket}/*"
+            Action: "s3:PutObject"
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactsBucket}/*"
             Condition:
               StringNotEquals:
-                s3:x-amz-server-side-encryption-aws-kms-key-id: !GetAtt KmsDataKey.Arn
+                s3:x-amz-server-side-encryption: "aws:kms"
 
-  KycBucketPolicy:
-    Type: AWS::S3::BucketPolicy
+  CfnDeployerRole:
+    Type: AWS::IAM::Role
     Properties:
-      Bucket: !Ref KycBucket
-      PolicyDocument:
-        Version: "2012-10-17"
+      RoleName: !If
+        - HasDeployerRoleName
+        - !Ref DeployerRoleName
+        - !Sub "${ProjectName}-${Env}-cfn-deployer"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
         Statement:
-          - Sid: DenyInsecureTransport
-            Effect: Deny
-            Principal: "*"
-            Action: "s3:*"
-            Resource:
-              - !Sub "arn:aws:s3:::${KycBucket}"
-              - !Sub "arn:aws:s3:::${KycBucket}/*"
-            Condition:
-              Bool:
-                aws:SecureTransport: "false"
+          - Sid: AllowAssumeFromPrincipal
+            Effect: Allow
+            Action: "sts:AssumeRole"
+            Principal:
+              AWS: !If
+                - HasDeployerPrincipalArn
+                - !Ref DeployerPrincipalArn
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+      ManagedPolicyArns:
+        # Demo/thesis friendly: simplify operations. Tighten later if needed.
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AdministratorAccess"
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
 
-          - Sid: DenySSE_S3_AES256
-            Effect: Deny
-            Principal: "*"
-            Action:
-              - "s3:PutObject"
-              - "s3:InitiateMultipartUpload"
-            Resource: !Sub "arn:aws:s3:::${KycBucket}/*"
-            Condition:
-              StringEquals:
-                s3:x-amz-server-side-encryption: "AES256"
-
-          - Sid: DenyWrongKmsKeyIfSpecified
-            Effect: Deny
-            Principal: "*"
-            Action:
-              - "s3:PutObject"
-              - "s3:InitiateMultipartUpload"
-            Resource: !Sub "arn:aws:s3:::${KycBucket}/*"
-            Condition:
-              StringNotEquals:
-                s3:x-amz-server-side-encryption-aws-kms-key-id: !GetAtt KmsDataKey.Arn
-
-  AuditBucketPolicy:
-    Type: AWS::S3::BucketPolicy
+  EcrRepoBffResource:
+    Condition: CreateEcr
+    Type: AWS::ECR::Repository
     Properties:
-      Bucket: !Ref AuditImmutableBucket
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: DenyInsecureTransport
-            Effect: Deny
-            Principal: "*"
-            Action: "s3:*"
-            Resource:
-              - !Sub "arn:aws:s3:::${AuditImmutableBucket}"
-              - !Sub "arn:aws:s3:::${AuditImmutableBucket}/*"
-            Condition:
-              Bool:
-                aws:SecureTransport: "false"
+      RepositoryName: !Ref EcrRepoBff
+      ImageScanningConfiguration:
+        ScanOnPush: !Ref EcrScanOnPush
+      ImageTagMutability: !Ref EcrTagMutability
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      LifecyclePolicy:
+        LifecyclePolicyText: !Sub |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last ${EcrLifecycleMaxImages} images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": ${EcrLifecycleMaxImages}
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
 
-          - Sid: DenySSE_S3_AES256
-            Effect: Deny
-            Principal: "*"
-            Action:
-              - "s3:PutObject"
-              - "s3:InitiateMultipartUpload"
-            Resource: !Sub "arn:aws:s3:::${AuditImmutableBucket}/*"
-            Condition:
-              StringEquals:
-                s3:x-amz-server-side-encryption: "AES256"
+  EcrRepoIdentityResource:
+    Condition: CreateEcr
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref EcrRepoIdentity
+      ImageScanningConfiguration:
+        ScanOnPush: !Ref EcrScanOnPush
+      ImageTagMutability: !Ref EcrTagMutability
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      LifecyclePolicy:
+        LifecyclePolicyText: !Sub |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last ${EcrLifecycleMaxImages} images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": ${EcrLifecycleMaxImages}
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
 
-          - Sid: DenyWrongKmsKeyIfSpecified
-            Effect: Deny
-            Principal: "*"
-            Action:
-              - "s3:PutObject"
-              - "s3:InitiateMultipartUpload"
-            Resource: !Sub "arn:aws:s3:::${AuditImmutableBucket}/*"
-            Condition:
-              StringNotEquals:
-                s3:x-amz-server-side-encryption-aws-kms-key-id: !GetAtt KmsLogsKey.Arn
+  EcrRepoAccountResource:
+    Condition: CreateEcr
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref EcrRepoAccount
+      ImageScanningConfiguration:
+        ScanOnPush: !Ref EcrScanOnPush
+      ImageTagMutability: !Ref EcrTagMutability
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      LifecyclePolicy:
+        LifecyclePolicyText: !Sub |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last ${EcrLifecycleMaxImages} images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": ${EcrLifecycleMaxImages}
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
+
+  EcrRepoLedgerResource:
+    Condition: CreateEcr
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref EcrRepoLedger
+      ImageScanningConfiguration:
+        ScanOnPush: !Ref EcrScanOnPush
+      ImageTagMutability: !Ref EcrTagMutability
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      LifecyclePolicy:
+        LifecyclePolicyText: !Sub |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last ${EcrLifecycleMaxImages} images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": ${EcrLifecycleMaxImages}
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
+
 
 Outputs:
-  Prefix:
-    Value: !Sub "${AppName}-${Env}-${RegionShort}"
+  LogsBucketName:
+    Value: !Ref LogsBucket
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}:00-foundation:Prefix"
-
-  KmsLogsKeyArn:
-    Value: !GetAtt KmsLogsKey.Arn
-    Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}:00-foundation:KmsLogsKeyArn"
-
-  KmsDataKeyArn:
-    Value: !GetAtt KmsDataKey.Arn
-    Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}:00-foundation:KmsDataKeyArn"
-
-  KmsSecretsKeyArn:
-    Value: !GetAtt KmsSecretsKey.Arn
-    Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}:00-foundation:KmsSecretsKeyArn"
-
-  AuditBucketName:
-    Value: !Ref AuditImmutableBucket
-    Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}:00-foundation:AuditBucketName"
-
-  KycBucketName:
-    Value: !Ref KycBucket
-    Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}:00-foundation:KycBucketName"
+      Name: !Sub "${ProjectName}-${Env}-LogsBucketName"
 
   ArtifactsBucketName:
+    Condition: CreateArtifacts
     Value: !Ref ArtifactsBucket
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}:00-foundation:ArtifactsBucketName"
+      Name: !Sub "${ProjectName}-${Env}-ArtifactsBucketName"
 
-  AccessLogsBucketName:
-    Condition: CreateAccessLogsBucket
-    Value: !Ref AccessLogsBucket
+  KmsKeyS3Arn:
+    Value: !GetAtt KmsKeyS3.Arn
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}:00-foundation:AccessLogsBucketName"
+      Name: !Sub "${ProjectName}-${Env}-KmsKeyS3Arn"
+
+  KmsKeySecretsArn:
+    Value: !GetAtt KmsKeySecrets.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-KmsKeySecretsArn"
+
+  KmsKeyLogsArn:
+    Condition: UseLogsKey
+    Value: !GetAtt KmsKeyLogs.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-KmsKeyLogsArn"
+
+  CfnDeployerRoleArn:
+    Value: !GetAtt CfnDeployerRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-CfnDeployerRoleArn"
+
+  EcrRepoBffUri:
+    Condition: CreateEcr
+    Value: !GetAtt EcrRepoBffResource.RepositoryUri
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-EcrRepoBffUri"
+
+  EcrRepoIdentityUri:
+    Condition: CreateEcr
+    Value: !GetAtt EcrRepoIdentityResource.RepositoryUri
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-EcrRepoIdentityUri"
+
+  EcrRepoAccountUri:
+    Condition: CreateEcr
+    Value: !GetAtt EcrRepoAccountResource.RepositoryUri
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-EcrRepoAccountUri"
+
+  EcrRepoLedgerUri:
+    Condition: CreateEcr
+    Value: !GetAtt EcrRepoLedgerResource.RepositoryUri
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-EcrRepoLedgerUri"

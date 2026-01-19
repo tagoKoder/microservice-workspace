@@ -1,21 +1,24 @@
-[
-  { "ParameterKey": "AppName", "ParameterValue": "imabank" },
-  { "ParameterKey": "SystemName", "ParameterValue": "banking" },
-  { "ParameterKey": "Env", "ParameterValue": "dev" },
-  { "ParameterKey": "RegionShort", "ParameterValue": "use1" },
+{
+  "Env": "dev",
+  "ProjectName": "imaginarybank",
+  "Owner": "platform",
+  "CostCenter": "thesis",
+  "DataClassification": "internal",
+  "EnableKeyRotation": "true",
+  "EnableLogsKmsKey": "false",
+  "CreateArtifactsBucket": "false",
+  "LogsBucketRetentionDays": 365,
+  "ArtifactsBucketRetentionDays": 180,
+  "DeployerRoleName": "imaginarybank-dev-cfn-deployer",
+  "DeployerPrincipalArn": "",
 
-  { "ParameterKey": "Owner", "ParameterValue": "thesis" },
-  { "ParameterKey": "CostCenter", "ParameterValue": "thesis" },
-  { "ParameterKey": "Compliance", "ParameterValue": "asvs-l3" },
-  { "ParameterKey": "DataClassification", "ParameterValue": "confidential" },
-  { "ParameterKey": "Repo", "ParameterValue": "imaginarybank" },
-
-  { "ParameterKey": "EnableAccessLogsBucket", "ParameterValue": "true" },
-
-  { "ParameterKey": "AuditObjectLockMode", "ParameterValue": "GOVERNANCE" },
-  { "ParameterKey": "AuditDefaultRetentionDays", "ParameterValue": "365" },
-
-  { "ParameterKey": "KycRetentionDays", "ParameterValue": "90" },
-  { "ParameterKey": "ArtifactsRetentionDays", "ParameterValue": "30" },
-  { "ParameterKey": "AccessLogsRetentionDays", "ParameterValue": "30" }
-]
+  "CreateEcrRepositories": "true",
+  "EcrScanOnPush": "true",
+  "EcrTagMutability": "IMMUTABLE",
+  "EcrLifecycleMaxImages": 50,
+  "EcrRepoBff": "imaginarybank-dev-bff",
+  "EcrRepoIdentity": "imaginarybank-dev-identity",
+  "EcrRepoAccount": "imaginarybank-dev-account",
+  "EcrRepoLedger": "imaginarybank-dev-ledger",
+  "LogsBucketName": "imaginarybank-dev-logs-bucket"
+}

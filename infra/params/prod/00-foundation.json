@@ -1,0 +1,23 @@
+{
+  "Env": "prod",
+  "ProjectName": "imaginarybank",
+  "Owner": "platform",
+  "CostCenter": "thesis",
+  "DataClassification": "confidential",
+  "EnableKeyRotation": "true",
+  "EnableLogsKmsKey": "true",
+  "CreateArtifactsBucket": "false",
+  "LogsBucketRetentionDays": 730,
+  "ArtifactsBucketRetentionDays": 180,
+  "DeployerRoleName": "imaginarybank-prod-cfn-deployer",
+  "DeployerPrincipalArn": "",
+
+  "CreateEcrRepositories": "true",
+  "EcrScanOnPush": "true",
+  "EcrTagMutability": "IMMUTABLE",
+  "EcrLifecycleMaxImages": 100,
+  "EcrRepoBff": "imaginarybank-prod-bff",
+  "EcrRepoIdentity": "imaginarybank-prod-identity",
+  "EcrRepoAccount": "imaginarybank-prod-account",
+  "EcrRepoLedger": "imaginarybank-prod-ledger"
+}

@@ -1,86 +1,93 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description: "10-network: VPC + subnets + NAT + VPC endpoints (min) + base security groups"
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  10-network - VPC per environment with public/private subnets, NAT, and VPC endpoints
+  (S3 gateway + interface endpoints for ECR/Logs/Secrets/STS). Base security groups as outputs.
 
 Parameters:
-  AppName:
-    Type: String
-    Default: "imabank"
-
   Env:
     Type: String
-    Default: "dev"
-    AllowedValues: ["dev", "prod"]
+    AllowedValues: [dev, prod]
 
-  RegionShort:
+  ProjectName:
     Type: String
-    Default: "use1"
+    Default: imaginarybank
+    AllowedPattern: '^[a-z0-9-]{3,30}$'
 
-  EksClusterName:
+  Owner:
     Type: String
-    Default: "imabank-dev-eks"
+    Default: platform
+    MaxLength: 64
+
+  CostCenter:
+    Type: String
+    Default: thesis
+    MaxLength: 64
+
+  DataClassification:
+    Type: String
+    Default: internal
+    AllowedValues: [public, internal, confidential, restricted]
 
   VpcCidr:
     Type: String
-    Default: "10.40.0.0/16"
-
-  Az1:
-    Type: AWS::EC2::AvailabilityZone::Name
-  Az2:
-    Type: AWS::EC2::AvailabilityZone::Name
+    Description: VPC CIDR block, e.g. 10.10.0.0/16
 
   PublicSubnet1Cidr:
     Type: String
-    Default: "10.40.0.0/20"
   PublicSubnet2Cidr:
     Type: String
-    Default: "10.40.16.0/20"
 
   PrivateSubnet1Cidr:
     Type: String
-    Default: "10.40.128.0/20"
   PrivateSubnet2Cidr:
     Type: String
-    Default: "10.40.144.0/20"
 
-  EnableNatGateway:
-    Type: String
-    Default: "true"
-    AllowedValues: ["true", "false"]
+  NatGatewayCount:
+    Type: Number
+    AllowedValues: [1, 2]
+    Default: 1
+    Description: 1 NAT (cheaper) or 2 NAT (HA).
 
-  EnableInterfaceEndpoints:
+  EnableVpcEndpoints:
     Type: String
-    Default: "false"
-    AllowedValues: ["true", "false"]
+    AllowedValues: ['true', 'false']
+    Default: 'true'
 
 Conditions:
-  UseNat: !Equals [!Ref EnableNatGateway, "true"]
-  UseInterfaceEndpoints: !Equals [!Ref EnableInterfaceEndpoints, "true"]
+  UseSecondNat: !Equals [!Ref NatGatewayCount, 2]
+  UseEndpoints: !Equals [!Ref EnableVpcEndpoints, 'true']
 
 Resources:
   Vpc:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCidr
-      EnableDnsSupport: true
       EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-vpc"
-        - Key: app
-          Value: !Ref AppName
+          Value: !Sub "vpc-${ProjectName}-${Env}"
+        - Key: project
+          Value: !Ref ProjectName
         - Key: env
           Value: !Ref Env
-        - Key: managed_by
-          Value: cloudformation
-        - Key: compliance
-          Value: asvs-l3
+        - Key: owner
+          Value: !Ref Owner
+        - Key: cost_center
+          Value: !Ref CostCenter
+        - Key: data_classification
+          Value: !Ref DataClassification
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-igw"
+          Value: !Sub "igw-${ProjectName}-${Env}"
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
 
   VpcIgwAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -88,44 +95,65 @@ Resources:
       VpcId: !Ref Vpc
       InternetGatewayId: !Ref InternetGateway
 
-  # -------- Public subnets (ALB / Ingress) --------
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref Vpc
       CidrBlock: !Ref PublicSubnet1Cidr
-      AvailabilityZone: !Ref Az1
+      AvailabilityZone: !Select [0, !GetAZs ""]
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-public-a"
-        - Key: app
-          Value: !Ref AppName
+          Value: !Sub "subnet-${ProjectName}-${Env}-public-a"
+        - Key: project
+          Value: !Ref ProjectName
         - Key: env
           Value: !Ref Env
-        - Key: kubernetes.io/role/elb
-          Value: "1"
-        - Key: !Sub "kubernetes.io/cluster/${EksClusterName}"
-          Value: shared
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref Vpc
       CidrBlock: !Ref PublicSubnet2Cidr
-      AvailabilityZone: !Ref Az2
+      AvailabilityZone: !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-public-b"
-        - Key: app
-          Value: !Ref AppName
+          Value: !Sub "subnet-${ProjectName}-${Env}-public-b"
+        - Key: project
+          Value: !Ref ProjectName
         - Key: env
           Value: !Ref Env
-        - Key: kubernetes.io/role/elb
-          Value: "1"
-        - Key: !Sub "kubernetes.io/cluster/${EksClusterName}"
-          Value: shared
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PrivateSubnet1Cidr
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "subnet-${ProjectName}-${Env}-private-a"
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "subnet-${ProjectName}-${Env}-private-b"
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref Env
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -133,66 +161,57 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-rtb-public"
+          Value: !Sub "rtb-${ProjectName}-${Env}-public"
 
-  PublicDefaultRoute:
+  PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: VpcIgwAttachment
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: "0.0.0.0/0"
+      DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  PublicSubnet1RtbAssoc:
+  PublicSubnet1Assoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet1
       RouteTableId: !Ref PublicRouteTable
 
-  PublicSubnet2RtbAssoc:
+  PublicSubnet2Assoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
-  # -------- Private subnets (EKS / microservices) --------
-  PrivateSubnet1:
-    Type: AWS::EC2::Subnet
+  NatEip1:
+    Type: AWS::EC2::EIP
     Properties:
-      VpcId: !Ref Vpc
-      CidrBlock: !Ref PrivateSubnet1Cidr
-      AvailabilityZone: !Ref Az1
-      MapPublicIpOnLaunch: false
-      Tags:
-        - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-private-a"
-        - Key: app
-          Value: !Ref AppName
-        - Key: env
-          Value: !Ref Env
-        - Key: kubernetes.io/role/internal-elb
-          Value: "1"
-        - Key: !Sub "kubernetes.io/cluster/${EksClusterName}"
-          Value: shared
+      Domain: vpc
 
-  PrivateSubnet2:
-    Type: AWS::EC2::Subnet
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
     Properties:
-      VpcId: !Ref Vpc
-      CidrBlock: !Ref PrivateSubnet2Cidr
-      AvailabilityZone: !Ref Az2
-      MapPublicIpOnLaunch: false
+      AllocationId: !GetAtt NatEip1.AllocationId
+      SubnetId: !Ref PublicSubnet1
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-private-b"
-        - Key: app
-          Value: !Ref AppName
-        - Key: env
-          Value: !Ref Env
-        - Key: kubernetes.io/role/internal-elb
-          Value: "1"
-        - Key: !Sub "kubernetes.io/cluster/${EksClusterName}"
-          Value: shared
+          Value: !Sub "nat-${ProjectName}-${Env}-a"
+
+  NatEip2:
+    Condition: UseSecondNat
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway2:
+    Condition: UseSecondNat
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEip2.AllocationId
+      SubnetId: !Ref PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub "nat-${ProjectName}-${Env}-b"
 
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -200,7 +219,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-rtb-private-a"
+          Value: !Sub "rtb-${ProjectName}-${Env}-private-a"
 
   PrivateRouteTable2:
     Type: AWS::EC2::RouteTable
@@ -208,233 +227,205 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-rtb-private-b"
+          Value: !Sub "rtb-${ProjectName}-${Env}-private-b"
 
-  PrivateSubnet1RtbAssoc:
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If [UseSecondNat, !Ref NatGateway2, !Ref NatGateway1]
+
+  PrivateSubnet1Assoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet1
       RouteTableId: !Ref PrivateRouteTable1
 
-  PrivateSubnet2RtbAssoc:
+  PrivateSubnet2Assoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable2
 
-  # -------- NAT (dev/tesis: 1 NAT) --------
-  NatEip:
-    Condition: UseNat
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-
-  NatGateway:
-    Condition: UseNat
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatEip.AllocationId
-      SubnetId: !Ref PublicSubnet1
-      Tags:
-        - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-nat-a"
-
-  PrivateDefaultRoute1:
-    Condition: UseNat
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable1
-      DestinationCidrBlock: "0.0.0.0/0"
-      NatGatewayId: !Ref NatGateway
-
-  PrivateDefaultRoute2:
-    Condition: UseNat
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable2
-      DestinationCidrBlock: "0.0.0.0/0"
-      NatGatewayId: !Ref NatGateway
-
-  # -------- Security Groups base --------
-  AlbSecurityGroup:
+  EndpointSecurityGroup:
+    Condition: UseEndpoints
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "ALB ingress SG (edge->ALB). Tightening later."
-      VpcId: !Ref Vpc
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: "0.0.0.0/0"
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: "0.0.0.0/0"
-      Tags:
-        - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-sg-alb"
-
-  VpcEndpointsSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: "SG for Interface VPC Endpoints (allow 443 from VPC)"
+      GroupDescription: !Sub "${ProjectName}-${Env} VPC endpoint SG"
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: !Ref VpcCidr
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: "0.0.0.0/0"
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-sg-vpce"
+          Value: !Sub "sg-${ProjectName}-${Env}-endpoints"
 
-  EksNodesSharedSecurityGroup:
+  BaseAlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "Shared baseline SG for EKS nodegroups/pods (refined later)"
+      GroupDescription: !Sub "${ProjectName}-${Env} base ALB SG"
       VpcId: !Ref Vpc
-      SecurityGroupIngress:
-        # allow node-to-node / intra cluster basic
-        - IpProtocol: -1
-          CidrIp: !Ref VpcCidr
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: "0.0.0.0/0"
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-sg-eks-nodes"
+          Value: !Sub "sg-${ProjectName}-${Env}-alb"
 
-  # -------- VPC Endpoints --------
+  BaseBffSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName}-${Env} base BFF SG"
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "sg-${ProjectName}-${Env}-bff"
+
+  BaseMicrosSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName}-${Env} base micros SG"
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "sg-${ProjectName}-${Env}-micros"
+
   S3GatewayEndpoint:
+    Condition: UseEndpoints
     Type: AWS::EC2::VPCEndpoint
     Properties:
       VpcId: !Ref Vpc
-      VpcEndpointType: Gateway
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
       RouteTableIds:
         - !Ref PrivateRouteTable1
         - !Ref PrivateRouteTable2
-      Tags:
-        - Key: Name
-          Value: !Sub "${AppName}-${Env}-${RegionShort}-vpce-s3"
 
-  # Interface endpoints (optional by cost)
-  VpceSts:
-    Condition: UseInterfaceEndpoints
+  EcrApiEndpoint:
+    Condition: UseEndpoints
     Type: AWS::EC2::VPCEndpoint
     Properties:
       VpcId: !Ref Vpc
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sts"
-      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
-      SecurityGroupIds: [!Ref VpcEndpointsSecurityGroup]
-
-  VpceEcrApi:
-    Condition: UseInterfaceEndpoints
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcId: !Ref Vpc
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecr.api"
-      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
-      SecurityGroupIds: [!Ref VpcEndpointsSecurityGroup]
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
 
-  VpceEcrDkr:
-    Condition: UseInterfaceEndpoints
+  EcrDkrEndpoint:
+    Condition: UseEndpoints
     Type: AWS::EC2::VPCEndpoint
     Properties:
       VpcId: !Ref Vpc
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecr.dkr"
-      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
-      SecurityGroupIds: [!Ref VpcEndpointsSecurityGroup]
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
 
-  VpceLogs:
-    Condition: UseInterfaceEndpoints
+  LogsEndpoint:
+    Condition: UseEndpoints
     Type: AWS::EC2::VPCEndpoint
     Properties:
       VpcId: !Ref Vpc
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.logs"
-      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
-      SecurityGroupIds: [!Ref VpcEndpointsSecurityGroup]
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
 
-  VpceSecretsManager:
-    Condition: UseInterfaceEndpoints
+  SecretsManagerEndpoint:
+    Condition: UseEndpoints
     Type: AWS::EC2::VPCEndpoint
     Properties:
       VpcId: !Ref Vpc
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.secretsmanager"
-      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
-      SecurityGroupIds: [!Ref VpcEndpointsSecurityGroup]
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
 
-  VpceKms:
-    Condition: UseInterfaceEndpoints
+  StsEndpoint:
+    Condition: UseEndpoints
     Type: AWS::EC2::VPCEndpoint
     Properties:
       VpcId: !Ref Vpc
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sts"
       VpcEndpointType: Interface
       PrivateDnsEnabled: true
-      ServiceName: !Sub "com.amazonaws.${AWS::Region}.kms"
-      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
-      SecurityGroupIds: [!Ref VpcEndpointsSecurityGroup]
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
 
 Outputs:
   VpcId:
     Value: !Ref Vpc
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-vpc-id"
+      Name: !Sub "${ProjectName}-${Env}-VpcId"
 
-  PublicSubnet1Id:
-    Value: !Ref PublicSubnet1
+  VpcCidr:
+    Value: !Ref VpcCidr
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-subnet-public-a"
+      Name: !Sub "${ProjectName}-${Env}-VpcCidr"
 
-  PublicSubnet2Id:
-    Value: !Ref PublicSubnet2
+  PublicSubnetIds:
+    Value: !Join [",", [!Ref PublicSubnet1, !Ref PublicSubnet2]]
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-subnet-public-b"
+      Name: !Sub "${ProjectName}-${Env}-PublicSubnetIds"
 
-  PrivateSubnet1Id:
-    Value: !Ref PrivateSubnet1
+  PrivateSubnetIds:
+    Value: !Join [",", [!Ref PrivateSubnet1, !Ref PrivateSubnet2]]
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-subnet-private-a"
+      Name: !Sub "${ProjectName}-${Env}-PrivateSubnetIds"
 
-  PrivateSubnet2Id:
-    Value: !Ref PrivateSubnet2
+  PublicRouteTableId:
+    Value: !Ref PublicRouteTable
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-subnet-private-b"
+      Name: !Sub "${ProjectName}-${Env}-PublicRouteTableId"
+
+  PrivateRouteTableIds:
+    Value: !Join [",", [!Ref PrivateRouteTable1, !Ref PrivateRouteTable2]]
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-PrivateRouteTableIds"
 
   AlbSecurityGroupId:
-    Value: !Ref AlbSecurityGroup
+    Value: !Ref BaseAlbSecurityGroup
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-sg-alb"
+      Name: !Sub "${ProjectName}-${Env}-AlbSecurityGroupId"
 
-  EksNodesSharedSecurityGroupId:
-    Value: !Ref EksNodesSharedSecurityGroup
+  BffSecurityGroupId:
+    Value: !Ref BaseBffSecurityGroup
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-sg-eks-nodes"
+      Name: !Sub "${ProjectName}-${Env}-BffSecurityGroupId"
 
-  VpcEndpointsSecurityGroupId:
-    Value: !Ref VpcEndpointsSecurityGroup
+  MicrosSecurityGroupId:
+    Value: !Ref BaseMicrosSecurityGroup
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-sg-vpce"
+      Name: !Sub "${ProjectName}-${Env}-MicrosSecurityGroupId"
 
-  S3GatewayEndpointId:
-    Value: !Ref S3GatewayEndpoint
+  EndpointSecurityGroupId:
+    Condition: UseEndpoints
+    Value: !Ref EndpointSecurityGroup
     Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-vpce-s3"
-
-  NatGatewayId:
-    Condition: UseNat
-    Value: !Ref NatGateway
-    Export:
-      Name: !Sub "${AppName}-${Env}-${RegionShort}-natgw-a"
+      Name: !Sub "${ProjectName}-${Env}-EndpointSecurityGroupId"

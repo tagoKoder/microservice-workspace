@@ -1,0 +1,13 @@
+{
+  "ProjectName": "imaginarybank",
+  "Env": "prod",
+  "DomainName": "tudominio.com",
+  "HostedZoneId": "ZXXXXXXXXXXXXX",
+  "AppSubdomain": "app",
+  "AcmCertArnApp": "arn:aws:acm:us-east-1:123456789012:certificate/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy",
+  "ApiOriginForCsp": "https://api.tudominio.com",
+  "WebBucketName": "imaginarybank-prod-web",
+  "EnableCloudFrontLogs": "false",
+  "LogsBucketDomainName": "",
+  "WafRateLimit": 3000
+}

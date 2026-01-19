@@ -1,0 +1,585 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "50-compute-ecs: ECS Fargate Cluster + ALB (BFF) + Private microservices with Service Connect"
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: imaginarybank
+  Env:
+    Type: String
+    AllowedValues: [dev, prod]
+
+  # --- Imports (from 10-network outputs) ---
+  NetworkStackName:
+    Type: String
+    Description: "CloudFormation stack name for 10-network (used for ImportValue naming)."
+    
+  LogsBucketName:
+    Type: String
+    Description: "imaginarybank-logs-<env> creado en 00-foundation"
+
+  # --- DNS / TLS for ALB ---
+  HostedZoneId:
+    Type: String
+  ApiDomainName:
+    Type: String
+    Description: "api.<dominio>"
+
+  AcmCertArnApi:
+    Type: String
+    Description: "ACM cert ARN in the SAME region as the ALB (for api.<dominio>)."
+
+  # --- Images (ECR image URIs) ---
+  BffImageUri:
+    Type: String
+  IdentityImageUri:
+    Type: String
+  AccountImageUri:
+    Type: String
+  LedgerImageUri:
+    Type: String
+
+  # --- Ports ---
+  BffContainerPort:
+    Type: Number
+    Default: 8080
+
+  IdentityGrpcPort:
+    Type: Number
+    Default: 7001
+  AccountGrpcPort:
+    Type: Number
+    Default: 7002
+  LedgerGrpcPort:
+    Type: Number
+    Default: 7003
+
+  # --- Desired counts ---
+  BffDesiredCount:
+    Type: Number
+    Default: 1
+  IdentityDesiredCount:
+    Type: Number
+    Default: 1
+  AccountDesiredCount:
+    Type: Number
+    Default: 1
+  LedgerDesiredCount:
+    Type: Number
+    Default: 1
+
+  # --- Task sizes (Fargate) ---
+  BffCpu:
+    Type: Number
+    Default: 256
+  BffMemory:
+    Type: Number
+    Default: 512
+
+  IdentityCpu:
+    Type: Number
+    Default: 512
+  IdentityMemory:
+    Type: Number
+    Default: 1024
+
+  AccountCpu:
+    Type: Number
+    Default: 512
+  AccountMemory:
+    Type: Number
+    Default: 1024
+
+  LedgerCpu:
+    Type: Number
+    Default: 256
+  LedgerMemory:
+    Type: Number
+    Default: 512
+
+  # --- Optional secrets (recommended) ---
+  # Assumption: Secrets are JSON with key "DB_DSN" (e.g., {"DB_DSN":"postgres://..."})
+  IdentityDbSecretArn:
+    Type: String
+    Default: ""
+  AccountDbSecretArn:
+    Type: String
+    Default: ""
+  LedgerDbSecretArn:
+    Type: String
+    Default: ""
+    
+# --- Bus for audit events (from 60-audit-observability) ---
+  AuditBusName:
+    Type: String
+    Description: "EventBridge Audit Bus name (from 60-audit-observability stack)"
+# --- AVP Policy Store ID (from 70-authz-avp) ---
+  AvpPolicyStoreId:
+    Type: String
+    Description: "Output PolicyStoreId del stack 70-authz-avp"
+
+Conditions:
+  HasIdentityDbSecret: !Not [!Equals [!Ref IdentityDbSecretArn, ""]]
+  HasAccountDbSecret: !Not [!Equals [!Ref AccountDbSecretArn, ""]]
+  HasLedgerDbSecret: !Not [!Equals [!Ref LedgerDbSecretArn, ""]]
+
+Resources:
+  # -----------------------------
+  # ECS Cluster (Service Connect default namespace)
+  # -----------------------------
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${ProjectName}-${Env}-cluster"
+      ServiceConnectDefaults:
+        Namespace: !Sub "${ProjectName}-${Env}"
+
+  # -----------------------------
+  # CloudWatch Log Groups
+  # -----------------------------
+  LogGroupBff:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${ProjectName}/${Env}/bff"
+      RetentionInDays: 30
+
+  LogGroupIdentity:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${ProjectName}/${Env}/identity"
+      RetentionInDays: 30
+
+  LogGroupAccount:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${ProjectName}/${Env}/account"
+      RetentionInDays: 30
+
+  LogGroupLedger:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${ProjectName}/${Env}/ledger"
+      RetentionInDays: 30
+
+  # -----------------------------
+  # IAM Roles
+  # -----------------------------
+  EcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Env}-ecs-exec"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # Minimal task roles (expand in Entregable 7 for AVP/EventBridge/S3 KYC)
+  IdentityTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Env}-identity-task"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: identity-audit-avp
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PutAuditEvents
+                Effect: Allow
+                Action: "events:PutEvents"
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${AuditBusName}"
+              - Sid: AvpIsAuthorizedWithToken
+                Effect: Allow
+                Action: "verifiedpermissions:IsAuthorizedWithToken"
+                Resource: "*"
+
+  AccountTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Env}-account-task"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: account-audit-avp
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PutAuditEvents
+                Effect: Allow
+                Action: "events:PutEvents"
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${AuditBusName}"
+              - Sid: AvpIsAuthorizedWithToken
+                Effect: Allow
+                Action: "verifiedpermissions:IsAuthorizedWithToken"
+                Resource: "*"
+
+  LedgerTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Env}-ledger-task"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ledger-audit-avp
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PutAuditEvents
+                Effect: Allow
+                Action: "events:PutEvents"
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${AuditBusName}"
+              - Sid: AvpIsAuthorizedWithToken
+                Effect: Allow
+                Action: "verifiedpermissions:IsAuthorizedWithToken"
+                Resource: "*"
+
+  # -----------------------------
+  # ALB (public) -> BFF (private)
+  # -----------------------------
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ProjectName}-${Env}-alb"
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        Fn::Split:
+          - ","
+          - Fn::ImportValue:
+              Fn::Sub: "${NetworkStackName}-PublicSubnetIds"
+      LoadBalancerAttributes:
+        - Key: access_logs.s3.enabled
+          Value: "true"
+        - Key: access_logs.s3.bucket
+          Value: !Ref LogsBucketName     # pásalo como parámetro o import del 00-foundation
+        - Key: access_logs.s3.prefix
+          Value: !Sub "alb/${Env}"
+
+      SecurityGroups:
+        - !ImportValue
+          Fn::Sub: "${NetworkStackName}-AlbSecurityGroupId"
+
+
+
+  AlbTargetGroupBff:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-${Env}-tg-bff"
+      VpcId: !ImportValue
+        Fn::Sub: "${NetworkStackName}-VpcId"
+      Port: !Ref BffContainerPort
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckPath: /health
+      Matcher:
+        HttpCode: "200-399"
+
+  AlbListenerHttps:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref Alb
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref AcmCertArnApi
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AlbTargetGroupBff
+
+  Route53RecordApi:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiDomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt Alb.DNSName
+        HostedZoneId: !GetAtt Alb.CanonicalHostedZoneID
+
+  # -----------------------------
+  # Task Definitions
+  # -----------------------------
+  TaskDefBff:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-${Env}-bff"
+      Cpu: !Ref BffCpu
+      Memory: !Ref BffMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: bff
+          Image: !Ref BffImageUri
+          Essential: true
+          PortMappings:
+            - ContainerPort: !Ref BffContainerPort
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroupBff
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Environment:
+            # Service Connect endpoints (client side)
+            - Name: IDENTITY_GRPC_ADDR
+              Value: !Sub "identity:${IdentityGrpcPort}"
+            - Name: ACCOUNT_GRPC_ADDR
+              Value: !Sub "account:${AccountGrpcPort}"
+            - Name: LEDGER_GRPC_ADDR
+              Value: !Sub "ledger:${LedgerGrpcPort}"
+
+  TaskDefIdentity:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-${Env}-identity"
+      Cpu: !Ref IdentityCpu
+      Memory: !Ref IdentityMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt IdentityTaskRole.Arn
+      ContainerDefinitions:
+        - Name: identity
+          Image: !Ref IdentityImageUri
+          Essential: true
+          PortMappings:
+            - Name: grpc
+              ContainerPort: !Ref IdentityGrpcPort
+              Protocol: tcp
+              AppProtocol: grpc
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroupIdentity
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Secrets:
+            - !If
+              - HasIdentityDbSecret
+              - Name: DB_DSN
+                ValueFrom: !Sub "${IdentityDbSecretArn}:DB_DSN::"
+              - !Ref "AWS::NoValue"
+          Environment:
+            - Name: AUDIT_BUS_NAME
+              Value: !Ref AuditBusName
+            - Name: AVP_POLICY_STORE_ID
+              Value: !Ref AvpPolicyStoreId
+
+  TaskDefAccount:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-${Env}-account"
+      Cpu: !Ref AccountCpu
+      Memory: !Ref AccountMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt AccountTaskRole.Arn
+      ContainerDefinitions:
+        - Name: account
+          Image: !Ref AccountImageUri
+          Essential: true
+          PortMappings:
+            - Name: grpc
+              ContainerPort: !Ref AccountGrpcPort
+              Protocol: tcp
+              AppProtocol: grpc
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroupAccount
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Secrets:
+            - !If
+              - HasAccountDbSecret
+              - Name: DB_DSN
+                ValueFrom: !Sub "${AccountDbSecretArn}:DB_DSN::"
+              - !Ref "AWS::NoValue"
+
+  TaskDefLedger:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-${Env}-ledger"
+      Cpu: !Ref LedgerCpu
+      Memory: !Ref LedgerMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt LedgerTaskRole.Arn
+      ContainerDefinitions:
+        - Name: ledger
+          Image: !Ref LedgerImageUri
+          Essential: true
+          PortMappings:
+            - Name: grpc
+              ContainerPort: !Ref LedgerGrpcPort
+              Protocol: tcp
+              AppProtocol: grpc
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroupLedger
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Secrets:
+            - !If
+              - HasLedgerDbSecret
+              - Name: DB_DSN
+                ValueFrom: !Sub "${LedgerDbSecretArn}:DB_DSN::"
+              - !Ref "AWS::NoValue"
+
+  # -----------------------------
+  # ECS Services
+  # -----------------------------
+  ServiceBff:
+    Type: AWS::ECS::Service
+    DependsOn: AlbListenerHttps
+    Properties:
+      ServiceName: !Sub "${ProjectName}-${Env}-bff"
+      Cluster: !Ref EcsCluster
+      LaunchType: FARGATE
+      DesiredCount: !Ref BffDesiredCount
+      TaskDefinition: !Ref TaskDefBff
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            Fn::Split:
+              - ","
+              - Fn::ImportValue:
+                  Fn::Sub: "${NetworkStackName}-PrivateSubnetIds"
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: "${NetworkStackName}-BffSecurityGroupId"
+      LoadBalancers:
+        - ContainerName: bff
+          ContainerPort: !Ref BffContainerPort
+          TargetGroupArn: !Ref AlbTargetGroupBff
+      ServiceConnectConfiguration:
+        Enabled: true
+
+  ServiceIdentity:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub "${ProjectName}-${Env}-identity"
+      Cluster: !Ref EcsCluster
+      LaunchType: FARGATE
+      DesiredCount: !Ref IdentityDesiredCount
+      TaskDefinition: !Ref TaskDefIdentity
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            Fn::Split:
+              - ","
+              - Fn::ImportValue:
+                  Fn::Sub: "${NetworkStackName}-PrivateSubnetIds"
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: "${NetworkStackName}-MicrosSecurityGroupId"
+      ServiceConnectConfiguration:
+        Enabled: true
+        Services:
+          - PortName: grpc
+            DiscoveryName: identity
+            ClientAliases:
+              - DnsName: identity
+                Port: !Ref IdentityGrpcPort
+
+  ServiceAccount:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub "${ProjectName}-${Env}-account"
+      Cluster: !Ref EcsCluster
+      LaunchType: FARGATE
+      DesiredCount: !Ref AccountDesiredCount
+      TaskDefinition: !Ref TaskDefAccount
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            Fn::Split:
+              - ","
+              - Fn::ImportValue:
+                  Fn::Sub: "${NetworkStackName}-PrivateSubnetIds"
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: "${NetworkStackName}-MicrosSecurityGroupId"
+      ServiceConnectConfiguration:
+        Enabled: true
+        Services:
+          - PortName: grpc
+            DiscoveryName: account
+            ClientAliases:
+              - DnsName: account
+                Port: !Ref AccountGrpcPort
+
+  ServiceLedger:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub "${ProjectName}-${Env}-ledger"
+      Cluster: !Ref EcsCluster
+      LaunchType: FARGATE
+      DesiredCount: !Ref LedgerDesiredCount
+      TaskDefinition: !Ref TaskDefLedger
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            Fn::Split:
+              - ","
+              - Fn::ImportValue:
+                  Fn::Sub: "${NetworkStackName}-PrivateSubnetIds"
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: "${NetworkStackName}-MicrosSecurityGroupId"
+      ServiceConnectConfiguration:
+        Enabled: true
+        Services:
+          - PortName: grpc
+            DiscoveryName: ledger
+            ClientAliases:
+              - DnsName: ledger
+                Port: !Ref LedgerGrpcPort
+
+Outputs:
+  ClusterName:
+    Value: !Ref EcsCluster
+  AlbDnsName:
+    Value: !GetAtt Alb.DNSName
+  ApiRecord:
+    Value: !Ref ApiDomainName
+
+  ServiceConnectNamespace:
+    Value: !Sub "${ProjectName}-${Env}"
+
+  IdentityEndpoint:
+    Value: !Sub "identity:${IdentityGrpcPort}"
+  AccountEndpoint:
+    Value: !Sub "account:${AccountGrpcPort}"
+  LedgerEndpoint:
+    Value: !Sub "ledger:${LedgerGrpcPort}"

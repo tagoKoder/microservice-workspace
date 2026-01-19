@@ -1,0 +1,15 @@
+{
+  "ProjectName": "bank",
+  "Env": "dev",
+  "NetworkStackName": "bank-dev-10-network",
+  "DbEngineVersion": "16.3",
+  "DbInstanceClass": "db.t4g.micro",
+  "DbAllocatedStorageGb": 20,
+  "DbMultiAz": "false",
+  "DbBackupRetentionDays": 7,
+  "DbDeletionProtection": "false",
+  "DbName": "bank",
+  "DbMasterUsername": "bankadmin",
+  "DbMasterPassword": "CAMBIAR_POR_UNA_CLAVE_FUERTE_16+",
+  "KycBucketName": "bank-kyc-dev-123456789012"
+}
