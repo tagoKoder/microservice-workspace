@@ -7,12 +7,26 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { OccupationTypeDto } from './occupationType';
 
 
 export interface OnboardingIntentRequestDto { 
     email: string;
     phone: string;
+    /**
+     * Ej: web
+     */
     channel?: string | null;
     locale?: string | null;
+    national_id: string;
+    national_id_issue_date: string;
+    fingerprint_code: string;
+    monthly_income: number;
+    occupation_type: OccupationTypeDto;
+    id_front_content_type?: string | null;
+    selfie_content_type?: string | null;
 }
+export namespace OnboardingIntentRequestDto {
+}
+
 

@@ -1,6 +1,10 @@
 package com.tagokoder.identity.domain.port.in;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
+
+import com.tagokoder.identity.domain.model.kyc.PresignedUpload;
 
 public interface StartRegistrationUseCase {
 
@@ -9,21 +13,22 @@ public interface StartRegistrationUseCase {
     public record StartRegistrationCommand(
         String channel,
         String nationalId,
-        java.time.LocalDate nationalIdIssueDate,
+        LocalDate nationalIdIssueDate,
         String fingerprintCode,
-        byte[] idDocumentFront,
-        byte[] selfie,
         double monthlyIncome,
         String occupationType,
         String email,
-        String phone
+        String phone,
+        String idFrontContentType,
+        String selfieContentType
 ) {}
 
 
     record StartRegistrationResponse(
-            UUID registrationId,
-            String state,
-            Instant createdAt
+        UUID registrationId,
+        String state,
+        Instant createdAt,
+        List<PresignedUpload> uploads
     ) {}
 }
 

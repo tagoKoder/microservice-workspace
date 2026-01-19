@@ -13,6 +13,7 @@ import { MenuItem } from 'primeng/api';
 import { Router } from '@angular/router';
 
 import { OnboardingApi } from '../../api/bff'; // para verify/consents/activate como ya lo usas
+import { PresignedUploadService } from '../../core/security/presigned-upload.service';
 
 @Component({
   standalone: true,
@@ -54,6 +55,7 @@ export class Register {
     private fb: FormBuilder,
     private router: Router,
     private onboardingApi: OnboardingApi,
+    private presigned: PresignedUploadService
   ) {
     this.contactForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -102,29 +104,58 @@ export class Register {
     try {
       const v = this.contactForm.value;
 
-      const r = await firstValueFrom(
+      // 1) Intent (SIN archivos)
+      //    Tu OpenAPI debe exponer algo equivalente a esto:
+      //    POST /api/v1/onboarding/intents (json)
+      const intent: any = await firstValueFrom(
         this.onboardingApi.startOnboarding({
-          email: v.email,
-          phone: v.phone,
-          channel: 'web',
-          locale: 'es-EC',
-
-          nationalId: v.national_id,
-          nationalIdIssueDate: v.national_id_issue_date,
-          fingerprintCode: v.fingerprint_code,
-
-          monthlyIncome: v.monthly_income,
-          occupationType: v.occupation_type,
-
-          // multipart files (Angular HttpClient manda como Blob/File)
-          idDocumentFront: this.idFile,
-          selfie: this.selfieFile
+          onboardingIntentRequestDto: {
+            email: v.email,
+            phone: v.phone,
+            channel: 'web',
+            locale: 'es-EC',
+            national_id: v.national_id,
+            national_id_issue_date: v.national_id_issue_date,
+            fingerprint_code: v.fingerprint_code,
+            monthly_income: v.monthly_income,
+            occupation_type: v.occupation_type
+          }
         })
       );
 
-      this.registrationId = r.registration_id;
-      this.otpChannelHint = r.otp_channel_hint;
+      this.registrationId = intent.registration_id;
+      this.otpChannelHint = intent.otp_channel_hint;
+
+      const idFront = intent.kyc_uploads?.id_front;
+      const selfie  = intent.kyc_uploads?.selfie;
+
+      if (!this.registrationId || !idFront?.url || !idFront?.key || !selfie?.url || !selfie?.key) {
+        throw new Error('OpenAPI/BFF: falta kyc_uploads (id_front/selfie) en la respuesta del intent');
+      }
+
+      // 2) Upload a S3 directo (paralelo)
+      const [idRes, selfieRes] = await Promise.all([
+        this.presigned.putFile(idFront.url, this.idFile),
+        this.presigned.putFile(selfie.url, this.selfieFile)
+      ]);
+
+      // 3) Confirmar al backend (guardar bucket/key/etag)
+      //    POST /api/v1/onboarding/kyc/confirm
+      await firstValueFrom(
+        this.onboardingApi.confirmOnboardingKyc({
+          confirmKycRequestDto: {
+            registration_id: this.registrationId,
+            id_front_key: idFront.key,
+            id_front_etag: idRes.etag,
+            selfie_key: selfie.key,
+            selfie_etag: selfieRes.etag
+          }
+        })
+      );
+
+      // 4) Siguiente paso: OTP
       this.activeIndex = 1;
+
     } finally {
       this.busy = false;
     }

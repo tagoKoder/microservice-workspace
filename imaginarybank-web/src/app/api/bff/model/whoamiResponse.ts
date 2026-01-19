@@ -14,7 +14,5 @@ export interface WhoamiResponseDto {
     customer_id?: string | null;
     roles: Array<string>;
     user_status: string;
-    mfa_required: boolean;
-    mfa_verified: boolean;
 }
 

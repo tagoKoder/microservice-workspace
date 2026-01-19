@@ -37,18 +37,22 @@ func NewCookieManager(cfg config.Config) *CookieManager {
 
 func (c *CookieManager) Name() string { return c.cookieName }
 
-func (c *CookieManager) Set(w http.ResponseWriter, sessionID string, ttlSeconds int64) {
-	cookie := &http.Cookie{
-		Name:     c.cookieName,
+func (m *CookieManager) Set(w http.ResponseWriter, sessionID string, expiresInSeconds int64) {
+	if sessionID == "" {
+		return
+	}
+
+	exp := time.Now().Add(time.Duration(expiresInSeconds) * time.Second)
+	http.SetCookie(w, &http.Cookie{
+		Name:     m.cookieName, // asumiendo que tu struct tiene cookieName
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   c.secure,
-		SameSite: c.sameSite,
-		MaxAge:   int(ttlSeconds),
-		Expires:  time.Now().Add(time.Duration(ttlSeconds) * time.Second),
-	}
-	http.SetCookie(w, cookie)
+		Secure:   m.secure,   // asumiendo que existe
+		SameSite: m.sameSite, // asumiendo que existe
+		Expires:  exp,
+		MaxAge:   int(expiresInSeconds),
+	})
 }
 
 func (c *CookieManager) ReadSessionID(r *http.Request) (string, bool) {

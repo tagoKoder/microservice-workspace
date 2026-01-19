@@ -47,7 +47,7 @@ export class AuthApi extends BaseService {
 
     /**
      * Callback OIDC; crea cookie de sesión y redirige al destino final
-     * @endpoint get /bff/login/callback
+     * @endpoint get /api/v1/auth/oidc/callback
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -111,7 +111,7 @@ export class AuthApi extends BaseService {
             }
         }
 
-        let localVarPath = `/bff/login/callback`;
+        let localVarPath = `/api/v1/auth/oidc/callback`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<any>('get', `${basePath}${localVarPath}`,
             {
@@ -129,8 +129,7 @@ export class AuthApi extends BaseService {
 
     /**
      * Inicia OIDC login y redirige al IdP
-     * Redirige al Authorization URL del IdP. &#x60;redirect&#x60; es el path post-login que el BFF sanitiza. 
-     * @endpoint get /bff/login/start
+     * @endpoint get /api/v1/auth/oidc/start
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -178,7 +177,7 @@ export class AuthApi extends BaseService {
             }
         }
 
-        let localVarPath = `/bff/login/start`;
+        let localVarPath = `/api/v1/auth/oidc/start`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<any>('get', `${basePath}${localVarPath}`,
             {

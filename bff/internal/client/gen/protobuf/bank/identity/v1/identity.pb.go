@@ -80,29 +80,180 @@ func (OccupationType) EnumDescriptor() ([]byte, []int) {
 	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{0}
 }
 
-// StartRegistrationRequest
-// Datos KYC iniciales para crear intención de registro.
+type KycDocType int32
+
+const (
+	KycDocType_KYC_DOC_TYPE_UNSPECIFIED KycDocType = 0
+	KycDocType_KYC_DOC_TYPE_ID_FRONT    KycDocType = 1
+	KycDocType_KYC_DOC_TYPE_SELFIE      KycDocType = 2
+)
+
+// Enum value maps for KycDocType.
+var (
+	KycDocType_name = map[int32]string{
+		0: "KYC_DOC_TYPE_UNSPECIFIED",
+		1: "KYC_DOC_TYPE_ID_FRONT",
+		2: "KYC_DOC_TYPE_SELFIE",
+	}
+	KycDocType_value = map[string]int32{
+		"KYC_DOC_TYPE_UNSPECIFIED": 0,
+		"KYC_DOC_TYPE_ID_FRONT":    1,
+		"KYC_DOC_TYPE_SELFIE":      2,
+	}
+)
+
+func (x KycDocType) Enum() *KycDocType {
+	p := new(KycDocType)
+	*p = x
+	return p
+}
+
+func (x KycDocType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (KycDocType) Descriptor() protoreflect.EnumDescriptor {
+	return file_bank_identity_v1_identity_proto_enumTypes[1].Descriptor()
+}
+
+func (KycDocType) Type() protoreflect.EnumType {
+	return &file_bank_identity_v1_identity_proto_enumTypes[1]
+}
+
+func (x KycDocType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use KycDocType.Descriptor instead.
+func (KycDocType) EnumDescriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{1}
+}
+
+type KycUploadStatus int32
+
+const (
+	KycUploadStatus_KYC_UPLOAD_STATUS_UNSPECIFIED KycUploadStatus = 0
+	KycUploadStatus_KYC_UPLOAD_STATUS_PENDING     KycUploadStatus = 1
+	KycUploadStatus_KYC_UPLOAD_STATUS_CONFIRMED   KycUploadStatus = 2
+)
+
+// Enum value maps for KycUploadStatus.
+var (
+	KycUploadStatus_name = map[int32]string{
+		0: "KYC_UPLOAD_STATUS_UNSPECIFIED",
+		1: "KYC_UPLOAD_STATUS_PENDING",
+		2: "KYC_UPLOAD_STATUS_CONFIRMED",
+	}
+	KycUploadStatus_value = map[string]int32{
+		"KYC_UPLOAD_STATUS_UNSPECIFIED": 0,
+		"KYC_UPLOAD_STATUS_PENDING":     1,
+		"KYC_UPLOAD_STATUS_CONFIRMED":   2,
+	}
+)
+
+func (x KycUploadStatus) Enum() *KycUploadStatus {
+	p := new(KycUploadStatus)
+	*p = x
+	return p
+}
+
+func (x KycUploadStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (KycUploadStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_bank_identity_v1_identity_proto_enumTypes[2].Descriptor()
+}
+
+func (KycUploadStatus) Type() protoreflect.EnumType {
+	return &file_bank_identity_v1_identity_proto_enumTypes[2]
+}
+
+func (x KycUploadStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use KycUploadStatus.Descriptor instead.
+func (KycUploadStatus) EnumDescriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{2}
+}
+
+type RegistrationState int32
+
+const (
+	RegistrationState_REGISTRATION_STATE_UNSPECIFIED      RegistrationState = 0
+	RegistrationState_REGISTRATION_STATE_STARTED          RegistrationState = 1
+	RegistrationState_REGISTRATION_STATE_CONTACT_VERIFIED RegistrationState = 2
+	RegistrationState_REGISTRATION_STATE_CONSENTED        RegistrationState = 3
+	RegistrationState_REGISTRATION_STATE_ACTIVATED        RegistrationState = 4
+	RegistrationState_REGISTRATION_STATE_REJECTED         RegistrationState = 5
+)
+
+// Enum value maps for RegistrationState.
+var (
+	RegistrationState_name = map[int32]string{
+		0: "REGISTRATION_STATE_UNSPECIFIED",
+		1: "REGISTRATION_STATE_STARTED",
+		2: "REGISTRATION_STATE_CONTACT_VERIFIED",
+		3: "REGISTRATION_STATE_CONSENTED",
+		4: "REGISTRATION_STATE_ACTIVATED",
+		5: "REGISTRATION_STATE_REJECTED",
+	}
+	RegistrationState_value = map[string]int32{
+		"REGISTRATION_STATE_UNSPECIFIED":      0,
+		"REGISTRATION_STATE_STARTED":          1,
+		"REGISTRATION_STATE_CONTACT_VERIFIED": 2,
+		"REGISTRATION_STATE_CONSENTED":        3,
+		"REGISTRATION_STATE_ACTIVATED":        4,
+		"REGISTRATION_STATE_REJECTED":         5,
+	}
+)
+
+func (x RegistrationState) Enum() *RegistrationState {
+	p := new(RegistrationState)
+	*p = x
+	return p
+}
+
+func (x RegistrationState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RegistrationState) Descriptor() protoreflect.EnumDescriptor {
+	return file_bank_identity_v1_identity_proto_enumTypes[3].Descriptor()
+}
+
+func (RegistrationState) Type() protoreflect.EnumType {
+	return &file_bank_identity_v1_identity_proto_enumTypes[3]
+}
+
+func (x RegistrationState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RegistrationState.Descriptor instead.
+func (RegistrationState) EnumDescriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{3}
+}
+
+// StartRegistrationV1Request
+// Creates a registration intent and returns presigned upload URLs (no bytes in request).
 type StartRegistrationRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// OpenAPI: channel (example: web)
-	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	// Número de cédula.
-	NationalId string `protobuf:"bytes,2,opt,name=national_id,json=nationalId,proto3" json:"national_id,omitempty"`
-	// OpenAPI: format date (YYYY-MM-DD). Se deja como string para no depender de google.type.Date.
-	// Fecha de expedición de la cédula.
-	NationalIdIssueDate string `protobuf:"bytes,3,opt,name=national_id_issue_date,json=nationalIdIssueDate,proto3" json:"national_id_issue_date,omitempty"`
-	// Código dactilar.
-	FingerprintCode string `protobuf:"bytes,4,opt,name=fingerprint_code,json=fingerprintCode,proto3" json:"fingerprint_code,omitempty"`
-	// Documento de identidad (cédula o pasaporte) en bytes.
-	IdDocumentFront []byte `protobuf:"bytes,5,opt,name=id_document_front,json=idDocumentFront,proto3" json:"id_document_front,omitempty"`
-	// Selfie del usuario en bytes.
-	Selfie         []byte         `protobuf:"bytes,6,opt,name=selfie,proto3" json:"selfie,omitempty"`
-	MonthlyIncome  float64        `protobuf:"fixed64,7,opt,name=monthly_income,json=monthlyIncome,proto3" json:"monthly_income,omitempty"`
-	OccupationType OccupationType `protobuf:"varint,8,opt,name=occupation_type,json=occupationType,proto3,enum=bank.identity.v1.OccupationType" json:"occupation_type,omitempty"`
-	Email          string         `protobuf:"bytes,9,opt,name=email,proto3" json:"email,omitempty"` // format: email
-	Phone          string         `protobuf:"bytes,10,opt,name=phone,proto3" json:"phone,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Channel string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"` // example: web
+	// KYC fields (NO PII beyond what's required; avoid logging them)
+	NationalId          string         `protobuf:"bytes,2,opt,name=national_id,json=nationalId,proto3" json:"national_id,omitempty"`
+	NationalIdIssueDate string         `protobuf:"bytes,3,opt,name=national_id_issue_date,json=nationalIdIssueDate,proto3" json:"national_id_issue_date,omitempty"` // YYYY-MM-DD
+	FingerprintCode     string         `protobuf:"bytes,4,opt,name=fingerprint_code,json=fingerprintCode,proto3" json:"fingerprint_code,omitempty"`
+	MonthlyIncome       float64        `protobuf:"fixed64,5,opt,name=monthly_income,json=monthlyIncome,proto3" json:"monthly_income,omitempty"`
+	OccupationType      OccupationType `protobuf:"varint,6,opt,name=occupation_type,json=occupationType,proto3,enum=bank.identity.v1.OccupationType" json:"occupation_type,omitempty"`
+	Email               string         `protobuf:"bytes,7,opt,name=email,proto3" json:"email,omitempty"` // format: email
+	Phone               string         `protobuf:"bytes,8,opt,name=phone,proto3" json:"phone,omitempty"`
+	// Optional client hints for upload constraints (server enforces)
+	IdFrontContentType string `protobuf:"bytes,9,opt,name=id_front_content_type,json=idFrontContentType,proto3" json:"id_front_content_type,omitempty"` // e.g. image/jpeg, application/pdf
+	SelfieContentType  string `protobuf:"bytes,10,opt,name=selfie_content_type,json=selfieContentType,proto3" json:"selfie_content_type,omitempty"`     // e.g. image/jpeg, image/png
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *StartRegistrationRequest) Reset() {
@@ -163,20 +314,6 @@ func (x *StartRegistrationRequest) GetFingerprintCode() string {
 	return ""
 }
 
-func (x *StartRegistrationRequest) GetIdDocumentFront() []byte {
-	if x != nil {
-		return x.IdDocumentFront
-	}
-	return nil
-}
-
-func (x *StartRegistrationRequest) GetSelfie() []byte {
-	if x != nil {
-		return x.Selfie
-	}
-	return nil
-}
-
 func (x *StartRegistrationRequest) GetMonthlyIncome() float64 {
 	if x != nil {
 		return x.MonthlyIncome
@@ -205,14 +342,32 @@ func (x *StartRegistrationRequest) GetPhone() string {
 	return ""
 }
 
-// StartRegistrationResponse
+func (x *StartRegistrationRequest) GetIdFrontContentType() string {
+	if x != nil {
+		return x.IdFrontContentType
+	}
+	return ""
+}
+
+func (x *StartRegistrationRequest) GetSelfieContentType() string {
+	if x != nil {
+		return x.SelfieContentType
+	}
+	return ""
+}
+
+// StartRegistrationV1Response
 type StartRegistrationResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	RegistrationId string                 `protobuf:"bytes,1,opt,name=registration_id,json=registrationId,proto3" json:"registration_id,omitempty"` // uuid
-	State          string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`                                         // example: started
-	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`                // date-time
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	State          RegistrationState      `protobuf:"varint,2,opt,name=state,proto3,enum=bank.identity.v1.RegistrationState" json:"state,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Presigned uploads
+	Uploads []*PresignedUpload `protobuf:"bytes,4,rep,name=uploads,proto3" json:"uploads,omitempty"`
+	// Convenience: correlation id can be returned by BFF/micro as header; keep here optional.
+	CorrelationId string `protobuf:"bytes,5,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StartRegistrationResponse) Reset() {
@@ -252,11 +407,11 @@ func (x *StartRegistrationResponse) GetRegistrationId() string {
 	return ""
 }
 
-func (x *StartRegistrationResponse) GetState() string {
+func (x *StartRegistrationResponse) GetState() RegistrationState {
 	if x != nil {
 		return x.State
 	}
-	return ""
+	return RegistrationState_REGISTRATION_STATE_UNSPECIFIED
 }
 
 func (x *StartRegistrationResponse) GetCreatedAt() *timestamppb.Timestamp {
@@ -266,18 +421,491 @@ func (x *StartRegistrationResponse) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-// StartOidcLoginRequest
+func (x *StartRegistrationResponse) GetUploads() []*PresignedUpload {
+	if x != nil {
+		return x.Uploads
+	}
+	return nil
+}
+
+func (x *StartRegistrationResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type PresignedUpload struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	DocType KycDocType             `protobuf:"varint,1,opt,name=doc_type,json=docType,proto3,enum=bank.identity.v1.KycDocType" json:"doc_type,omitempty"`
+	// S3 target reference (client MUST NOT treat as public)
+	Bucket string `protobuf:"bytes,2,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	Key    string `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
+	// PUT URL
+	UploadUrl string `protobuf:"bytes,4,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`
+	// Required headers to use with the PUT (client must send exactly these)
+	Headers []*Header `protobuf:"bytes,5,rep,name=headers,proto3" json:"headers,omitempty"`
+	// Upload constraints
+	MaxBytes         int64  `protobuf:"varint,6,opt,name=max_bytes,json=maxBytes,proto3" json:"max_bytes,omitempty"`
+	ContentType      string `protobuf:"bytes,7,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	ExpiresInSeconds int64  `protobuf:"varint,8,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PresignedUpload) Reset() {
+	*x = PresignedUpload{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PresignedUpload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PresignedUpload) ProtoMessage() {}
+
+func (x *PresignedUpload) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PresignedUpload.ProtoReflect.Descriptor instead.
+func (*PresignedUpload) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PresignedUpload) GetDocType() KycDocType {
+	if x != nil {
+		return x.DocType
+	}
+	return KycDocType_KYC_DOC_TYPE_UNSPECIFIED
+}
+
+func (x *PresignedUpload) GetBucket() string {
+	if x != nil {
+		return x.Bucket
+	}
+	return ""
+}
+
+func (x *PresignedUpload) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *PresignedUpload) GetUploadUrl() string {
+	if x != nil {
+		return x.UploadUrl
+	}
+	return ""
+}
+
+func (x *PresignedUpload) GetHeaders() []*Header {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+func (x *PresignedUpload) GetMaxBytes() int64 {
+	if x != nil {
+		return x.MaxBytes
+	}
+	return 0
+}
+
+func (x *PresignedUpload) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *PresignedUpload) GetExpiresInSeconds() int64 {
+	if x != nil {
+		return x.ExpiresInSeconds
+	}
+	return 0
+}
+
+type Header struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Header) Reset() {
+	*x = Header{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Header) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Header) ProtoMessage() {}
+
+func (x *Header) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Header.ProtoReflect.Descriptor instead.
+func (*Header) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Header) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Header) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+// ConfirmRegistrationKycV1Request
+// Confirms that client uploaded the objects. Server validates using S3 HeadObject and/or ETag match.
+type ConfirmRegistrationKycRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	RegistrationId string                 `protobuf:"bytes,1,opt,name=registration_id,json=registrationId,proto3" json:"registration_id,omitempty"` // uuid
+	Objects        []*UploadedObject      `protobuf:"bytes,2,rep,name=objects,proto3" json:"objects,omitempty"`
+	// Optional: channel and client context (do not include raw IP/UA; handled via interceptor if needed)
+	Channel       string `protobuf:"bytes,3,opt,name=channel,proto3" json:"channel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmRegistrationKycRequest) Reset() {
+	*x = ConfirmRegistrationKycRequest{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmRegistrationKycRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmRegistrationKycRequest) ProtoMessage() {}
+
+func (x *ConfirmRegistrationKycRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmRegistrationKycRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmRegistrationKycRequest) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ConfirmRegistrationKycRequest) GetRegistrationId() string {
+	if x != nil {
+		return x.RegistrationId
+	}
+	return ""
+}
+
+func (x *ConfirmRegistrationKycRequest) GetObjects() []*UploadedObject {
+	if x != nil {
+		return x.Objects
+	}
+	return nil
+}
+
+func (x *ConfirmRegistrationKycRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+type UploadedObject struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	DocType KycDocType             `protobuf:"varint,1,opt,name=doc_type,json=docType,proto3,enum=bank.identity.v1.KycDocType" json:"doc_type,omitempty"`
+	Bucket  string                 `protobuf:"bytes,2,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	Key     string                 `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
+	// Optional but recommended: ETag received from S3 upload response.
+	// Server can validate ETag via HeadObject.eTag().
+	Etag string `protobuf:"bytes,4,opt,name=etag,proto3" json:"etag,omitempty"`
+	// Size/content-type can be server-validated via HeadObject; include only if you want extra checks.
+	SizeBytes     int64  `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	ContentType   string `protobuf:"bytes,6,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadedObject) Reset() {
+	*x = UploadedObject{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadedObject) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadedObject) ProtoMessage() {}
+
+func (x *UploadedObject) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadedObject.ProtoReflect.Descriptor instead.
+func (*UploadedObject) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UploadedObject) GetDocType() KycDocType {
+	if x != nil {
+		return x.DocType
+	}
+	return KycDocType_KYC_DOC_TYPE_UNSPECIFIED
+}
+
+func (x *UploadedObject) GetBucket() string {
+	if x != nil {
+		return x.Bucket
+	}
+	return ""
+}
+
+func (x *UploadedObject) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *UploadedObject) GetEtag() string {
+	if x != nil {
+		return x.Etag
+	}
+	return ""
+}
+
+func (x *UploadedObject) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *UploadedObject) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+type ConfirmRegistrationKycResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	RegistrationId string                 `protobuf:"bytes,1,opt,name=registration_id,json=registrationId,proto3" json:"registration_id,omitempty"`
+	State          RegistrationState      `protobuf:"varint,2,opt,name=state,proto3,enum=bank.identity.v1.RegistrationState" json:"state,omitempty"`
+	// Status per doc type
+	Statuses      []*KycObjectStatus     `protobuf:"bytes,3,rep,name=statuses,proto3" json:"statuses,omitempty"`
+	ConfirmedAt   *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=confirmed_at,json=confirmedAt,proto3" json:"confirmed_at,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,5,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmRegistrationKycResponse) Reset() {
+	*x = ConfirmRegistrationKycResponse{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmRegistrationKycResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmRegistrationKycResponse) ProtoMessage() {}
+
+func (x *ConfirmRegistrationKycResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmRegistrationKycResponse.ProtoReflect.Descriptor instead.
+func (*ConfirmRegistrationKycResponse) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ConfirmRegistrationKycResponse) GetRegistrationId() string {
+	if x != nil {
+		return x.RegistrationId
+	}
+	return ""
+}
+
+func (x *ConfirmRegistrationKycResponse) GetState() RegistrationState {
+	if x != nil {
+		return x.State
+	}
+	return RegistrationState_REGISTRATION_STATE_UNSPECIFIED
+}
+
+func (x *ConfirmRegistrationKycResponse) GetStatuses() []*KycObjectStatus {
+	if x != nil {
+		return x.Statuses
+	}
+	return nil
+}
+
+func (x *ConfirmRegistrationKycResponse) GetConfirmedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ConfirmedAt
+	}
+	return nil
+}
+
+func (x *ConfirmRegistrationKycResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type KycObjectStatus struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	DocType KycDocType             `protobuf:"varint,1,opt,name=doc_type,json=docType,proto3,enum=bank.identity.v1.KycDocType" json:"doc_type,omitempty"`
+	Status  KycUploadStatus        `protobuf:"varint,2,opt,name=status,proto3,enum=bank.identity.v1.KycUploadStatus" json:"status,omitempty"`
+	// Echo back what the server accepted
+	Bucket        string `protobuf:"bytes,3,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	Key           string `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
+	Etag          string `protobuf:"bytes,5,opt,name=etag,proto3" json:"etag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KycObjectStatus) Reset() {
+	*x = KycObjectStatus{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KycObjectStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KycObjectStatus) ProtoMessage() {}
+
+func (x *KycObjectStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KycObjectStatus.ProtoReflect.Descriptor instead.
+func (*KycObjectStatus) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *KycObjectStatus) GetDocType() KycDocType {
+	if x != nil {
+		return x.DocType
+	}
+	return KycDocType_KYC_DOC_TYPE_UNSPECIFIED
+}
+
+func (x *KycObjectStatus) GetStatus() KycUploadStatus {
+	if x != nil {
+		return x.Status
+	}
+	return KycUploadStatus_KYC_UPLOAD_STATUS_UNSPECIFIED
+}
+
+func (x *KycObjectStatus) GetBucket() string {
+	if x != nil {
+		return x.Bucket
+	}
+	return ""
+}
+
+func (x *KycObjectStatus) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *KycObjectStatus) GetEtag() string {
+	if x != nil {
+		return x.Etag
+	}
+	return ""
+}
+
 type StartOidcLoginRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Channel            string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`                                                   // example: web
-	RedirectAfterLogin string                 `protobuf:"bytes,2,opt,name=redirect_after_login,json=redirectAfterLogin,proto3" json:"redirect_after_login,omitempty"` // example: /home
+	RedirectAfterLogin string                 `protobuf:"bytes,2,opt,name=redirect_after_login,json=redirectAfterLogin,proto3" json:"redirect_after_login,omitempty"` // example: /app
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
 func (x *StartOidcLoginRequest) Reset() {
 	*x = StartOidcLoginRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[2]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -289,7 +917,7 @@ func (x *StartOidcLoginRequest) String() string {
 func (*StartOidcLoginRequest) ProtoMessage() {}
 
 func (x *StartOidcLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[2]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -302,7 +930,7 @@ func (x *StartOidcLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartOidcLoginRequest.ProtoReflect.Descriptor instead.
 func (*StartOidcLoginRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{2}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StartOidcLoginRequest) GetChannel() string {
@@ -319,7 +947,6 @@ func (x *StartOidcLoginRequest) GetRedirectAfterLogin() string {
 	return ""
 }
 
-// StartOidcLoginResponse
 type StartOidcLoginResponse struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	AuthorizationUrl string                 `protobuf:"bytes,1,opt,name=authorization_url,json=authorizationUrl,proto3" json:"authorization_url,omitempty"` // uri
@@ -330,7 +957,7 @@ type StartOidcLoginResponse struct {
 
 func (x *StartOidcLoginResponse) Reset() {
 	*x = StartOidcLoginResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[3]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -342,7 +969,7 @@ func (x *StartOidcLoginResponse) String() string {
 func (*StartOidcLoginResponse) ProtoMessage() {}
 
 func (x *StartOidcLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[3]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -355,7 +982,7 @@ func (x *StartOidcLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartOidcLoginResponse.ProtoReflect.Descriptor instead.
 func (*StartOidcLoginResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{3}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *StartOidcLoginResponse) GetAuthorizationUrl() string {
@@ -372,21 +999,20 @@ func (x *StartOidcLoginResponse) GetState() string {
 	return ""
 }
 
-// CompleteOidcLoginRequest
 type CompleteOidcLoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	Ip            string                 `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"` // format: ipv4 (se valida a nivel app)
-	UserAgent     string                 `protobuf:"bytes,4,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
-	Channel       string                 `protobuf:"bytes,5,opt,name=channel,proto3" json:"channel,omitempty"` // example: web
+	Ip            string                 `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`                                // prefer: pass hashed via context; kept for now if you already use it
+	UserAgent     string                 `protobuf:"bytes,4,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"` // prefer: hashed via context; kept for now if you already use it
+	Channel       string                 `protobuf:"bytes,5,opt,name=channel,proto3" json:"channel,omitempty"`                      // example: web
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CompleteOidcLoginRequest) Reset() {
 	*x = CompleteOidcLoginRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[4]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -398,7 +1024,7 @@ func (x *CompleteOidcLoginRequest) String() string {
 func (*CompleteOidcLoginRequest) ProtoMessage() {}
 
 func (x *CompleteOidcLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[4]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +1037,7 @@ func (x *CompleteOidcLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteOidcLoginRequest.ProtoReflect.Descriptor instead.
 func (*CompleteOidcLoginRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{4}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CompleteOidcLoginRequest) GetCode() string {
@@ -449,7 +1075,6 @@ func (x *CompleteOidcLoginRequest) GetChannel() string {
 	return ""
 }
 
-// CompleteOidcLoginResponse
 type CompleteOidcLoginResponse struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	IdentityId         string                 `protobuf:"bytes,1,opt,name=identity_id,json=identityId,proto3" json:"identity_id,omitempty"` // uuid
@@ -459,15 +1084,13 @@ type CompleteOidcLoginResponse struct {
 	SessionId          string                 `protobuf:"bytes,5,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`                         // uuid
 	SessionExpiresIn   int64                  `protobuf:"varint,6,opt,name=session_expires_in,json=sessionExpiresIn,proto3" json:"session_expires_in,omitempty"` // seconds
 	RedirectAfterLogin string                 `protobuf:"bytes,7,opt,name=redirect_after_login,json=redirectAfterLogin,proto3" json:"redirect_after_login,omitempty"`
-	MfaRequired        bool                   `protobuf:"varint,8,opt,name=mfa_required,json=mfaRequired,proto3" json:"mfa_required,omitempty"`
-	MfaVerified        bool                   `protobuf:"varint,9,opt,name=mfa_verified,json=mfaVerified,proto3" json:"mfa_verified,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CompleteOidcLoginResponse) Reset() {
 	*x = CompleteOidcLoginResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[5]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -479,7 +1102,7 @@ func (x *CompleteOidcLoginResponse) String() string {
 func (*CompleteOidcLoginResponse) ProtoMessage() {}
 
 func (x *CompleteOidcLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[5]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +1115,7 @@ func (x *CompleteOidcLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteOidcLoginResponse.ProtoReflect.Descriptor instead.
 func (*CompleteOidcLoginResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{5}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CompleteOidcLoginResponse) GetIdentityId() string {
@@ -544,21 +1167,6 @@ func (x *CompleteOidcLoginResponse) GetRedirectAfterLogin() string {
 	return ""
 }
 
-func (x *CompleteOidcLoginResponse) GetMfaRequired() bool {
-	if x != nil {
-		return x.MfaRequired
-	}
-	return false
-}
-
-func (x *CompleteOidcLoginResponse) GetMfaVerified() bool {
-	if x != nil {
-		return x.MfaVerified
-	}
-	return false
-}
-
-// OidcUser
 type OidcUser struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -570,7 +1178,7 @@ type OidcUser struct {
 
 func (x *OidcUser) Reset() {
 	*x = OidcUser{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[6]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -582,7 +1190,7 @@ func (x *OidcUser) String() string {
 func (*OidcUser) ProtoMessage() {}
 
 func (x *OidcUser) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[6]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -595,7 +1203,7 @@ func (x *OidcUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OidcUser.ProtoReflect.Descriptor instead.
 func (*OidcUser) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{6}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *OidcUser) GetName() string {
@@ -619,67 +1227,6 @@ func (x *OidcUser) GetRoles() []string {
 	return nil
 }
 
-// OidcTokens
-type OidcTokens struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	ExpiresIn     int64                  `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *OidcTokens) Reset() {
-	*x = OidcTokens{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *OidcTokens) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*OidcTokens) ProtoMessage() {}
-
-func (x *OidcTokens) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use OidcTokens.ProtoReflect.Descriptor instead.
-func (*OidcTokens) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *OidcTokens) GetAccessToken() string {
-	if x != nil {
-		return x.AccessToken
-	}
-	return ""
-}
-
-func (x *OidcTokens) GetRefreshToken() string {
-	if x != nil {
-		return x.RefreshToken
-	}
-	return ""
-}
-
-func (x *OidcTokens) GetExpiresIn() int64 {
-	if x != nil {
-		return x.ExpiresIn
-	}
-	return 0
-}
-
 type RefreshSessionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"` // uuid
@@ -691,7 +1238,7 @@ type RefreshSessionRequest struct {
 
 func (x *RefreshSessionRequest) Reset() {
 	*x = RefreshSessionRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[8]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -703,7 +1250,7 @@ func (x *RefreshSessionRequest) String() string {
 func (*RefreshSessionRequest) ProtoMessage() {}
 
 func (x *RefreshSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[8]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -716,7 +1263,7 @@ func (x *RefreshSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSessionRequest.ProtoReflect.Descriptor instead.
 func (*RefreshSessionRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{8}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RefreshSessionRequest) GetSessionId() string {
@@ -742,15 +1289,18 @@ func (x *RefreshSessionRequest) GetUserAgent() string {
 
 type RefreshSessionResponse struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	SessionId        string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`                         // uuid (rotado)
+	SessionId        string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`                         // uuid (rotated)
 	SessionExpiresIn int64                  `protobuf:"varint,2,opt,name=session_expires_in,json=sessionExpiresIn,proto3" json:"session_expires_in,omitempty"` // seconds
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Returned to BFF to call downstream micros.
+	AccessToken          string `protobuf:"bytes,3,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	AccessTokenExpiresIn int64  `protobuf:"varint,4,opt,name=access_token_expires_in,json=accessTokenExpiresIn,proto3" json:"access_token_expires_in,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *RefreshSessionResponse) Reset() {
 	*x = RefreshSessionResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[9]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -762,7 +1312,7 @@ func (x *RefreshSessionResponse) String() string {
 func (*RefreshSessionResponse) ProtoMessage() {}
 
 func (x *RefreshSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[9]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -775,7 +1325,7 @@ func (x *RefreshSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSessionResponse.ProtoReflect.Descriptor instead.
 func (*RefreshSessionResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{9}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RefreshSessionResponse) GetSessionId() string {
@@ -792,6 +1342,20 @@ func (x *RefreshSessionResponse) GetSessionExpiresIn() int64 {
 	return 0
 }
 
+func (x *RefreshSessionResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *RefreshSessionResponse) GetAccessTokenExpiresIn() int64 {
+	if x != nil {
+		return x.AccessTokenExpiresIn
+	}
+	return 0
+}
+
 type LogoutSessionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"` // uuid
@@ -801,7 +1365,7 @@ type LogoutSessionRequest struct {
 
 func (x *LogoutSessionRequest) Reset() {
 	*x = LogoutSessionRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[10]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -813,7 +1377,7 @@ func (x *LogoutSessionRequest) String() string {
 func (*LogoutSessionRequest) ProtoMessage() {}
 
 func (x *LogoutSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[10]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -826,7 +1390,7 @@ func (x *LogoutSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutSessionRequest.ProtoReflect.Descriptor instead.
 func (*LogoutSessionRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{10}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *LogoutSessionRequest) GetSessionId() string {
@@ -845,7 +1409,7 @@ type LogoutSessionResponse struct {
 
 func (x *LogoutSessionResponse) Reset() {
 	*x = LogoutSessionResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[11]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -857,7 +1421,7 @@ func (x *LogoutSessionResponse) String() string {
 func (*LogoutSessionResponse) ProtoMessage() {}
 
 func (x *LogoutSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[11]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -870,7 +1434,7 @@ func (x *LogoutSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutSessionResponse.ProtoReflect.Descriptor instead.
 func (*LogoutSessionResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{11}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *LogoutSessionResponse) GetSuccess() bool {
@@ -891,7 +1455,7 @@ type GetSessionInfoRequest struct {
 
 func (x *GetSessionInfoRequest) Reset() {
 	*x = GetSessionInfoRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[12]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -903,7 +1467,7 @@ func (x *GetSessionInfoRequest) String() string {
 func (*GetSessionInfoRequest) ProtoMessage() {}
 
 func (x *GetSessionInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[12]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -916,7 +1480,7 @@ func (x *GetSessionInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetSessionInfoRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{12}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetSessionInfoRequest) GetSessionId() string {
@@ -945,19 +1509,17 @@ type GetSessionInfoResponse struct {
 	IdentityId       string                 `protobuf:"bytes,1,opt,name=identity_id,json=identityId,proto3" json:"identity_id,omitempty"` // uuid
 	SubjectIdOidc    string                 `protobuf:"bytes,2,opt,name=subject_id_oidc,json=subjectIdOidc,proto3" json:"subject_id_oidc,omitempty"`
 	Provider         string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`                       // example: cognito
-	User             *OidcUser              `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`                               // roles aquí
-	CustomerId       string                 `protobuf:"bytes,5,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"` // opcional si ya lo sabes en identity o lo enlazas
+	User             *OidcUser              `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`                               // roles here
+	CustomerId       string                 `protobuf:"bytes,5,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"` // optional if linked
 	UserStatus       string                 `protobuf:"bytes,6,opt,name=user_status,json=userStatus,proto3" json:"user_status,omitempty"` // ACTIVE|LOCKED|DISABLED
 	SessionExpiresIn int64                  `protobuf:"varint,7,opt,name=session_expires_in,json=sessionExpiresIn,proto3" json:"session_expires_in,omitempty"`
-	MfaRequired      bool                   `protobuf:"varint,8,opt,name=mfa_required,json=mfaRequired,proto3" json:"mfa_required,omitempty"`
-	MfaVerified      bool                   `protobuf:"varint,9,opt,name=mfa_verified,json=mfaVerified,proto3" json:"mfa_verified,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetSessionInfoResponse) Reset() {
 	*x = GetSessionInfoResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[13]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -969,7 +1531,7 @@ func (x *GetSessionInfoResponse) String() string {
 func (*GetSessionInfoResponse) ProtoMessage() {}
 
 func (x *GetSessionInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[13]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -982,7 +1544,7 @@ func (x *GetSessionInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionInfoResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{13}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetSessionInfoResponse) GetIdentityId() string {
@@ -1034,453 +1596,68 @@ func (x *GetSessionInfoResponse) GetSessionExpiresIn() int64 {
 	return 0
 }
 
-func (x *GetSessionInfoResponse) GetMfaRequired() bool {
-	if x != nil {
-		return x.MfaRequired
-	}
-	return false
-}
-
-func (x *GetSessionInfoResponse) GetMfaVerified() bool {
-	if x != nil {
-		return x.MfaVerified
-	}
-	return false
-}
-
-// =========================================================
-// New messages for Webauthn
-type BeginWebauthnRegistrationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IdentityId    string                 `protobuf:"bytes,1,opt,name=identity_id,json=identityId,proto3" json:"identity_id,omitempty"` // uuid
-	DeviceName    string                 `protobuf:"bytes,2,opt,name=device_name,json=deviceName,proto3" json:"device_name,omitempty"` // opcional
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BeginWebauthnRegistrationRequest) Reset() {
-	*x = BeginWebauthnRegistrationRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BeginWebauthnRegistrationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BeginWebauthnRegistrationRequest) ProtoMessage() {}
-
-func (x *BeginWebauthnRegistrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BeginWebauthnRegistrationRequest.ProtoReflect.Descriptor instead.
-func (*BeginWebauthnRegistrationRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *BeginWebauthnRegistrationRequest) GetIdentityId() string {
-	if x != nil {
-		return x.IdentityId
-	}
-	return ""
-}
-
-func (x *BeginWebauthnRegistrationRequest) GetDeviceName() string {
-	if x != nil {
-		return x.DeviceName
-	}
-	return ""
-}
-
-type BeginWebauthnRegistrationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	OptionsJson   string                 `protobuf:"bytes,2,opt,name=options_json,json=optionsJson,proto3" json:"options_json,omitempty"` // JSON para navigator.credentials.create()
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BeginWebauthnRegistrationResponse) Reset() {
-	*x = BeginWebauthnRegistrationResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BeginWebauthnRegistrationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BeginWebauthnRegistrationResponse) ProtoMessage() {}
-
-func (x *BeginWebauthnRegistrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BeginWebauthnRegistrationResponse.ProtoReflect.Descriptor instead.
-func (*BeginWebauthnRegistrationResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *BeginWebauthnRegistrationResponse) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-func (x *BeginWebauthnRegistrationResponse) GetOptionsJson() string {
-	if x != nil {
-		return x.OptionsJson
-	}
-	return ""
-}
-
-type FinishWebauthnRegistrationRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	RequestId      string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	CredentialJson string                 `protobuf:"bytes,2,opt,name=credential_json,json=credentialJson,proto3" json:"credential_json,omitempty"` // JSON del resultado de navigator.credentials.create()
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *FinishWebauthnRegistrationRequest) Reset() {
-	*x = FinishWebauthnRegistrationRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FinishWebauthnRegistrationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FinishWebauthnRegistrationRequest) ProtoMessage() {}
-
-func (x *FinishWebauthnRegistrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FinishWebauthnRegistrationRequest.ProtoReflect.Descriptor instead.
-func (*FinishWebauthnRegistrationRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *FinishWebauthnRegistrationRequest) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-func (x *FinishWebauthnRegistrationRequest) GetCredentialJson() string {
-	if x != nil {
-		return x.CredentialJson
-	}
-	return ""
-}
-
-type FinishWebauthnRegistrationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FinishWebauthnRegistrationResponse) Reset() {
-	*x = FinishWebauthnRegistrationResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FinishWebauthnRegistrationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FinishWebauthnRegistrationResponse) ProtoMessage() {}
-
-func (x *FinishWebauthnRegistrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FinishWebauthnRegistrationResponse.ProtoReflect.Descriptor instead.
-func (*FinishWebauthnRegistrationResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *FinishWebauthnRegistrationResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type BeginWebauthnAssertionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IdentityId    string                 `protobuf:"bytes,1,opt,name=identity_id,json=identityId,proto3" json:"identity_id,omitempty"` // uuid
-	SessionId     string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`    // uuid (sesión creada en OIDC)
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BeginWebauthnAssertionRequest) Reset() {
-	*x = BeginWebauthnAssertionRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BeginWebauthnAssertionRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BeginWebauthnAssertionRequest) ProtoMessage() {}
-
-func (x *BeginWebauthnAssertionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BeginWebauthnAssertionRequest.ProtoReflect.Descriptor instead.
-func (*BeginWebauthnAssertionRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *BeginWebauthnAssertionRequest) GetIdentityId() string {
-	if x != nil {
-		return x.IdentityId
-	}
-	return ""
-}
-
-func (x *BeginWebauthnAssertionRequest) GetSessionId() string {
-	if x != nil {
-		return x.SessionId
-	}
-	return ""
-}
-
-type BeginWebauthnAssertionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	OptionsJson   string                 `protobuf:"bytes,2,opt,name=options_json,json=optionsJson,proto3" json:"options_json,omitempty"` // JSON para navigator.credentials.get()
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BeginWebauthnAssertionResponse) Reset() {
-	*x = BeginWebauthnAssertionResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BeginWebauthnAssertionResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BeginWebauthnAssertionResponse) ProtoMessage() {}
-
-func (x *BeginWebauthnAssertionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BeginWebauthnAssertionResponse.ProtoReflect.Descriptor instead.
-func (*BeginWebauthnAssertionResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *BeginWebauthnAssertionResponse) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-func (x *BeginWebauthnAssertionResponse) GetOptionsJson() string {
-	if x != nil {
-		return x.OptionsJson
-	}
-	return ""
-}
-
-type FinishWebauthnAssertionRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	SessionId      string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"` // uuid
-	RequestId      string                 `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	CredentialJson string                 `protobuf:"bytes,3,opt,name=credential_json,json=credentialJson,proto3" json:"credential_json,omitempty"` // JSON del resultado de navigator.credentials.get()
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *FinishWebauthnAssertionRequest) Reset() {
-	*x = FinishWebauthnAssertionRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FinishWebauthnAssertionRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FinishWebauthnAssertionRequest) ProtoMessage() {}
-
-func (x *FinishWebauthnAssertionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FinishWebauthnAssertionRequest.ProtoReflect.Descriptor instead.
-func (*FinishWebauthnAssertionRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *FinishWebauthnAssertionRequest) GetSessionId() string {
-	if x != nil {
-		return x.SessionId
-	}
-	return ""
-}
-
-func (x *FinishWebauthnAssertionRequest) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-func (x *FinishWebauthnAssertionRequest) GetCredentialJson() string {
-	if x != nil {
-		return x.CredentialJson
-	}
-	return ""
-}
-
-type FinishWebauthnAssertionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FinishWebauthnAssertionResponse) Reset() {
-	*x = FinishWebauthnAssertionResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FinishWebauthnAssertionResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FinishWebauthnAssertionResponse) ProtoMessage() {}
-
-func (x *FinishWebauthnAssertionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FinishWebauthnAssertionResponse.ProtoReflect.Descriptor instead.
-func (*FinishWebauthnAssertionResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *FinishWebauthnAssertionResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
 var File_bank_identity_v1_identity_proto protoreflect.FileDescriptor
 
 const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"\n" +
-	"\x1fbank/identity/v1/identity.proto\x12\x10bank.identity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x97\x03\n" +
+	"\x1fbank/identity/v1/identity.proto\x12\x10bank.identity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb6\x03\n" +
 	"\x18StartRegistrationRequest\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12\x1f\n" +
 	"\vnational_id\x18\x02 \x01(\tR\n" +
 	"nationalId\x123\n" +
 	"\x16national_id_issue_date\x18\x03 \x01(\tR\x13nationalIdIssueDate\x12)\n" +
-	"\x10fingerprint_code\x18\x04 \x01(\tR\x0ffingerprintCode\x12*\n" +
-	"\x11id_document_front\x18\x05 \x01(\fR\x0fidDocumentFront\x12\x16\n" +
-	"\x06selfie\x18\x06 \x01(\fR\x06selfie\x12%\n" +
-	"\x0emonthly_income\x18\a \x01(\x01R\rmonthlyIncome\x12I\n" +
-	"\x0foccupation_type\x18\b \x01(\x0e2 .bank.identity.v1.OccupationTypeR\x0eoccupationType\x12\x14\n" +
-	"\x05email\x18\t \x01(\tR\x05email\x12\x14\n" +
-	"\x05phone\x18\n" +
-	" \x01(\tR\x05phone\"\x95\x01\n" +
+	"\x10fingerprint_code\x18\x04 \x01(\tR\x0ffingerprintCode\x12%\n" +
+	"\x0emonthly_income\x18\x05 \x01(\x01R\rmonthlyIncome\x12I\n" +
+	"\x0foccupation_type\x18\x06 \x01(\x0e2 .bank.identity.v1.OccupationTypeR\x0eoccupationType\x12\x14\n" +
+	"\x05email\x18\a \x01(\tR\x05email\x12\x14\n" +
+	"\x05phone\x18\b \x01(\tR\x05phone\x121\n" +
+	"\x15id_front_content_type\x18\t \x01(\tR\x12idFrontContentType\x12.\n" +
+	"\x13selfie_content_type\x18\n" +
+	" \x01(\tR\x11selfieContentType\"\x9e\x02\n" +
 	"\x19StartRegistrationResponse\x12'\n" +
-	"\x0fregistration_id\x18\x01 \x01(\tR\x0eregistrationId\x12\x14\n" +
-	"\x05state\x18\x02 \x01(\tR\x05state\x129\n" +
+	"\x0fregistration_id\x18\x01 \x01(\tR\x0eregistrationId\x129\n" +
+	"\x05state\x18\x02 \x01(\x0e2#.bank.identity.v1.RegistrationStateR\x05state\x129\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"c\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12;\n" +
+	"\auploads\x18\x04 \x03(\v2!.bank.identity.v1.PresignedUploadR\auploads\x12%\n" +
+	"\x0ecorrelation_id\x18\x05 \x01(\tR\rcorrelationId\"\xb5\x02\n" +
+	"\x0fPresignedUpload\x127\n" +
+	"\bdoc_type\x18\x01 \x01(\x0e2\x1c.bank.identity.v1.KycDocTypeR\adocType\x12\x16\n" +
+	"\x06bucket\x18\x02 \x01(\tR\x06bucket\x12\x10\n" +
+	"\x03key\x18\x03 \x01(\tR\x03key\x12\x1d\n" +
+	"\n" +
+	"upload_url\x18\x04 \x01(\tR\tuploadUrl\x122\n" +
+	"\aheaders\x18\x05 \x03(\v2\x18.bank.identity.v1.HeaderR\aheaders\x12\x1b\n" +
+	"\tmax_bytes\x18\x06 \x01(\x03R\bmaxBytes\x12!\n" +
+	"\fcontent_type\x18\a \x01(\tR\vcontentType\x12,\n" +
+	"\x12expires_in_seconds\x18\b \x01(\x03R\x10expiresInSeconds\"2\n" +
+	"\x06Header\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\x9e\x01\n" +
+	"\x1dConfirmRegistrationKycRequest\x12'\n" +
+	"\x0fregistration_id\x18\x01 \x01(\tR\x0eregistrationId\x12:\n" +
+	"\aobjects\x18\x02 \x03(\v2 .bank.identity.v1.UploadedObjectR\aobjects\x12\x18\n" +
+	"\achannel\x18\x03 \x01(\tR\achannel\"\xc9\x01\n" +
+	"\x0eUploadedObject\x127\n" +
+	"\bdoc_type\x18\x01 \x01(\x0e2\x1c.bank.identity.v1.KycDocTypeR\adocType\x12\x16\n" +
+	"\x06bucket\x18\x02 \x01(\tR\x06bucket\x12\x10\n" +
+	"\x03key\x18\x03 \x01(\tR\x03key\x12\x12\n" +
+	"\x04etag\x18\x04 \x01(\tR\x04etag\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x05 \x01(\x03R\tsizeBytes\x12!\n" +
+	"\fcontent_type\x18\x06 \x01(\tR\vcontentType\"\xa9\x02\n" +
+	"\x1eConfirmRegistrationKycResponse\x12'\n" +
+	"\x0fregistration_id\x18\x01 \x01(\tR\x0eregistrationId\x129\n" +
+	"\x05state\x18\x02 \x01(\x0e2#.bank.identity.v1.RegistrationStateR\x05state\x12=\n" +
+	"\bstatuses\x18\x03 \x03(\v2!.bank.identity.v1.KycObjectStatusR\bstatuses\x12=\n" +
+	"\fconfirmed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vconfirmedAt\x12%\n" +
+	"\x0ecorrelation_id\x18\x05 \x01(\tR\rcorrelationId\"\xc3\x01\n" +
+	"\x0fKycObjectStatus\x127\n" +
+	"\bdoc_type\x18\x01 \x01(\x0e2\x1c.bank.identity.v1.KycDocTypeR\adocType\x129\n" +
+	"\x06status\x18\x02 \x01(\x0e2!.bank.identity.v1.KycUploadStatusR\x06status\x12\x16\n" +
+	"\x06bucket\x18\x03 \x01(\tR\x06bucket\x12\x10\n" +
+	"\x03key\x18\x04 \x01(\tR\x03key\x12\x12\n" +
+	"\x04etag\x18\x05 \x01(\tR\x04etag\"c\n" +
 	"\x15StartOidcLoginRequest\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x120\n" +
 	"\x14redirect_after_login\x18\x02 \x01(\tR\x12redirectAfterLogin\"[\n" +
@@ -1493,7 +1670,7 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"\x02ip\x18\x03 \x01(\tR\x02ip\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\x04 \x01(\tR\tuserAgent\x12\x18\n" +
-	"\achannel\x18\x05 \x01(\tR\achannel\"\xf5\x02\n" +
+	"\achannel\x18\x05 \x01(\tR\achannel\"\xaf\x02\n" +
 	"\x19CompleteOidcLoginResponse\x12\x1f\n" +
 	"\videntity_id\x18\x01 \x01(\tR\n" +
 	"identityId\x12&\n" +
@@ -1503,29 +1680,23 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x05 \x01(\tR\tsessionId\x12,\n" +
 	"\x12session_expires_in\x18\x06 \x01(\x03R\x10sessionExpiresIn\x120\n" +
-	"\x14redirect_after_login\x18\a \x01(\tR\x12redirectAfterLogin\x12!\n" +
-	"\fmfa_required\x18\b \x01(\bR\vmfaRequired\x12!\n" +
-	"\fmfa_verified\x18\t \x01(\bR\vmfaVerified\"J\n" +
+	"\x14redirect_after_login\x18\a \x01(\tR\x12redirectAfterLogin\"J\n" +
 	"\bOidcUser\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x14\n" +
-	"\x05roles\x18\x03 \x03(\tR\x05roles\"s\n" +
-	"\n" +
-	"OidcTokens\x12!\n" +
-	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12\x1d\n" +
-	"\n" +
-	"expires_in\x18\x03 \x01(\x03R\texpiresIn\"e\n" +
+	"\x05roles\x18\x03 \x03(\tR\x05roles\"e\n" +
 	"\x15RefreshSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x0e\n" +
 	"\x02ip\x18\x02 \x01(\tR\x02ip\x12\x1d\n" +
 	"\n" +
-	"user_agent\x18\x03 \x01(\tR\tuserAgent\"e\n" +
+	"user_agent\x18\x03 \x01(\tR\tuserAgent\"\xbf\x01\n" +
 	"\x16RefreshSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12,\n" +
-	"\x12session_expires_in\x18\x02 \x01(\x03R\x10sessionExpiresIn\"5\n" +
+	"\x12session_expires_in\x18\x02 \x01(\x03R\x10sessionExpiresIn\x12!\n" +
+	"\faccess_token\x18\x03 \x01(\tR\vaccessToken\x125\n" +
+	"\x17access_token_expires_in\x18\x04 \x01(\x03R\x14accessTokenExpiresIn\"5\n" +
 	"\x14LogoutSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"1\n" +
@@ -1536,7 +1707,7 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x0e\n" +
 	"\x02ip\x18\x02 \x01(\tR\x02ip\x12\x1d\n" +
 	"\n" +
-	"user_agent\x18\x03 \x01(\tR\tuserAgent\"\xe3\x02\n" +
+	"user_agent\x18\x03 \x01(\tR\tuserAgent\"\x9d\x02\n" +
 	"\x16GetSessionInfoResponse\x12\x1f\n" +
 	"\videntity_id\x18\x01 \x01(\tR\n" +
 	"identityId\x12&\n" +
@@ -1547,61 +1718,39 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"customerId\x12\x1f\n" +
 	"\vuser_status\x18\x06 \x01(\tR\n" +
 	"userStatus\x12,\n" +
-	"\x12session_expires_in\x18\a \x01(\x03R\x10sessionExpiresIn\x12!\n" +
-	"\fmfa_required\x18\b \x01(\bR\vmfaRequired\x12!\n" +
-	"\fmfa_verified\x18\t \x01(\bR\vmfaVerified\"d\n" +
-	" BeginWebauthnRegistrationRequest\x12\x1f\n" +
-	"\videntity_id\x18\x01 \x01(\tR\n" +
-	"identityId\x12\x1f\n" +
-	"\vdevice_name\x18\x02 \x01(\tR\n" +
-	"deviceName\"e\n" +
-	"!BeginWebauthnRegistrationResponse\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\x01 \x01(\tR\trequestId\x12!\n" +
-	"\foptions_json\x18\x02 \x01(\tR\voptionsJson\"k\n" +
-	"!FinishWebauthnRegistrationRequest\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\x01 \x01(\tR\trequestId\x12'\n" +
-	"\x0fcredential_json\x18\x02 \x01(\tR\x0ecredentialJson\">\n" +
-	"\"FinishWebauthnRegistrationResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"_\n" +
-	"\x1dBeginWebauthnAssertionRequest\x12\x1f\n" +
-	"\videntity_id\x18\x01 \x01(\tR\n" +
-	"identityId\x12\x1d\n" +
-	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\"b\n" +
-	"\x1eBeginWebauthnAssertionResponse\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\x01 \x01(\tR\trequestId\x12!\n" +
-	"\foptions_json\x18\x02 \x01(\tR\voptionsJson\"\x87\x01\n" +
-	"\x1eFinishWebauthnAssertionRequest\x12\x1d\n" +
-	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\x02 \x01(\tR\trequestId\x12'\n" +
-	"\x0fcredential_json\x18\x03 \x01(\tR\x0ecredentialJson\";\n" +
-	"\x1fFinishWebauthnAssertionResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess*\xcc\x01\n" +
+	"\x12session_expires_in\x18\a \x01(\x03R\x10sessionExpiresIn*\xcc\x01\n" +
 	"\x0eOccupationType\x12\x1f\n" +
 	"\x1bOCCUPATION_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17OCCUPATION_TYPE_STUDENT\x10\x01\x12\x1c\n" +
 	"\x18OCCUPATION_TYPE_EMPLOYEE\x10\x02\x12!\n" +
 	"\x1dOCCUPATION_TYPE_SELF_EMPLOYED\x10\x03\x12\x1e\n" +
 	"\x1aOCCUPATION_TYPE_UNEMPLOYED\x10\x04\x12\x1b\n" +
-	"\x17OCCUPATION_TYPE_RETIRED\x10\x052\x81\x01\n" +
+	"\x17OCCUPATION_TYPE_RETIRED\x10\x05*^\n" +
+	"\n" +
+	"KycDocType\x12\x1c\n" +
+	"\x18KYC_DOC_TYPE_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15KYC_DOC_TYPE_ID_FRONT\x10\x01\x12\x17\n" +
+	"\x13KYC_DOC_TYPE_SELFIE\x10\x02*t\n" +
+	"\x0fKycUploadStatus\x12!\n" +
+	"\x1dKYC_UPLOAD_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19KYC_UPLOAD_STATUS_PENDING\x10\x01\x12\x1f\n" +
+	"\x1bKYC_UPLOAD_STATUS_CONFIRMED\x10\x02*\xe5\x01\n" +
+	"\x11RegistrationState\x12\"\n" +
+	"\x1eREGISTRATION_STATE_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aREGISTRATION_STATE_STARTED\x10\x01\x12'\n" +
+	"#REGISTRATION_STATE_CONTACT_VERIFIED\x10\x02\x12 \n" +
+	"\x1cREGISTRATION_STATE_CONSENTED\x10\x03\x12 \n" +
+	"\x1cREGISTRATION_STATE_ACTIVATED\x10\x04\x12\x1f\n" +
+	"\x1bREGISTRATION_STATE_REJECTED\x10\x052\xfe\x01\n" +
 	"\x11OnboardingService\x12l\n" +
-	"\x11StartRegistration\x12*.bank.identity.v1.StartRegistrationRequest\x1a+.bank.identity.v1.StartRegistrationResponse2\x90\x04\n" +
+	"\x11StartRegistration\x12*.bank.identity.v1.StartRegistrationRequest\x1a+.bank.identity.v1.StartRegistrationResponse\x12{\n" +
+	"\x16ConfirmRegistrationKyc\x12/.bank.identity.v1.ConfirmRegistrationKycRequest\x1a0.bank.identity.v1.ConfirmRegistrationKycResponse2\x90\x04\n" +
 	"\x0fOidcAuthService\x12c\n" +
 	"\x0eStartOidcLogin\x12'.bank.identity.v1.StartOidcLoginRequest\x1a(.bank.identity.v1.StartOidcLoginResponse\x12l\n" +
 	"\x11CompleteOidcLogin\x12*.bank.identity.v1.CompleteOidcLoginRequest\x1a+.bank.identity.v1.CompleteOidcLoginResponse\x12c\n" +
 	"\x0eRefreshSession\x12'.bank.identity.v1.RefreshSessionRequest\x1a(.bank.identity.v1.RefreshSessionResponse\x12`\n" +
 	"\rLogoutSession\x12&.bank.identity.v1.LogoutSessionRequest\x1a'.bank.identity.v1.LogoutSessionResponse\x12c\n" +
-	"\x0eGetSessionInfo\x12'.bank.identity.v1.GetSessionInfoRequest\x1a(.bank.identity.v1.GetSessionInfoResponse2\x9f\x04\n" +
-	"\x0fWebauthnService\x12\x84\x01\n" +
-	"\x19BeginWebauthnRegistration\x122.bank.identity.v1.BeginWebauthnRegistrationRequest\x1a3.bank.identity.v1.BeginWebauthnRegistrationResponse\x12\x87\x01\n" +
-	"\x1aFinishWebauthnRegistration\x123.bank.identity.v1.FinishWebauthnRegistrationRequest\x1a4.bank.identity.v1.FinishWebauthnRegistrationResponse\x12{\n" +
-	"\x16BeginWebauthnAssertion\x12/.bank.identity.v1.BeginWebauthnAssertionRequest\x1a0.bank.identity.v1.BeginWebauthnAssertionResponse\x12~\n" +
-	"\x17FinishWebauthnAssertion\x120.bank.identity.v1.FinishWebauthnAssertionRequest\x1a1.bank.identity.v1.FinishWebauthnAssertionResponseB\xd6\x01\n" +
+	"\x0eGetSessionInfo\x12'.bank.identity.v1.GetSessionInfoRequest\x1a(.bank.identity.v1.GetSessionInfoResponseB\xd6\x01\n" +
 	"\x14com.bank.identity.v1B\rIdentityProtoP\x01ZMgithub.com/imaginarybank/banking-contracts/gen/go/bank/identity/v1;identityv1\xa2\x02\x03BIX\xaa\x02\x10Bank.Identity.V1\xca\x02\x10Bank\\Identity\\V1\xe2\x02\x1cBank\\Identity\\V1\\GPBMetadata\xea\x02\x12Bank::Identity::V1b\x06proto3"
 
 var (
@@ -1616,64 +1765,69 @@ func file_bank_identity_v1_identity_proto_rawDescGZIP() []byte {
 	return file_bank_identity_v1_identity_proto_rawDescData
 }
 
-var file_bank_identity_v1_identity_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bank_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_bank_identity_v1_identity_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_bank_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_bank_identity_v1_identity_proto_goTypes = []any{
-	(OccupationType)(0),                        // 0: bank.identity.v1.OccupationType
-	(*StartRegistrationRequest)(nil),           // 1: bank.identity.v1.StartRegistrationRequest
-	(*StartRegistrationResponse)(nil),          // 2: bank.identity.v1.StartRegistrationResponse
-	(*StartOidcLoginRequest)(nil),              // 3: bank.identity.v1.StartOidcLoginRequest
-	(*StartOidcLoginResponse)(nil),             // 4: bank.identity.v1.StartOidcLoginResponse
-	(*CompleteOidcLoginRequest)(nil),           // 5: bank.identity.v1.CompleteOidcLoginRequest
-	(*CompleteOidcLoginResponse)(nil),          // 6: bank.identity.v1.CompleteOidcLoginResponse
-	(*OidcUser)(nil),                           // 7: bank.identity.v1.OidcUser
-	(*OidcTokens)(nil),                         // 8: bank.identity.v1.OidcTokens
-	(*RefreshSessionRequest)(nil),              // 9: bank.identity.v1.RefreshSessionRequest
-	(*RefreshSessionResponse)(nil),             // 10: bank.identity.v1.RefreshSessionResponse
-	(*LogoutSessionRequest)(nil),               // 11: bank.identity.v1.LogoutSessionRequest
-	(*LogoutSessionResponse)(nil),              // 12: bank.identity.v1.LogoutSessionResponse
-	(*GetSessionInfoRequest)(nil),              // 13: bank.identity.v1.GetSessionInfoRequest
-	(*GetSessionInfoResponse)(nil),             // 14: bank.identity.v1.GetSessionInfoResponse
-	(*BeginWebauthnRegistrationRequest)(nil),   // 15: bank.identity.v1.BeginWebauthnRegistrationRequest
-	(*BeginWebauthnRegistrationResponse)(nil),  // 16: bank.identity.v1.BeginWebauthnRegistrationResponse
-	(*FinishWebauthnRegistrationRequest)(nil),  // 17: bank.identity.v1.FinishWebauthnRegistrationRequest
-	(*FinishWebauthnRegistrationResponse)(nil), // 18: bank.identity.v1.FinishWebauthnRegistrationResponse
-	(*BeginWebauthnAssertionRequest)(nil),      // 19: bank.identity.v1.BeginWebauthnAssertionRequest
-	(*BeginWebauthnAssertionResponse)(nil),     // 20: bank.identity.v1.BeginWebauthnAssertionResponse
-	(*FinishWebauthnAssertionRequest)(nil),     // 21: bank.identity.v1.FinishWebauthnAssertionRequest
-	(*FinishWebauthnAssertionResponse)(nil),    // 22: bank.identity.v1.FinishWebauthnAssertionResponse
-	(*timestamppb.Timestamp)(nil),              // 23: google.protobuf.Timestamp
+	(OccupationType)(0),                    // 0: bank.identity.v1.OccupationType
+	(KycDocType)(0),                        // 1: bank.identity.v1.KycDocType
+	(KycUploadStatus)(0),                   // 2: bank.identity.v1.KycUploadStatus
+	(RegistrationState)(0),                 // 3: bank.identity.v1.RegistrationState
+	(*StartRegistrationRequest)(nil),       // 4: bank.identity.v1.StartRegistrationRequest
+	(*StartRegistrationResponse)(nil),      // 5: bank.identity.v1.StartRegistrationResponse
+	(*PresignedUpload)(nil),                // 6: bank.identity.v1.PresignedUpload
+	(*Header)(nil),                         // 7: bank.identity.v1.Header
+	(*ConfirmRegistrationKycRequest)(nil),  // 8: bank.identity.v1.ConfirmRegistrationKycRequest
+	(*UploadedObject)(nil),                 // 9: bank.identity.v1.UploadedObject
+	(*ConfirmRegistrationKycResponse)(nil), // 10: bank.identity.v1.ConfirmRegistrationKycResponse
+	(*KycObjectStatus)(nil),                // 11: bank.identity.v1.KycObjectStatus
+	(*StartOidcLoginRequest)(nil),          // 12: bank.identity.v1.StartOidcLoginRequest
+	(*StartOidcLoginResponse)(nil),         // 13: bank.identity.v1.StartOidcLoginResponse
+	(*CompleteOidcLoginRequest)(nil),       // 14: bank.identity.v1.CompleteOidcLoginRequest
+	(*CompleteOidcLoginResponse)(nil),      // 15: bank.identity.v1.CompleteOidcLoginResponse
+	(*OidcUser)(nil),                       // 16: bank.identity.v1.OidcUser
+	(*RefreshSessionRequest)(nil),          // 17: bank.identity.v1.RefreshSessionRequest
+	(*RefreshSessionResponse)(nil),         // 18: bank.identity.v1.RefreshSessionResponse
+	(*LogoutSessionRequest)(nil),           // 19: bank.identity.v1.LogoutSessionRequest
+	(*LogoutSessionResponse)(nil),          // 20: bank.identity.v1.LogoutSessionResponse
+	(*GetSessionInfoRequest)(nil),          // 21: bank.identity.v1.GetSessionInfoRequest
+	(*GetSessionInfoResponse)(nil),         // 22: bank.identity.v1.GetSessionInfoResponse
+	(*timestamppb.Timestamp)(nil),          // 23: google.protobuf.Timestamp
 }
 var file_bank_identity_v1_identity_proto_depIdxs = []int32{
 	0,  // 0: bank.identity.v1.StartRegistrationRequest.occupation_type:type_name -> bank.identity.v1.OccupationType
-	23, // 1: bank.identity.v1.StartRegistrationResponse.created_at:type_name -> google.protobuf.Timestamp
-	7,  // 2: bank.identity.v1.CompleteOidcLoginResponse.user:type_name -> bank.identity.v1.OidcUser
-	7,  // 3: bank.identity.v1.GetSessionInfoResponse.user:type_name -> bank.identity.v1.OidcUser
-	1,  // 4: bank.identity.v1.OnboardingService.StartRegistration:input_type -> bank.identity.v1.StartRegistrationRequest
-	3,  // 5: bank.identity.v1.OidcAuthService.StartOidcLogin:input_type -> bank.identity.v1.StartOidcLoginRequest
-	5,  // 6: bank.identity.v1.OidcAuthService.CompleteOidcLogin:input_type -> bank.identity.v1.CompleteOidcLoginRequest
-	9,  // 7: bank.identity.v1.OidcAuthService.RefreshSession:input_type -> bank.identity.v1.RefreshSessionRequest
-	11, // 8: bank.identity.v1.OidcAuthService.LogoutSession:input_type -> bank.identity.v1.LogoutSessionRequest
-	13, // 9: bank.identity.v1.OidcAuthService.GetSessionInfo:input_type -> bank.identity.v1.GetSessionInfoRequest
-	15, // 10: bank.identity.v1.WebauthnService.BeginWebauthnRegistration:input_type -> bank.identity.v1.BeginWebauthnRegistrationRequest
-	17, // 11: bank.identity.v1.WebauthnService.FinishWebauthnRegistration:input_type -> bank.identity.v1.FinishWebauthnRegistrationRequest
-	19, // 12: bank.identity.v1.WebauthnService.BeginWebauthnAssertion:input_type -> bank.identity.v1.BeginWebauthnAssertionRequest
-	21, // 13: bank.identity.v1.WebauthnService.FinishWebauthnAssertion:input_type -> bank.identity.v1.FinishWebauthnAssertionRequest
-	2,  // 14: bank.identity.v1.OnboardingService.StartRegistration:output_type -> bank.identity.v1.StartRegistrationResponse
-	4,  // 15: bank.identity.v1.OidcAuthService.StartOidcLogin:output_type -> bank.identity.v1.StartOidcLoginResponse
-	6,  // 16: bank.identity.v1.OidcAuthService.CompleteOidcLogin:output_type -> bank.identity.v1.CompleteOidcLoginResponse
-	10, // 17: bank.identity.v1.OidcAuthService.RefreshSession:output_type -> bank.identity.v1.RefreshSessionResponse
-	12, // 18: bank.identity.v1.OidcAuthService.LogoutSession:output_type -> bank.identity.v1.LogoutSessionResponse
-	14, // 19: bank.identity.v1.OidcAuthService.GetSessionInfo:output_type -> bank.identity.v1.GetSessionInfoResponse
-	16, // 20: bank.identity.v1.WebauthnService.BeginWebauthnRegistration:output_type -> bank.identity.v1.BeginWebauthnRegistrationResponse
-	18, // 21: bank.identity.v1.WebauthnService.FinishWebauthnRegistration:output_type -> bank.identity.v1.FinishWebauthnRegistrationResponse
-	20, // 22: bank.identity.v1.WebauthnService.BeginWebauthnAssertion:output_type -> bank.identity.v1.BeginWebauthnAssertionResponse
-	22, // 23: bank.identity.v1.WebauthnService.FinishWebauthnAssertion:output_type -> bank.identity.v1.FinishWebauthnAssertionResponse
-	14, // [14:24] is the sub-list for method output_type
-	4,  // [4:14] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	3,  // 1: bank.identity.v1.StartRegistrationResponse.state:type_name -> bank.identity.v1.RegistrationState
+	23, // 2: bank.identity.v1.StartRegistrationResponse.created_at:type_name -> google.protobuf.Timestamp
+	6,  // 3: bank.identity.v1.StartRegistrationResponse.uploads:type_name -> bank.identity.v1.PresignedUpload
+	1,  // 4: bank.identity.v1.PresignedUpload.doc_type:type_name -> bank.identity.v1.KycDocType
+	7,  // 5: bank.identity.v1.PresignedUpload.headers:type_name -> bank.identity.v1.Header
+	9,  // 6: bank.identity.v1.ConfirmRegistrationKycRequest.objects:type_name -> bank.identity.v1.UploadedObject
+	1,  // 7: bank.identity.v1.UploadedObject.doc_type:type_name -> bank.identity.v1.KycDocType
+	3,  // 8: bank.identity.v1.ConfirmRegistrationKycResponse.state:type_name -> bank.identity.v1.RegistrationState
+	11, // 9: bank.identity.v1.ConfirmRegistrationKycResponse.statuses:type_name -> bank.identity.v1.KycObjectStatus
+	23, // 10: bank.identity.v1.ConfirmRegistrationKycResponse.confirmed_at:type_name -> google.protobuf.Timestamp
+	1,  // 11: bank.identity.v1.KycObjectStatus.doc_type:type_name -> bank.identity.v1.KycDocType
+	2,  // 12: bank.identity.v1.KycObjectStatus.status:type_name -> bank.identity.v1.KycUploadStatus
+	16, // 13: bank.identity.v1.CompleteOidcLoginResponse.user:type_name -> bank.identity.v1.OidcUser
+	16, // 14: bank.identity.v1.GetSessionInfoResponse.user:type_name -> bank.identity.v1.OidcUser
+	4,  // 15: bank.identity.v1.OnboardingService.StartRegistration:input_type -> bank.identity.v1.StartRegistrationRequest
+	8,  // 16: bank.identity.v1.OnboardingService.ConfirmRegistrationKyc:input_type -> bank.identity.v1.ConfirmRegistrationKycRequest
+	12, // 17: bank.identity.v1.OidcAuthService.StartOidcLogin:input_type -> bank.identity.v1.StartOidcLoginRequest
+	14, // 18: bank.identity.v1.OidcAuthService.CompleteOidcLogin:input_type -> bank.identity.v1.CompleteOidcLoginRequest
+	17, // 19: bank.identity.v1.OidcAuthService.RefreshSession:input_type -> bank.identity.v1.RefreshSessionRequest
+	19, // 20: bank.identity.v1.OidcAuthService.LogoutSession:input_type -> bank.identity.v1.LogoutSessionRequest
+	21, // 21: bank.identity.v1.OidcAuthService.GetSessionInfo:input_type -> bank.identity.v1.GetSessionInfoRequest
+	5,  // 22: bank.identity.v1.OnboardingService.StartRegistration:output_type -> bank.identity.v1.StartRegistrationResponse
+	10, // 23: bank.identity.v1.OnboardingService.ConfirmRegistrationKyc:output_type -> bank.identity.v1.ConfirmRegistrationKycResponse
+	13, // 24: bank.identity.v1.OidcAuthService.StartOidcLogin:output_type -> bank.identity.v1.StartOidcLoginResponse
+	15, // 25: bank.identity.v1.OidcAuthService.CompleteOidcLogin:output_type -> bank.identity.v1.CompleteOidcLoginResponse
+	18, // 26: bank.identity.v1.OidcAuthService.RefreshSession:output_type -> bank.identity.v1.RefreshSessionResponse
+	20, // 27: bank.identity.v1.OidcAuthService.LogoutSession:output_type -> bank.identity.v1.LogoutSessionResponse
+	22, // 28: bank.identity.v1.OidcAuthService.GetSessionInfo:output_type -> bank.identity.v1.GetSessionInfoResponse
+	22, // [22:29] is the sub-list for method output_type
+	15, // [15:22] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_bank_identity_v1_identity_proto_init() }
@@ -1686,10 +1840,10 @@ func file_bank_identity_v1_identity_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_identity_v1_identity_proto_rawDesc), len(file_bank_identity_v1_identity_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   22,
+			NumEnums:      4,
+			NumMessages:   19,
 			NumExtensions: 0,
-			NumServices:   3,
+			NumServices:   2,
 		},
 		GoTypes:           file_bank_identity_v1_identity_proto_goTypes,
 		DependencyIndexes: file_bank_identity_v1_identity_proto_depIdxs,

@@ -1,19 +1,17 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	"github.com/aws/aws-sdk-go-v2/config as awscfg"
+
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/verifiedpermissions"
-	securitygrpc "github.com/tagoKoder/ledger/internal/infra/security/grpc"
-	"github.com/tagoKoder/ledger/internal/infra/security/avp"
-	"github.com/tagoKoder/ledger/internal/infra/security/authz"
-	jwtvalidator "github.com/tagoKoder/ledger/internal/infra/security/jwt"
 	"github.com/tagoKoder/ledger/internal/application/service"
 	"github.com/tagoKoder/ledger/internal/infra/config"
 	"github.com/tagoKoder/ledger/internal/infra/in/grpc/handler"
@@ -22,8 +20,12 @@ import (
 	"github.com/tagoKoder/ledger/internal/infra/out/messaging"
 	gormdb "github.com/tagoKoder/ledger/internal/infra/out/persistence/gorm"
 	gormuow "github.com/tagoKoder/ledger/internal/infra/out/persistence/gorm/uow"
+	"github.com/tagoKoder/ledger/internal/infra/security/authz"
+	"github.com/tagoKoder/ledger/internal/infra/security/avp"
+	securitygrpc "github.com/tagoKoder/ledger/internal/infra/security/grpc"
+	jwtvalidator "github.com/tagoKoder/ledger/internal/infra/security/jwt"
 
-	ledgerpb "github.com/tagoKoder/ledger/proto/gen/ledgerpayments/v1"
+	ledgerpb "github.com/tagoKoder/ledger/internal/genproto/bank/ledgerpayments/v1"
 	"google.golang.org/grpc"
 )
 
@@ -60,9 +62,9 @@ func main() {
 		log.Fatalf("aws cfg: %v", err)
 	}
 
-		// Kafka publisher (outbox events del dominio)
+	// Kafka publisher (outbox events del dominio)
 	pub := messaging.NewKafkaPublisher(cfg.KafkaBrokers, cfg.KafkaClientID)
-	
+
 	eb := eventbridge.NewFromConfig(awsCfg)
 	vp := verifiedpermissions.NewFromConfig(awsCfg)
 
@@ -91,7 +93,6 @@ func main() {
 	outboxWorker := messaging.NewOutboxWorker(uow, pub, cfg.OutboxBatchSize, cfg.OutboxPollInterval)
 	outboxWorker.Start()
 
-	
 	// Security: JWT validator  AVP  resolver  interceptor
 	jv := jwtvalidator.New(cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTJWKSURL)
 	avpClient := avp.New(vp, cfg.AVPPolicyStoreID)

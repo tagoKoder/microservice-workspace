@@ -1,8 +1,6 @@
 package com.tagokoder.identity.application.service;
 
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,76 +8,81 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tagokoder.identity.domain.model.RegistrationIntent;
+import com.tagokoder.identity.domain.model.kyc.FinalizedObject;
+import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
+import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase;
 import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase;
-import com.tagokoder.identity.domain.port.out.KycDocumentStoragePort;
+import com.tagokoder.identity.domain.port.out.KycPresignedStoragePort;
 import com.tagokoder.identity.domain.port.out.RegistrationIntentRepositoryPort;
 
 @Service
-public class OnboardingService implements StartRegistrationUseCase {
+public class OnboardingService implements StartRegistrationUseCase, ConfirmRegistrationKycUseCase {
 
     private final RegistrationIntentRepositoryPort registrationRepo;
-    private final KycDocumentStoragePort storage;
+    private final KycPresignedStoragePort kycStorage;
 
     public OnboardingService(RegistrationIntentRepositoryPort registrationRepo,
-                             KycDocumentStoragePort storage) {
+                             KycPresignedStoragePort kycStorage) {
         this.registrationRepo = registrationRepo;
-        this.storage = storage;
+        this.kycStorage = kycStorage;
     }
 
     @Override
     @Transactional
     public StartRegistrationResponse start(StartRegistrationCommand c) {
-        UUID id = UUID.randomUUID();
+        UUID regId = UUID.randomUUID();
+        Instant now = Instant.now();
 
-        List<KycDocumentStoragePort.StoredObject> created = new ArrayList<>();
-        try {
-            // content-type: idealmente viene del request; como tu proto no lo trae, usa octet-stream o sniff
-            String idCt = "application/octet-stream";
-            String selfieCt = "application/octet-stream";
+        var uploads = kycStorage.issuePresignedUploads(regId, c.idFrontContentType(), c.selfieContentType());
 
-            var idObj = storage.store(id.toString(), "ID_FRONT", c.idDocumentFront(), idCt);
-            created.add(idObj);
+        RegistrationIntent reg = new RegistrationIntent();
+        reg.setId(regId);
+        reg.setState(RegistrationIntent.State.STARTED);
+        reg.setCreatedAt(now);
+        reg.setUpdatedAt(now);
 
-            var selfieObj = storage.store(id.toString(), "SELFIE", c.selfie(), selfieCt);
-            created.add(selfieObj);
+        reg.setChannel(c.channel());
+        reg.setEmail(c.email());
+        reg.setPhone(c.phone());
 
-            Instant now = Instant.now();
+        reg.setNationalId(c.nationalId());
+        reg.setNationalIdIssueDate(c.nationalIdIssueDate());
+        reg.setFingerprintCode(c.fingerprintCode());
 
-            RegistrationIntent intent = new RegistrationIntent(
-                id,
-                c.email(),
-                c.phone(),
-                c.channel(),
-                RegistrationIntent.State.STARTED,
-                c.nationalId(),
-                c.nationalIdIssueDate(),
-                c.fingerprintCode(),
+        registrationRepo.save(reg);
 
-                // IMPORTANTE: ya no guardes URLs públicas
-                // guarda referencias (bucket/key) en campos del dominio (ver punto 5)
-                idObj.bucket(), idObj.key(),
-                selfieObj.bucket(), selfieObj.key(),
+        return new StartRegistrationResponse(regId, "started", now, uploads);
+    }
 
-                BigDecimal.valueOf(c.monthlyIncome()),
-                c.occupationType(),
-                now,
-                now
-            );
+    @Override
+    public ConfirmRegistrationKycResult confirm(ConfirmRegistrationKycCommand command) {
+        UUID regId = command.registrationId();
+        if (regId == null) throw new IllegalArgumentException("registrationId required");
 
-            RegistrationIntent saved = registrationRepo.save(intent);
+        RegistrationIntent reg = registrationRepo.findById(regId)
+                .orElseThrow(() -> new IllegalStateException("registration not found"));
 
-            return new StartRegistrationResponse(
-                saved.getId(),
-                saved.getState().name().toLowerCase(),
-                saved.getCreatedAt()
-            );
+        List<FinalizedObject> finalized = kycStorage.confirmAndFinalize(regId, command.objects());
 
-        } catch (Exception e) {
-            // rollback best-effort
-            for (int i = created.size() - 1; i >= 0; i--) {
-                storage.delete(created.get(i));
-            }
-            throw e;
-        }
+        FinalizedObject idFront = finalized.stream()
+                .filter(x -> x.kind() == KycDocumentKind.ID_FRONT).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("missing finalized ID_FRONT"));
+
+        FinalizedObject selfie = finalized.stream()
+                .filter(x -> x.kind() == KycDocumentKind.SELFIE).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("missing finalized SELFIE"));
+
+        reg.setIdFrontBucket(idFront.bucket());
+        reg.setIdFrontKey(idFront.key());
+        reg.setSelfieBucket(selfie.bucket());
+        reg.setSelfieKey(selfie.key());
+
+        reg.setState(RegistrationIntent.State.KYC_CONFIRMED);
+        reg.setUpdatedAt(Instant.now());
+
+        registrationRepo.save(reg);
+
+        return new ConfirmRegistrationKycResult(regId, "kyc_confirmed", reg.getUpdatedAt(), finalized);
+        
     }
 }

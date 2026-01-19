@@ -7,10 +7,21 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { RegistrationStateDto } from './registrationState';
+import { PresignedUploadDto } from './presignedUpload';
 
 
 export interface OnboardingIntentResponseDto { 
     registration_id: string;
-    otp_channel_hint: string;
+    state: RegistrationStateDto;
+    created_at?: string | null;
+    uploads: Array<PresignedUploadDto>;
+    /**
+     * Legacy/compat. Puede omitirse.
+     */
+    otp_channel_hint?: string | null;
 }
+export namespace OnboardingIntentResponseDto {
+}
+
 

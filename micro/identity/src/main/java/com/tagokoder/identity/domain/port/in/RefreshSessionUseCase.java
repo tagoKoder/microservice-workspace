@@ -5,5 +5,6 @@ import java.util.UUID;
 public interface RefreshSessionUseCase {
     RefreshedSession refresh(UUID sessionId, String ip, String ua);
 
-    record RefreshedSession(UUID sessionId, long expiresInSeconds) {}
+    record RefreshedSession(UUID sessionId, long expiresInSeconds, String accessToken,
+    long accessTokenExpiresIn) {}
 }

@@ -7,6 +7,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -16,11 +17,15 @@ import com.tagokoder.identity.domain.model.Identity;
 import com.tagokoder.identity.domain.port.in.CompleteLoginUseCase;
 import com.tagokoder.identity.domain.port.in.CreateSessionUseCase;
 import com.tagokoder.identity.domain.port.in.StartLoginUseCase;
+import com.tagokoder.identity.domain.port.out.AuditPublisher;
 import com.tagokoder.identity.domain.port.out.IdentityRepositoryPort;
 import com.tagokoder.identity.domain.port.out.OidcIdpClientPort;
 import com.tagokoder.identity.domain.port.out.OidcStateRepositoryPort;
 import com.tagokoder.identity.domain.port.out.WebauthnCredentialRepositoryPort;
+import com.tagokoder.identity.infra.audit.AuditEventV1;
+import com.tagokoder.identity.infra.config.AppProps;
 import com.tagokoder.identity.infra.security.OidcIdTokenValidator;
+import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
 
 @Service
 public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase {
@@ -32,6 +37,9 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
     private final OidcIdTokenValidator idTokenValidator;
     private final CreateSessionUseCase createSessionUseCase;
     private final WebauthnCredentialRepositoryPort creds;
+    private final AuditPublisher audit;
+    private final AppProps props;
+
 
 
     private final SecureRandom random = new SecureRandom();
@@ -42,7 +50,8 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
                            OidcProperties properties,
                            OidcIdTokenValidator idTokenValidator,
                            CreateSessionUseCase createSessionUseCase,
-                           WebauthnCredentialRepositoryPort creds) {
+                           WebauthnCredentialRepositoryPort creds,
+                           AuditPublisher audit, AppProps props) {
         this.stateRepo = stateRepo;
         this.idpClient = idpClient;
         this.identityRepo = identityRepo;
@@ -50,6 +59,8 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
         this.idTokenValidator = idTokenValidator;
         this.createSessionUseCase = createSessionUseCase;
         this.creds = creds;
+        this.audit = audit;
+        this.props = props;
     }
 
     @Override
@@ -71,6 +82,22 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
         );
 
         String authUrl = idpClient.buildAuthorizationUrl(state, nonce, codeChallenge, redirectUri);
+        var cid = CorrelationServerInterceptor.getCorrelationId();
+
+        audit.publish(new AuditEventV1(
+        "1.0",
+        Instant.now(),
+        "identity",
+        props.env(),
+        cid,
+        "grpc:/bank.identity.v1.OidcAuthService/StartOidcLogin",
+        "identity.oidc.start_login",
+        200,
+        new AuditEventV1.Actor(null, properties.getProvider()),
+        Map.of("channel", command.channel()),
+        Map.of(),
+        null
+        ));
 
         return new StartLoginResponse(authUrl, state);
     }

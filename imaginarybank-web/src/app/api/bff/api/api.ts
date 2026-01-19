@@ -12,6 +12,4 @@ export * from './profile.service';
 import { ProfileApi } from './profile.service';
 export * from './session.service';
 import { SessionApi } from './session.service';
-export * from './webauthn.service';
-import { WebauthnApi } from './webauthn.service';
-export const APIS = [AccountsApi, AdminApi, AuthApi, OnboardingApi, PaymentsApi, ProfileApi, SessionApi, WebauthnApi];
+export const APIS = [AccountsApi, AdminApi, AuthApi, OnboardingApi, PaymentsApi, ProfileApi, SessionApi];

@@ -11,14 +11,14 @@ import (
 	vptypes "github.com/aws/aws-sdk-go-v2/service/verifiedpermissions/types"
 	"github.com/google/uuid"
 	"github.com/tagoKoder/ledger/internal/domain/port/out"
-	"github.com/tagoKoder/ledger/internal/infra/security/avp"
 	"github.com/tagoKoder/ledger/internal/infra/security/authz"
+	"github.com/tagoKoder/ledger/internal/infra/security/avp"
 	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
 	jwtvalidator "github.com/tagoKoder/ledger/internal/infra/security/jwt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 )
 
 type Interceptor struct {
@@ -78,19 +78,19 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 		// 2) request context (hash ip/ua sin PII cruda)
 		ip := readIncoming(ctx, "x-forwarded-for")
 		ua := readIncoming(ctx, "user-agent")
-		ctx = authctx.WithIPHash(ctx, shaHex(i.hashSaltIPip))
-		ctx = authctx.WithUAHash(ctx, shaHex(i.hashSaltUAua))
+		ctx = authctx.WithIPHash(ctx, shaHex(ip+i.hashSaltIP))
+		ctx = authctx.WithUAHash(ctx, shaHex(ua+i.hashSaltUA))
 
 		// 3) action  route_template (obligatorio)
 		act := i.acts.Resolve(info.FullMethod)
 		ctx = authctx.WithActionID(ctx, act.ID)
 		ctx = authctx.WithRouteTemplate(ctx, act.RouteTemplate)
-		
+
 		// IdempotencyKey (si existe en request)
 		if info.FullMethod == "/bank.ledgerpayments.v1.PaymentsService/PostPayment" {
-			if k := extractStringField(req, "IdempotencyKey"); k != "" {
+			if k := authz.ExtractStringField(req, "IdempotencyKey"); k != "" {
 				ctx = authctx.WithIdempotencyKey(ctx, k)
-			} else if k := extractStringField(req, "idempotency_key"); k != "" {
+			} else if k := authz.ExtractStringField(req, "idempotency_key"); k != "" {
 				ctx = authctx.WithIdempotencyKey(ctx, k)
 			}
 		}
@@ -130,7 +130,7 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 
 		if dec.Decision != avp.DecisionAllow {
 			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "not_authorized", time.Now().UTC(), map[string]any{
-				"action":  act.ID,
+				"action":   act.ID,
 				"resource": map[string]any{"type": res.Type, "id": res.ID},
 			})
 			return nil, status.Error(codes.PermissionDenied, "forbidden")

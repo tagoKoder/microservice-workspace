@@ -199,14 +199,15 @@ func (h *Handler) GetPaymentStrict(
 func mapPaymentStatus(s string) openapi.CreatePaymentResponseStatus {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "posted":
-		return openapi.Posted
+		return openapi.CreatePaymentResponseStatus("posted")
 	case "pending":
-		return openapi.Pending
+		return openapi.CreatePaymentResponseStatus("pending")
 	case "rejected":
-		return openapi.Rejected
+		return openapi.CreatePaymentResponseStatus("rejected")
 	case "failed":
-		return openapi.Failed
+		return openapi.CreatePaymentResponseStatus("failed")
 	default:
-		return openapi.Pending
+		// fallback seguro
+		return openapi.CreatePaymentResponseStatus("pending")
 	}
 }

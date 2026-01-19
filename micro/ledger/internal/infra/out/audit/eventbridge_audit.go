@@ -32,7 +32,7 @@ func NewEventBridgeAudit(eb *eventbridge.Client, busName, source, detailType, se
 
 
 func (a *EventBridgeAudit) Record(ctx context.Context, action, entity, entityID, actor string, at time.Time, details map[string]any) error {
-	ev := model.auditEventV1{
+	ev := model.AuditEventV1{
 		Version:      "1.0",
 		EventID:      newEventID(),
 		OccurredAt:   at.UTC().Format(time.RFC3339Nano),
@@ -41,7 +41,10 @@ func (a *EventBridgeAudit) Record(ctx context.Context, action, entity, entityID,
 		CorrelationID: authctx.CorrelationID(ctx),
 		RouteTemplate: authctx.RouteTemplate(ctx),
 		Action:        authctx.ActionID(ctx),
-		Entity:        struct{ Type, ID string }{Type: entity, ID: entityID},
+		Entity:        struct {
+			Type string `json:"type"`
+			ID   string `json:"id"`
+		}{Type: entity, ID: entityID},
 		Details:       details,
 	}
 
@@ -83,15 +86,15 @@ func (a *EventBridgeAudit) Record(ctx context.Context, action, entity, entityID,
 		entry.EventBusName = &a.busName
 	}
 
-	out, err := a.eb.PutEvents(ctx, &eventbridge.PutEventsInput{
+	resp, err := a.eb.PutEvents(ctx, &eventbridge.PutEventsInput{
 		Entries: []ebtypes.PutEventsRequestEntry{entry},
 	})
 	if err != nil {
 		log.Printf("audit put-events error: %v", err) // fallback log (sin PII)
 		return nil
 	}
-	if out.FailedEntryCount != nil && *out.FailedEntryCount > 0 {
-		log.Printf("audit put-events failed entries: %d", *out.FailedEntryCount)
+	if resp.FailedEntryCount > 0 {
+		log.Printf("audit put-events failed entries: %d", resp.FailedEntryCount)
 	}
 	return nil
 }

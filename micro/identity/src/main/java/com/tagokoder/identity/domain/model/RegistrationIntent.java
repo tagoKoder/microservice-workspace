@@ -17,6 +17,7 @@ public class RegistrationIntent {
 
     public enum State {
         STARTED,
+        KYC_CONFIRMED,
         CONTACT_VERIFIED,
         CONSENTED,
         ACTIVATED,
@@ -32,8 +33,10 @@ public class RegistrationIntent {
     private  String nationalId;
     private  LocalDate nationalIdIssueDate;
     private  String fingerprintCode;
-    private String idDocumentFrontBucket;
-    private String idDocumentFrontKey;
+    
+    // final refs
+    private String idFrontBucket;
+    private String idFrontKey;
     private String selfieBucket;
     private String selfieKey;
 

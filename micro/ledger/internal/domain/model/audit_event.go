@@ -1,11 +1,11 @@
 package model
 
-type auditEventV1 struct {
-	Version      string `json:"version"`
-	EventID      string `json:"event_id"`
-	OccurredAt   string `json:"occurred_at"`
-	Service      string `json:"service"`
-	Environment  string `json:"environment"`
+type AuditEventV1 struct {
+	Version       string `json:"version"`
+	EventID       string `json:"event_id"`
+	OccurredAt    string `json:"occurred_at"`
+	Service       string `json:"service"`
+	Environment   string `json:"environment"`
 	CorrelationID string `json:"correlation_id"`
 
 	RouteTemplate string `json:"route_template"`
@@ -25,9 +25,9 @@ type auditEventV1 struct {
 	} `json:"authorization"`
 
 	RequestContext struct {
-		Channel       string `json:"channel,omitempty"`
-		IPHash        string `json:"ip_hash,omitempty"`
-		UAHash        string `json:"ua_hash,omitempty"`
+		Channel        string `json:"channel,omitempty"`
+		IPHash         string `json:"ip_hash,omitempty"`
+		UAHash         string `json:"ua_hash,omitempty"`
 		IdempotencyKey string `json:"idempotency_key,omitempty"`
 	} `json:"request_context"`
 

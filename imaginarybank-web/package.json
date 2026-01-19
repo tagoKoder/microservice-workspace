@@ -29,7 +29,7 @@
     "@angular/cli": "^20.3.14",
     "@angular/compiler-cli": "^20.3.16",
     "@openapitools/openapi-generator-cli": "^2.27.0",
-    "@tagokoder/bff-openapi": "^0.0.13",
+    "@tagokoder/bff-openapi": "^0.0.16",
     "@types/jasmine": "~5.1.0",
     "jasmine-core": "~5.7.0",
     "karma": "~6.4.0",

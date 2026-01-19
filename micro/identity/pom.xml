@@ -190,11 +190,26 @@
         <version>2.9.2</version>
       </dependency>
 
+
       <dependency>
-        <groupId>com.yubico</groupId>
-        <artifactId>webauthn-server-core</artifactId>
-        <version>2.7.0</version>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>eventbridge</artifactId>
       </dependency>
+
+          <!-- AWS SDK Verified Permissions -->
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>verifiedpermissions</artifactId>
+        <version>2.25.60</version>
+    </dependency>
+
+
+    <!-- AWS SDK Regions -->
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>regions</artifactId>
+        <version>2.25.60</version>
+    </dependency>
 
 
 

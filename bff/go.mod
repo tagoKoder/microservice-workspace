@@ -3,6 +3,7 @@ module github.com/tagoKoder/bff
 go 1.24.4
 
 require (
+	github.com/deepmap/oapi-codegen v1.16.3
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/google/uuid v1.6.0

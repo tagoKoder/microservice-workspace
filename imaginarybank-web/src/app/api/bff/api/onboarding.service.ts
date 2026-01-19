@@ -21,15 +21,15 @@ import { ActivateRequestDto } from '../model/activateRequest';
 // @ts-ignore
 import { ActivateResponseDto } from '../model/activateResponse';
 // @ts-ignore
-import { ConsentsRequestDto } from '../model/consentsRequest';
+import { ConfirmKycRequestDto } from '../model/confirmKycRequest';
+// @ts-ignore
+import { ConfirmKycResponseDto } from '../model/confirmKycResponse';
 // @ts-ignore
 import { ErrorResponseDto } from '../model/errorResponse';
 // @ts-ignore
+import { OnboardingIntentRequestDto } from '../model/onboardingIntentRequest';
+// @ts-ignore
 import { OnboardingIntentResponseDto } from '../model/onboardingIntentResponse';
-// @ts-ignore
-import { SimpleStatusResponseDto } from '../model/simpleStatusResponse';
-// @ts-ignore
-import { VerifyContactRequestDto } from '../model/verifyContactRequest';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -41,28 +41,12 @@ export interface ActivateOnboardingRequestParams {
     activateRequestDto: ActivateRequestDto;
 }
 
-export interface RegisterOnboardingConsentsRequestParams {
-    consentsRequestDto: ConsentsRequestDto;
+export interface ConfirmOnboardingKycRequestParams {
+    confirmKycRequestDto: ConfirmKycRequestDto;
 }
 
 export interface StartOnboardingRequestParams {
-    email: string;
-    phone: string;
-    nationalId: string;
-    nationalIdIssueDate: string;
-    fingerprintCode: string;
-    /** Imagen frontal del documento (jpg/png). */
-    idDocumentFront: Blob;
-    /** Selfie del usuario (jpg/png). */
-    selfie: Blob;
-    monthlyIncome: number;
-    occupationType: string;
-    channel?: string | null;
-    locale?: string | null;
-}
-
-export interface VerifyOnboardingContactRequestParams {
-    verifyContactRequestDto: VerifyContactRequestDto;
+    onboardingIntentRequestDto: OnboardingIntentRequestDto;
 }
 
 
@@ -143,20 +127,20 @@ export class OnboardingApi extends BaseService {
     }
 
     /**
-     * Registra consentimientos (stub por ahora)
-     * @endpoint post /api/v1/onboarding/consents
+     * Confirma KYC (verifica objetos subidos a S3)
+     * @endpoint post /api/v1/onboarding/kyc/confirm
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public registerOnboardingConsents(requestParameters: RegisterOnboardingConsentsRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<SimpleStatusResponseDto>;
-    public registerOnboardingConsents(requestParameters: RegisterOnboardingConsentsRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<SimpleStatusResponseDto>>;
-    public registerOnboardingConsents(requestParameters: RegisterOnboardingConsentsRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<SimpleStatusResponseDto>>;
-    public registerOnboardingConsents(requestParameters: RegisterOnboardingConsentsRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        const consentsRequestDto = requestParameters?.consentsRequestDto;
-        if (consentsRequestDto === null || consentsRequestDto === undefined) {
-            throw new Error('Required parameter consentsRequestDto was null or undefined when calling registerOnboardingConsents.');
+    public confirmOnboardingKyc(requestParameters: ConfirmOnboardingKycRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ConfirmKycResponseDto>;
+    public confirmOnboardingKyc(requestParameters: ConfirmOnboardingKycRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ConfirmKycResponseDto>>;
+    public confirmOnboardingKyc(requestParameters: ConfirmOnboardingKycRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ConfirmKycResponseDto>>;
+    public confirmOnboardingKyc(requestParameters: ConfirmOnboardingKycRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const confirmKycRequestDto = requestParameters?.confirmKycRequestDto;
+        if (confirmKycRequestDto === null || confirmKycRequestDto === undefined) {
+            throw new Error('Required parameter confirmKycRequestDto was null or undefined when calling confirmOnboardingKyc.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -193,12 +177,12 @@ export class OnboardingApi extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/onboarding/consents`;
+        let localVarPath = `/api/v1/onboarding/kyc/confirm`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<SimpleStatusResponseDto>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<ConfirmKycResponseDto>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
-                body: consentsRequestDto,
+                body: confirmKycRequestDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
@@ -210,7 +194,7 @@ export class OnboardingApi extends BaseService {
     }
 
     /**
-     * Inicia onboarding (registro/KYC)
+     * Inicia onboarding (registro/KYC) — presigned S3
      * @endpoint post /api/v1/onboarding/intents
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -221,44 +205,10 @@ export class OnboardingApi extends BaseService {
     public startOnboarding(requestParameters: StartOnboardingRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<OnboardingIntentResponseDto>>;
     public startOnboarding(requestParameters: StartOnboardingRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<OnboardingIntentResponseDto>>;
     public startOnboarding(requestParameters: StartOnboardingRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        const email = requestParameters?.email;
-        if (email === null || email === undefined) {
-            throw new Error('Required parameter email was null or undefined when calling startOnboarding.');
+        const onboardingIntentRequestDto = requestParameters?.onboardingIntentRequestDto;
+        if (onboardingIntentRequestDto === null || onboardingIntentRequestDto === undefined) {
+            throw new Error('Required parameter onboardingIntentRequestDto was null or undefined when calling startOnboarding.');
         }
-        const phone = requestParameters?.phone;
-        if (phone === null || phone === undefined) {
-            throw new Error('Required parameter phone was null or undefined when calling startOnboarding.');
-        }
-        const nationalId = requestParameters?.nationalId;
-        if (nationalId === null || nationalId === undefined) {
-            throw new Error('Required parameter nationalId was null or undefined when calling startOnboarding.');
-        }
-        const nationalIdIssueDate = requestParameters?.nationalIdIssueDate;
-        if (nationalIdIssueDate === null || nationalIdIssueDate === undefined) {
-            throw new Error('Required parameter nationalIdIssueDate was null or undefined when calling startOnboarding.');
-        }
-        const fingerprintCode = requestParameters?.fingerprintCode;
-        if (fingerprintCode === null || fingerprintCode === undefined) {
-            throw new Error('Required parameter fingerprintCode was null or undefined when calling startOnboarding.');
-        }
-        const idDocumentFront = requestParameters?.idDocumentFront;
-        if (idDocumentFront === null || idDocumentFront === undefined) {
-            throw new Error('Required parameter idDocumentFront was null or undefined when calling startOnboarding.');
-        }
-        const selfie = requestParameters?.selfie;
-        if (selfie === null || selfie === undefined) {
-            throw new Error('Required parameter selfie was null or undefined when calling startOnboarding.');
-        }
-        const monthlyIncome = requestParameters?.monthlyIncome;
-        if (monthlyIncome === null || monthlyIncome === undefined) {
-            throw new Error('Required parameter monthlyIncome was null or undefined when calling startOnboarding.');
-        }
-        const occupationType = requestParameters?.occupationType;
-        if (occupationType === null || occupationType === undefined) {
-            throw new Error('Required parameter occupationType was null or undefined when calling startOnboarding.');
-        }
-        const channel = requestParameters?.channel;
-        const locale = requestParameters?.locale;
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -273,60 +223,14 @@ export class OnboardingApi extends BaseService {
 
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
+
         // to determine the Content-Type header
         const consumes: string[] = [
-            'multipart/form-data'
+            'application/json'
         ];
-
-        const canConsumeForm = this.canConsumeForm(consumes);
-
-        let localVarFormParams: { append(param: string, value: any): any; };
-        let localVarUseForm = false;
-        let localVarConvertFormParamsToString = false;
-        // use FormData to transmit files using content-type "multipart/form-data"
-        // see https://stackoverflow.com/questions/4007969/application-x-www-form-urlencoded-or-multipart-form-data
-        localVarUseForm = canConsumeForm;
-        // use FormData to transmit files using content-type "multipart/form-data"
-        // see https://stackoverflow.com/questions/4007969/application-x-www-form-urlencoded-or-multipart-form-data
-        localVarUseForm = canConsumeForm;
-        if (localVarUseForm) {
-            localVarFormParams = new FormData();
-        } else {
-            localVarFormParams = new HttpParams({encoder: this.encoder});
-        }
-
-        if (email !== undefined) {
-            localVarFormParams = localVarFormParams.append('email', <any>email) as any || localVarFormParams;
-        }
-        if (phone !== undefined) {
-            localVarFormParams = localVarFormParams.append('phone', <any>phone) as any || localVarFormParams;
-        }
-        if (channel !== undefined) {
-            localVarFormParams = localVarFormParams.append('channel', <any>channel) as any || localVarFormParams;
-        }
-        if (locale !== undefined) {
-            localVarFormParams = localVarFormParams.append('locale', <any>locale) as any || localVarFormParams;
-        }
-        if (nationalId !== undefined) {
-            localVarFormParams = localVarFormParams.append('national_id', <any>nationalId) as any || localVarFormParams;
-        }
-        if (nationalIdIssueDate !== undefined) {
-            localVarFormParams = localVarFormParams.append('national_id_issue_date', <any>nationalIdIssueDate) as any || localVarFormParams;
-        }
-        if (fingerprintCode !== undefined) {
-            localVarFormParams = localVarFormParams.append('fingerprint_code', <any>fingerprintCode) as any || localVarFormParams;
-        }
-        if (idDocumentFront !== undefined) {
-            localVarFormParams = localVarFormParams.append('id_document_front', <any>idDocumentFront) as any || localVarFormParams;
-        }
-        if (selfie !== undefined) {
-            localVarFormParams = localVarFormParams.append('selfie', <any>selfie) as any || localVarFormParams;
-        }
-        if (monthlyIncome !== undefined) {
-            localVarFormParams = localVarFormParams.append('monthly_income', <any>monthlyIncome) as any || localVarFormParams;
-        }
-        if (occupationType !== undefined) {
-            localVarFormParams = localVarFormParams.append('occupation_type', <any>occupationType) as any || localVarFormParams;
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
         }
 
         let responseType_: 'text' | 'json' | 'blob' = 'json';
@@ -345,74 +249,7 @@ export class OnboardingApi extends BaseService {
         return this.httpClient.request<OnboardingIntentResponseDto>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
-                body: localVarConvertFormParamsToString ? localVarFormParams.toString() : localVarFormParams,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Verifica OTP/contacto (stub por ahora)
-     * @endpoint post /api/v1/onboarding/verify-contact
-     * @param requestParameters
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     * @param options additional options
-     */
-    public verifyOnboardingContact(requestParameters: VerifyOnboardingContactRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<SimpleStatusResponseDto>;
-    public verifyOnboardingContact(requestParameters: VerifyOnboardingContactRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<SimpleStatusResponseDto>>;
-    public verifyOnboardingContact(requestParameters: VerifyOnboardingContactRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<SimpleStatusResponseDto>>;
-    public verifyOnboardingContact(requestParameters: VerifyOnboardingContactRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        const verifyContactRequestDto = requestParameters?.verifyContactRequestDto;
-        if (verifyContactRequestDto === null || verifyContactRequestDto === undefined) {
-            throw new Error('Required parameter verifyContactRequestDto was null or undefined when calling verifyOnboardingContact.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        // to determine the Content-Type header
-        const consumes: string[] = [
-            'application/json'
-        ];
-        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
-        if (httpContentTypeSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
-        }
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/onboarding/verify-contact`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<SimpleStatusResponseDto>('post', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                body: verifyContactRequestDto,
+                body: onboardingIntentRequestDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

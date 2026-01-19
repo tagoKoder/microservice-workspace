@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tagoKoder/ledger/internal/domain/port/in"
-	ledgerpb "github.com/tagoKoder/ledger/proto/gen/ledgerpayments/v1"
+	ledgerpb "github.com/tagoKoder/ledger/internal/genproto/bank/ledgerpayments/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

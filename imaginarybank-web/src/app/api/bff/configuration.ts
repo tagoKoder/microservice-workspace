@@ -97,7 +97,7 @@ constructor({ accessToken, apiKeys, basePath, credentials, encodeParam, encoder,
                 if (this.apiKeys === null || this.apiKeys === undefined) {
                     return undefined;
                 } else {
-                    return this.apiKeys['cookieAuth'] || this.apiKeys['bff_sid'];
+                    return this.apiKeys['cookieAuth'] || this.apiKeys['session_id'];
                 }
             };
         }

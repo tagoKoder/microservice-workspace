@@ -1,22 +1,37 @@
 package com.tagokoder.identity.application;
 
+import java.util.Set;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import lombok.Data;
 
+@ConfigurationProperties(prefix = "identity.kyc")
 @Data
-@ConfigurationProperties(prefix = "identity.kyc.storage")
 public class IdentityKycStorageProperties {
 
-    private String type; // s3
+    // S3
     private String bucket;
     private String region;
+    private String kmsKeyId; // optional
 
-    private String kmsKeyId; // opcional
+    // Prefixes
+    private String stagingPrefix = "staging";
+    private String finalPrefix = "kyc";
 
-    private String stagingPrefix = "staging/";
-    private String finalPrefix = "kyc/";
+    // TTL
+    private long presignExpiresSeconds = 900;
 
-    private long maxBytesIdFront = 5 * 1024 * 1024;
-    private long maxBytesSelfie  = 5 * 1024 * 1024;
+    // Limits
+    private long idFrontMaxBytes = 8L * 1024 * 1024;
+    private long selfieMaxBytes = 6L * 1024 * 1024;
+
+    // Content types allow-list
+    private Set<String> idFrontAllowedContentTypes = Set.of("image/jpeg", "image/png", "application/pdf");
+    private Set<String> selfieAllowedContentTypes  = Set.of("image/jpeg", "image/png");
+
+    // Defaults
+    private String idFrontDefaultContentType = "image/jpeg";
+    private String selfieDefaultContentType  = "image/jpeg";
+
 }

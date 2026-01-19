@@ -32,9 +32,6 @@ type CompleteOidcLoginOutput struct {
 	SessionID          string
 	SessionExpiresIn   int64
 	RedirectAfterLogin string
-
-	MfaRequired bool
-	MfaVerified bool
 }
 
 type RefreshSessionInput struct {
@@ -43,8 +40,10 @@ type RefreshSessionInput struct {
 	UserAgent string
 }
 type RefreshSessionOutput struct {
-	SessionID        string
-	SessionExpiresIn int64
+	SessionID            string
+	SessionExpiresIn     int64
+	AccessToken          string
+	AccessTokenExpiresIn int64
 }
 
 type LogoutSessionInput struct {
@@ -67,8 +66,26 @@ type GetSessionInfoOutput struct {
 	CustomerID       string
 	UserStatus       string // ACTIVE|LOCKED|DISABLED
 	SessionExpiresIn int64
-	MfaRequired      bool
-	MfaVerified      bool
+}
+
+// ==========================
+// Onboarding (Presigned S3)
+// ==========================
+
+type PresignedHeader struct {
+	Name  string
+	Value string
+}
+
+type PresignedUpload struct {
+	DocType          string // id_front|selfie
+	Bucket           string
+	Key              string
+	UploadURL        string
+	Headers          []PresignedHeader
+	MaxBytes         int64
+	ContentType      string
+	ExpiresInSeconds int64
 }
 
 type StartRegistrationInput struct {
@@ -77,58 +94,51 @@ type StartRegistrationInput struct {
 	NationalIDIssueDate string
 	FingerprintCode     string
 
-	IdDocumentFront []byte
-	Selfie          []byte
-
 	MonthlyIncome  float64
 	OccupationType string // student|employee|self_employed|unemployed|retired
-	Email          string
-	Phone          string
+
+	Email string
+	Phone string
+
+	IdFrontContentType string
+	SelfieContentType  string
 }
 
 type StartRegistrationOutput struct {
 	RegistrationID   string
-	State            string
+	State            string // started|...
 	CreatedAtRFC3339 string
+	Uploads          []PresignedUpload
 }
 
-// -------------------
-// WebAuthn (proto WebauthnService)
-// -------------------
-
-type BeginWebauthnRegistrationInput struct {
-	IdentityID string
-	DeviceName string // opcional (empty == none)
-}
-type BeginWebauthnRegistrationOutput struct {
-	RequestID   string
-	OptionsJSON string
+type UploadedObject struct {
+	DocType     string // id_front|selfie
+	Bucket      string
+	Key         string
+	ETag        string
+	SizeBytes   int64
+	ContentType string
 }
 
-type FinishWebauthnRegistrationInput struct {
-	RequestID      string
-	CredentialJSON string
-}
-type FinishWebauthnRegistrationOutput struct {
-	Success bool
-}
-
-type BeginWebauthnAssertionInput struct {
-	IdentityID string
-	SessionID  string
-}
-type BeginWebauthnAssertionOutput struct {
-	RequestID   string
-	OptionsJSON string
+type KycObjectStatus struct {
+	DocType string // id_front|selfie
+	Status  string // pending|confirmed|...
+	Bucket  string
+	Key     string
+	ETag    string
 }
 
-type FinishWebauthnAssertionInput struct {
-	SessionID      string
-	RequestID      string
-	CredentialJSON string
+type ConfirmRegistrationKycInput struct {
+	RegistrationID string
+	Objects        []UploadedObject
+	Channel        string
 }
-type FinishWebauthnAssertionOutput struct {
-	Success bool
+
+type ConfirmRegistrationKycOutput struct {
+	RegistrationID     string
+	State              string
+	Statuses           []KycObjectStatus
+	ConfirmedAtRFC3339 string
 }
 
 type IdentityPort interface {
@@ -138,10 +148,7 @@ type IdentityPort interface {
 	LogoutSession(ctx context.Context, in LogoutSessionInput) (LogoutSessionOutput, error)
 	GetSessionInfo(ctx context.Context, in GetSessionInfoInput) (GetSessionInfoOutput, error)
 
+	// Onboarding presigned
 	StartRegistration(ctx context.Context, in StartRegistrationInput) (StartRegistrationOutput, error)
-
-	BeginWebauthnRegistration(ctx context.Context, in BeginWebauthnRegistrationInput) (BeginWebauthnRegistrationOutput, error)
-	FinishWebauthnRegistration(ctx context.Context, in FinishWebauthnRegistrationInput) (FinishWebauthnRegistrationOutput, error)
-	BeginWebauthnAssertion(ctx context.Context, in BeginWebauthnAssertionInput) (BeginWebauthnAssertionOutput, error)
-	FinishWebauthnAssertion(ctx context.Context, in FinishWebauthnAssertionInput) (FinishWebauthnAssertionOutput, error)
+	ConfirmRegistrationKyc(ctx context.Context, in ConfirmRegistrationKycInput) (ConfirmRegistrationKycOutput, error)
 }

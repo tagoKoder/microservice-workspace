@@ -1,29 +1,43 @@
 package com.tagokoder.identity.infra.config;
 
+import io.grpc.BindableService;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.IOException;
+import com.tagokoder.identity.infra.security.grpc.AuthzServerInterceptor;
+import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
+
 import java.util.List;
 
 @Configuration
 public class GrpcServerConfig {
 
-  @Value("${grpc.server.port:9091}")
-  private int grpcPort;
+    @Value("${grpc.server.port:9090}")
+    private int grpcPort;
 
-  @Bean
-  public Server grpcServer(List<io.grpc.BindableService> services) throws IOException {
-    NettyServerBuilder builder = NettyServerBuilder.forPort(grpcPort);
-    for (var svc : services) builder.addService(svc);
-    return builder.build();
-  }
+    @Bean(destroyMethod = "shutdown")
+    public Server grpcServer(
+            List<BindableService> services,
+            CorrelationServerInterceptor correlationInterceptor,
+            AuthzServerInterceptor authzInterceptor
+    ) {
+        NettyServerBuilder builder = NettyServerBuilder.forPort(grpcPort)
+                .intercept(correlationInterceptor)
+                .intercept(authzInterceptor);
 
-  @Bean
-  public GrpcServerLifecycle grpcServerLifecycle(Server server) {
-    return new GrpcServerLifecycle(server);
-  }
+        services.forEach(builder::addService);
+        return builder.build();
+    }
+
+    @Bean
+    public ApplicationRunner grpcServerRunner(Server server) {
+        return args -> {
+            server.start();
+            Runtime.getRuntime().addShutdownHook(new Thread(server::shutdown));
+        };
+    }
 }

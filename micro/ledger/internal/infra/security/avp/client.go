@@ -17,7 +17,7 @@ const (
 )
 
 type Client struct {
-	sdk          *verifiedpermissions.Client
+	sdk           *verifiedpermissions.Client
 	policyStoreID string
 }
 
@@ -55,7 +55,7 @@ func (c *Client) AuthorizeWithToken(
 		PolicyStoreId: &c.policyStoreID,
 		AccessToken:   &accessToken,
 		Action: &vptypes.ActionIdentifier{
-			ActionType: actType,
+			ActionType: &actType,
 			ActionId:   &action.ID,
 		},
 		Resource: &vptypes.EntityIdentifier{

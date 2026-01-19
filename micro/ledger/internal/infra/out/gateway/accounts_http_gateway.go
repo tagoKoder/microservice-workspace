@@ -12,15 +12,14 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/sony/gobreaker"
 	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
-
 )
 
 type AccountsHTTPGateway struct {
-	baseURL string
-	token   string
-	client  *http.Client
+	baseURL        string
+	token          string
+	client         *http.Client
 	internalHeader string
-	cb      *gobreaker.CircuitBreaker
+	cb             *gobreaker.CircuitBreaker
 }
 
 func NewAccountsHTTPGateway(baseURL, token, internalHeader string) *AccountsHTTPGateway {
@@ -32,11 +31,11 @@ func NewAccountsHTTPGateway(baseURL, token, internalHeader string) *AccountsHTTP
 		ReadyToTrip: func(c gobreaker.Counts) bool { return c.ConsecutiveFailures >= 3 },
 	}
 	return &AccountsHTTPGateway{
-		baseURL: baseURL,
-		token:   token,
+		baseURL:        baseURL,
+		token:          token,
 		internalHeader: internalHeader,
-		client:  &http.Client{Timeout: 3 * time.Second},
-		cb:      gobreaker.NewCircuitBreaker(st),
+		client:         &http.Client{Timeout: 3 * time.Second},
+		cb:             gobreaker.NewCircuitBreaker(st),
 	}
 }
 
@@ -62,14 +61,14 @@ type holdResp struct {
 
 func (g *AccountsHTTPGateway) do(ctx context.Context, method, path string, body any, out any) error {
 	b, _ := json.Marshal(body)
-	req, err := http.NewRequestWithContext(ctx, method, g.baseURLpath, bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, method, g.baseURL+path, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	// 1) Propagar Bearer (BFF-first): micro recibe Bearer y lo reusa para llamadas internas
 	if tok := authctx.AccessToken(ctx); tok != "" {
-		req.Header.Set("Authorization", "Bearer "tok)
+		req.Header.Set("Authorization", "Bearer "+tok)
 	}
 	// 2) Correlation-ID
 	if cid := authctx.CorrelationID(ctx); cid != "" {

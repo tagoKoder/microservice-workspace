@@ -31,6 +31,8 @@ func dialOptions(cfg config.Config) ([]grpc.DialOption, error) {
 	if !cfg.GRPCUseTLS {
 		return []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithChainUnaryInterceptor(OutgoingHeadersUnaryInterceptor()),
+			grpc.WithChainStreamInterceptor(OutgoingHeadersStreamInterceptor()),
 		}, nil
 	}
 

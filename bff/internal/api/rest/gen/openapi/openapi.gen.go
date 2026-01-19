@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path"
@@ -31,19 +30,32 @@ const (
 
 // Defines values for CreatePaymentResponseStatus.
 const (
-	Failed   CreatePaymentResponseStatus = "failed"
-	Pending  CreatePaymentResponseStatus = "pending"
-	Posted   CreatePaymentResponseStatus = "posted"
-	Rejected CreatePaymentResponseStatus = "rejected"
+	CreatePaymentResponseStatusFailed   CreatePaymentResponseStatus = "failed"
+	CreatePaymentResponseStatusPending  CreatePaymentResponseStatus = "pending"
+	CreatePaymentResponseStatusPosted   CreatePaymentResponseStatus = "posted"
+	CreatePaymentResponseStatusRejected CreatePaymentResponseStatus = "rejected"
 )
 
-// Defines values for OnboardingIntentRequestOccupationType.
+// Defines values for KycDocType.
 const (
-	Employee     OnboardingIntentRequestOccupationType = "employee"
-	Retired      OnboardingIntentRequestOccupationType = "retired"
-	SelfEmployed OnboardingIntentRequestOccupationType = "self_employed"
-	Student      OnboardingIntentRequestOccupationType = "student"
-	Unemployed   OnboardingIntentRequestOccupationType = "unemployed"
+	IdFront KycDocType = "id_front"
+	Selfie  KycDocType = "selfie"
+)
+
+// Defines values for KycUploadStatus.
+const (
+	KycUploadStatusConfirmed   KycUploadStatus = "confirmed"
+	KycUploadStatusPending     KycUploadStatus = "pending"
+	KycUploadStatusUnspecified KycUploadStatus = "unspecified"
+)
+
+// Defines values for OccupationType.
+const (
+	Employee     OccupationType = "employee"
+	Retired      OccupationType = "retired"
+	SelfEmployed OccupationType = "self_employed"
+	Student      OccupationType = "student"
+	Unemployed   OccupationType = "unemployed"
 )
 
 // Defines values for PatchProfileRequestPreferencesChannel.
@@ -51,6 +63,16 @@ const (
 	Email PatchProfileRequestPreferencesChannel = "email"
 	Push  PatchProfileRequestPreferencesChannel = "push"
 	Sms   PatchProfileRequestPreferencesChannel = "sms"
+)
+
+// Defines values for RegistrationState.
+const (
+	Activated       RegistrationState = "activated"
+	Consented       RegistrationState = "consented"
+	ContactVerified RegistrationState = "contact_verified"
+	Rejected        RegistrationState = "rejected"
+	Started         RegistrationState = "started"
+	Unspecified     RegistrationState = "unspecified"
 )
 
 // AccountActivityItem defines model for AccountActivityItem.
@@ -107,29 +129,20 @@ type ActivateResponse struct {
 	CustomerId    string `json:"customer_id"`
 }
 
-// BeginWebauthnAssertionResponse defines model for BeginWebauthnAssertionResponse.
-type BeginWebauthnAssertionResponse struct {
-	// OptionsJson JSON para navigator.credentials.get()
-	OptionsJson string `json:"options_json"`
-	RequestId   string `json:"request_id"`
+// ConfirmKycRequest defines model for ConfirmKycRequest.
+type ConfirmKycRequest struct {
+	// Channel Ej: web
+	Channel        *string          `json:"channel"`
+	Objects        []UploadedObject `json:"objects"`
+	RegistrationId string           `json:"registration_id"`
 }
 
-// BeginWebauthnRegistrationRequest defines model for BeginWebauthnRegistrationRequest.
-type BeginWebauthnRegistrationRequest struct {
-	DeviceName *string `json:"device_name"`
-}
-
-// BeginWebauthnRegistrationResponse defines model for BeginWebauthnRegistrationResponse.
-type BeginWebauthnRegistrationResponse struct {
-	// OptionsJson JSON para navigator.credentials.create()
-	OptionsJson string `json:"options_json"`
-	RequestId   string `json:"request_id"`
-}
-
-// ConsentsRequest defines model for ConsentsRequest.
-type ConsentsRequest struct {
-	Accepted       bool   `json:"accepted"`
-	RegistrationId string `json:"registration_id"`
+// ConfirmKycResponse defines model for ConfirmKycResponse.
+type ConfirmKycResponse struct {
+	ConfirmedAt    *time.Time        `json:"confirmed_at"`
+	RegistrationId string            `json:"registration_id"`
+	State          RegistrationState `json:"state"`
+	Statuses       []KycObjectStatus `json:"statuses"`
 }
 
 // CreateBeneficiaryRequest defines model for CreateBeneficiaryRequest.
@@ -173,20 +186,6 @@ type ErrorResponse struct {
 	Message string                  `json:"message"`
 }
 
-// FinishWebauthnAssertionRequest defines model for FinishWebauthnAssertionRequest.
-type FinishWebauthnAssertionRequest struct {
-	// CredentialJson JSON resultante de navigator.credentials.get()
-	CredentialJson string `json:"credential_json"`
-	RequestId      string `json:"request_id"`
-}
-
-// FinishWebauthnRegistrationRequest defines model for FinishWebauthnRegistrationRequest.
-type FinishWebauthnRegistrationRequest struct {
-	// CredentialJson JSON resultante de navigator.credentials.create()
-	CredentialJson string `json:"credential_json"`
-	RequestId      string `json:"request_id"`
-}
-
 // GetPaymentResponse defines model for GetPaymentResponse.
 type GetPaymentResponse struct {
 	Amount             string        `json:"amount"`
@@ -200,32 +199,49 @@ type GetPaymentResponse struct {
 	Steps              []PaymentStep `json:"steps"`
 }
 
-// OnboardingIntentRequest defines model for OnboardingIntentRequest.
-type OnboardingIntentRequest struct {
-	Channel         *string             `json:"channel"`
-	Email           openapi_types.Email `json:"email"`
-	FingerprintCode string              `json:"fingerprint_code"`
+// KycDocType defines model for KycDocType.
+type KycDocType string
 
-	// IdDocumentFront Imagen frontal del documento (jpg/png).
-	IdDocumentFront     openapi_types.File                    `json:"id_document_front"`
-	Locale              *string                               `json:"locale"`
-	MonthlyIncome       float32                               `json:"monthly_income"`
-	NationalId          string                                `json:"national_id"`
-	NationalIdIssueDate string                                `json:"national_id_issue_date"`
-	OccupationType      OnboardingIntentRequestOccupationType `json:"occupation_type"`
-	Phone               string                                `json:"phone"`
-
-	// Selfie Selfie del usuario (jpg/png).
-	Selfie openapi_types.File `json:"selfie"`
+// KycObjectStatus defines model for KycObjectStatus.
+type KycObjectStatus struct {
+	Bucket  string          `json:"bucket"`
+	DocType KycDocType      `json:"doc_type"`
+	Etag    *string         `json:"etag"`
+	Key     string          `json:"key"`
+	Status  KycUploadStatus `json:"status"`
 }
 
-// OnboardingIntentRequestOccupationType defines model for OnboardingIntentRequest.OccupationType.
-type OnboardingIntentRequestOccupationType string
+// KycUploadStatus defines model for KycUploadStatus.
+type KycUploadStatus string
+
+// OccupationType defines model for OccupationType.
+type OccupationType string
+
+// OnboardingIntentRequest defines model for OnboardingIntentRequest.
+type OnboardingIntentRequest struct {
+	// Channel Ej: web
+	Channel             *string             `json:"channel"`
+	Email               openapi_types.Email `json:"email"`
+	FingerprintCode     string              `json:"fingerprint_code"`
+	IdFrontContentType  *string             `json:"id_front_content_type"`
+	Locale              *string             `json:"locale"`
+	MonthlyIncome       float32             `json:"monthly_income"`
+	NationalId          string              `json:"national_id"`
+	NationalIdIssueDate string              `json:"national_id_issue_date"`
+	OccupationType      OccupationType      `json:"occupation_type"`
+	Phone               string              `json:"phone"`
+	SelfieContentType   *string             `json:"selfie_content_type"`
+}
 
 // OnboardingIntentResponse defines model for OnboardingIntentResponse.
 type OnboardingIntentResponse struct {
-	OtpChannelHint string `json:"otp_channel_hint"`
-	RegistrationId string `json:"registration_id"`
+	CreatedAt *time.Time `json:"created_at"`
+
+	// OtpChannelHint Legacy/compat. Puede omitirse.
+	OtpChannelHint *string           `json:"otp_channel_hint"`
+	RegistrationId string            `json:"registration_id"`
+	State          RegistrationState `json:"state"`
+	Uploads        []PresignedUpload `json:"uploads"`
 }
 
 // PatchProfileRequest defines model for PatchProfileRequest.
@@ -255,11 +271,32 @@ type PaymentStep struct {
 	Step        string    `json:"step"`
 }
 
+// PresignedHeader defines model for PresignedHeader.
+type PresignedHeader struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// PresignedUpload defines model for PresignedUpload.
+type PresignedUpload struct {
+	Bucket           string            `json:"bucket"`
+	ContentType      string            `json:"content_type"`
+	DocType          KycDocType        `json:"doc_type"`
+	ExpiresInSeconds int64             `json:"expires_in_seconds"`
+	Headers          []PresignedHeader `json:"headers"`
+	Key              string            `json:"key"`
+	MaxBytes         int64             `json:"max_bytes"`
+	UploadUrl        string            `json:"upload_url"`
+}
+
 // RefreshSessionResponse defines model for RefreshSessionResponse.
 type RefreshSessionResponse struct {
 	// SessionExpiresIn TTL de la sesión (segundos). Cookie rotada/extendida.
 	SessionExpiresIn int64 `json:"session_expires_in"`
 }
+
+// RegistrationState defines model for RegistrationState.
+type RegistrationState string
 
 // SandboxTopupRequest defines model for SandboxTopupRequest.
 type SandboxTopupRequest struct {
@@ -275,27 +312,19 @@ type SandboxTopupResponse struct {
 	Status    string `json:"status"`
 }
 
-// SimpleStatusResponse defines model for SimpleStatusResponse.
-type SimpleStatusResponse struct {
-	Status string `json:"status"`
-}
-
-// VerifyContactRequest defines model for VerifyContactRequest.
-type VerifyContactRequest struct {
-	Otp            string `json:"otp"`
-	RegistrationId string `json:"registration_id"`
-}
-
-// WebauthnSuccessResponse defines model for WebauthnSuccessResponse.
-type WebauthnSuccessResponse struct {
-	Success bool `json:"success"`
+// UploadedObject defines model for UploadedObject.
+type UploadedObject struct {
+	Bucket      string     `json:"bucket"`
+	ContentType *string    `json:"content_type"`
+	DocType     KycDocType `json:"doc_type"`
+	Etag        *string    `json:"etag"`
+	Key         string     `json:"key"`
+	SizeBytes   *int64     `json:"size_bytes"`
 }
 
 // WhoamiResponse defines model for WhoamiResponse.
 type WhoamiResponse struct {
 	CustomerId    *string  `json:"customer_id"`
-	MfaRequired   bool     `json:"mfa_required"`
-	MfaVerified   bool     `json:"mfa_verified"`
 	Roles         []string `json:"roles"`
 	SubjectIdOidc string   `json:"subject_id_oidc"`
 	UserStatus    string   `json:"user_status"`
@@ -311,6 +340,18 @@ type GetAccountActivityParams struct {
 type SandboxTopupParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
 	XCSRFToken     string `json:"X-CSRF-Token"`
+}
+
+// CompleteWebLoginParams defines parameters for CompleteWebLogin.
+type CompleteWebLoginParams struct {
+	Code  string `form:"code" json:"code"`
+	State string `form:"state" json:"state"`
+}
+
+// StartWebLoginParams defines parameters for StartWebLogin.
+type StartWebLoginParams struct {
+	// Redirect Path destino post-login (ej: /home)
+	Redirect *string `form:"redirect,omitempty" json:"redirect,omitempty"`
 }
 
 // CreateBeneficiaryParams defines parameters for CreateBeneficiary.
@@ -329,18 +370,6 @@ type UpdateProfileParams struct {
 	XCSRFToken string `json:"X-CSRF-Token"`
 }
 
-// CompleteWebLoginParams defines parameters for CompleteWebLogin.
-type CompleteWebLoginParams struct {
-	Code  string `form:"code" json:"code"`
-	State string `form:"state" json:"state"`
-}
-
-// StartWebLoginParams defines parameters for StartWebLogin.
-type StartWebLoginParams struct {
-	// Redirect Path destino post-login (ej: /home)
-	Redirect *string `form:"redirect,omitempty" json:"redirect,omitempty"`
-}
-
 // LogoutWebSessionParams defines parameters for LogoutWebSession.
 type LogoutWebSessionParams struct {
 	XCSRFToken string `json:"X-CSRF-Token"`
@@ -348,26 +377,6 @@ type LogoutWebSessionParams struct {
 
 // RefreshWebSessionParams defines parameters for RefreshWebSession.
 type RefreshWebSessionParams struct {
-	XCSRFToken string `json:"X-CSRF-Token"`
-}
-
-// BeginWebauthnAssertionParams defines parameters for BeginWebauthnAssertion.
-type BeginWebauthnAssertionParams struct {
-	XCSRFToken string `json:"X-CSRF-Token"`
-}
-
-// FinishWebauthnAssertionParams defines parameters for FinishWebauthnAssertion.
-type FinishWebauthnAssertionParams struct {
-	XCSRFToken string `json:"X-CSRF-Token"`
-}
-
-// BeginWebauthnRegistrationParams defines parameters for BeginWebauthnRegistration.
-type BeginWebauthnRegistrationParams struct {
-	XCSRFToken string `json:"X-CSRF-Token"`
-}
-
-// FinishWebauthnRegistrationParams defines parameters for FinishWebauthnRegistration.
-type FinishWebauthnRegistrationParams struct {
 	XCSRFToken string `json:"X-CSRF-Token"`
 }
 
@@ -380,29 +389,17 @@ type CreateBeneficiaryJSONRequestBody = CreateBeneficiaryRequest
 // ActivateOnboardingJSONRequestBody defines body for ActivateOnboarding for application/json ContentType.
 type ActivateOnboardingJSONRequestBody = ActivateRequest
 
-// RegisterOnboardingConsentsJSONRequestBody defines body for RegisterOnboardingConsents for application/json ContentType.
-type RegisterOnboardingConsentsJSONRequestBody = ConsentsRequest
+// StartOnboardingJSONRequestBody defines body for StartOnboarding for application/json ContentType.
+type StartOnboardingJSONRequestBody = OnboardingIntentRequest
 
-// StartOnboardingMultipartRequestBody defines body for StartOnboarding for multipart/form-data ContentType.
-type StartOnboardingMultipartRequestBody = OnboardingIntentRequest
-
-// VerifyOnboardingContactJSONRequestBody defines body for VerifyOnboardingContact for application/json ContentType.
-type VerifyOnboardingContactJSONRequestBody = VerifyContactRequest
+// ConfirmOnboardingKycJSONRequestBody defines body for ConfirmOnboardingKyc for application/json ContentType.
+type ConfirmOnboardingKycJSONRequestBody = ConfirmKycRequest
 
 // ExecutePaymentJSONRequestBody defines body for ExecutePayment for application/json ContentType.
 type ExecutePaymentJSONRequestBody = CreatePaymentRequest
 
 // UpdateProfileJSONRequestBody defines body for UpdateProfile for application/json ContentType.
 type UpdateProfileJSONRequestBody = PatchProfileRequest
-
-// FinishWebauthnAssertionJSONRequestBody defines body for FinishWebauthnAssertion for application/json ContentType.
-type FinishWebauthnAssertionJSONRequestBody = FinishWebauthnAssertionRequest
-
-// BeginWebauthnRegistrationJSONRequestBody defines body for BeginWebauthnRegistration for application/json ContentType.
-type BeginWebauthnRegistrationJSONRequestBody = BeginWebauthnRegistrationRequest
-
-// FinishWebauthnRegistrationJSONRequestBody defines body for FinishWebauthnRegistration for application/json ContentType.
-type FinishWebauthnRegistrationJSONRequestBody = FinishWebauthnRegistrationRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -415,21 +412,24 @@ type ServerInterface interface {
 	// Top-up admin (sandbox)
 	// (POST /api/v1/admin/sandbox/topups)
 	SandboxTopup(w http.ResponseWriter, r *http.Request, params SandboxTopupParams)
+	// Callback OIDC; crea cookie de sesión y redirige al destino final
+	// (GET /api/v1/auth/oidc/callback)
+	CompleteWebLogin(w http.ResponseWriter, r *http.Request, params CompleteWebLoginParams)
+	// Inicia OIDC login y redirige al IdP
+	// (GET /api/v1/auth/oidc/start)
+	StartWebLogin(w http.ResponseWriter, r *http.Request, params StartWebLoginParams)
 	// Crea beneficiario (MVP)
 	// (POST /api/v1/beneficiaries)
 	CreateBeneficiary(w http.ResponseWriter, r *http.Request, params CreateBeneficiaryParams)
 	// Activa onboarding (crea customer + account)
 	// (POST /api/v1/onboarding/activate)
 	ActivateOnboarding(w http.ResponseWriter, r *http.Request)
-	// Registra consentimientos (stub por ahora)
-	// (POST /api/v1/onboarding/consents)
-	RegisterOnboardingConsents(w http.ResponseWriter, r *http.Request)
-	// Inicia onboarding (registro/KYC)
+	// Inicia onboarding (registro/KYC) — presigned S3
 	// (POST /api/v1/onboarding/intents)
 	StartOnboarding(w http.ResponseWriter, r *http.Request)
-	// Verifica OTP/contacto (stub por ahora)
-	// (POST /api/v1/onboarding/verify-contact)
-	VerifyOnboardingContact(w http.ResponseWriter, r *http.Request)
+	// Confirma KYC (verifica objetos subidos a S3)
+	// (POST /api/v1/onboarding/kyc/confirm)
+	ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request)
 	// Ejecuta un pago
 	// (POST /api/v1/payments)
 	ExecutePayment(w http.ResponseWriter, r *http.Request, params ExecutePaymentParams)
@@ -442,33 +442,15 @@ type ServerInterface interface {
 	// Identidad y estado de la sesión actual
 	// (GET /api/v1/session)
 	GetCurrentSession(w http.ResponseWriter, r *http.Request)
-	// Callback OIDC; crea cookie de sesión y redirige al destino final
-	// (GET /bff/login/callback)
-	CompleteWebLogin(w http.ResponseWriter, r *http.Request, params CompleteWebLoginParams)
-	// Inicia OIDC login y redirige al IdP
-	// (GET /bff/login/start)
-	StartWebLogin(w http.ResponseWriter, r *http.Request, params StartWebLoginParams)
 	// Devuelve el CSRF token actual (o lo crea si no existe)
-	// (GET /bff/session/csrf)
+	// (GET /api/v1/session/csrf)
 	GetWebCsrfToken(w http.ResponseWriter, r *http.Request)
 	// Cierra sesión (invalida upstream si aplica) y limpia cookies
-	// (POST /bff/session/logout)
+	// (POST /api/v1/session/logout)
 	LogoutWebSession(w http.ResponseWriter, r *http.Request, params LogoutWebSessionParams)
 	// Rota/renueva sesión server-side y actualiza cookie
-	// (POST /bff/session/refresh)
+	// (POST /api/v1/session/refresh)
 	RefreshWebSession(w http.ResponseWriter, r *http.Request, params RefreshWebSessionParams)
-	// Inicia assertion WebAuthn (MFA)
-	// (POST /bff/webauthn/assertion/begin)
-	BeginWebauthnAssertion(w http.ResponseWriter, r *http.Request, params BeginWebauthnAssertionParams)
-	// Finaliza assertion WebAuthn (MFA)
-	// (POST /bff/webauthn/assertion/finish)
-	FinishWebauthnAssertion(w http.ResponseWriter, r *http.Request, params FinishWebauthnAssertionParams)
-	// Inicia registro WebAuthn (passkey)
-	// (POST /bff/webauthn/registration/begin)
-	BeginWebauthnRegistration(w http.ResponseWriter, r *http.Request, params BeginWebauthnRegistrationParams)
-	// Finaliza registro WebAuthn
-	// (POST /bff/webauthn/registration/finish)
-	FinishWebauthnRegistration(w http.ResponseWriter, r *http.Request, params FinishWebauthnRegistrationParams)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -493,6 +475,18 @@ func (_ Unimplemented) SandboxTopup(w http.ResponseWriter, r *http.Request, para
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Callback OIDC; crea cookie de sesión y redirige al destino final
+// (GET /api/v1/auth/oidc/callback)
+func (_ Unimplemented) CompleteWebLogin(w http.ResponseWriter, r *http.Request, params CompleteWebLoginParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Inicia OIDC login y redirige al IdP
+// (GET /api/v1/auth/oidc/start)
+func (_ Unimplemented) StartWebLogin(w http.ResponseWriter, r *http.Request, params StartWebLoginParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Crea beneficiario (MVP)
 // (POST /api/v1/beneficiaries)
 func (_ Unimplemented) CreateBeneficiary(w http.ResponseWriter, r *http.Request, params CreateBeneficiaryParams) {
@@ -505,21 +499,15 @@ func (_ Unimplemented) ActivateOnboarding(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Registra consentimientos (stub por ahora)
-// (POST /api/v1/onboarding/consents)
-func (_ Unimplemented) RegisterOnboardingConsents(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Inicia onboarding (registro/KYC)
+// Inicia onboarding (registro/KYC) — presigned S3
 // (POST /api/v1/onboarding/intents)
 func (_ Unimplemented) StartOnboarding(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Verifica OTP/contacto (stub por ahora)
-// (POST /api/v1/onboarding/verify-contact)
-func (_ Unimplemented) VerifyOnboardingContact(w http.ResponseWriter, r *http.Request) {
+// Confirma KYC (verifica objetos subidos a S3)
+// (POST /api/v1/onboarding/kyc/confirm)
+func (_ Unimplemented) ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -547,57 +535,21 @@ func (_ Unimplemented) GetCurrentSession(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Callback OIDC; crea cookie de sesión y redirige al destino final
-// (GET /bff/login/callback)
-func (_ Unimplemented) CompleteWebLogin(w http.ResponseWriter, r *http.Request, params CompleteWebLoginParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Inicia OIDC login y redirige al IdP
-// (GET /bff/login/start)
-func (_ Unimplemented) StartWebLogin(w http.ResponseWriter, r *http.Request, params StartWebLoginParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Devuelve el CSRF token actual (o lo crea si no existe)
-// (GET /bff/session/csrf)
+// (GET /api/v1/session/csrf)
 func (_ Unimplemented) GetWebCsrfToken(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Cierra sesión (invalida upstream si aplica) y limpia cookies
-// (POST /bff/session/logout)
+// (POST /api/v1/session/logout)
 func (_ Unimplemented) LogoutWebSession(w http.ResponseWriter, r *http.Request, params LogoutWebSessionParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Rota/renueva sesión server-side y actualiza cookie
-// (POST /bff/session/refresh)
+// (POST /api/v1/session/refresh)
 func (_ Unimplemented) RefreshWebSession(w http.ResponseWriter, r *http.Request, params RefreshWebSessionParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Inicia assertion WebAuthn (MFA)
-// (POST /bff/webauthn/assertion/begin)
-func (_ Unimplemented) BeginWebauthnAssertion(w http.ResponseWriter, r *http.Request, params BeginWebauthnAssertionParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Finaliza assertion WebAuthn (MFA)
-// (POST /bff/webauthn/assertion/finish)
-func (_ Unimplemented) FinishWebauthnAssertion(w http.ResponseWriter, r *http.Request, params FinishWebauthnAssertionParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Inicia registro WebAuthn (passkey)
-// (POST /bff/webauthn/registration/begin)
-func (_ Unimplemented) BeginWebauthnRegistration(w http.ResponseWriter, r *http.Request, params BeginWebauthnRegistrationParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Finaliza registro WebAuthn
-// (POST /bff/webauthn/registration/finish)
-func (_ Unimplemented) FinishWebauthnRegistration(w http.ResponseWriter, r *http.Request, params FinishWebauthnRegistrationParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -755,6 +707,82 @@ func (siw *ServerInterfaceWrapper) SandboxTopup(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// CompleteWebLogin operation middleware
+func (siw *ServerInterfaceWrapper) CompleteWebLogin(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CompleteWebLoginParams
+
+	// ------------- Required query parameter "code" -------------
+
+	if paramValue := r.URL.Query().Get("code"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "code", r.URL.Query(), &params.Code)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		return
+	}
+
+	// ------------- Required query parameter "state" -------------
+
+	if paramValue := r.URL.Query().Get("state"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "state", r.URL.Query(), &params.State)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompleteWebLogin(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartWebLogin operation middleware
+func (siw *ServerInterfaceWrapper) StartWebLogin(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StartWebLoginParams
+
+	// ------------- Optional query parameter "redirect" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "redirect", r.URL.Query(), &params.Redirect)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "redirect", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartWebLogin(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateBeneficiary operation middleware
 func (siw *ServerInterfaceWrapper) CreateBeneficiary(w http.ResponseWriter, r *http.Request) {
 
@@ -821,20 +849,6 @@ func (siw *ServerInterfaceWrapper) ActivateOnboarding(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
-// RegisterOnboardingConsents operation middleware
-func (siw *ServerInterfaceWrapper) RegisterOnboardingConsents(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.RegisterOnboardingConsents(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // StartOnboarding operation middleware
 func (siw *ServerInterfaceWrapper) StartOnboarding(w http.ResponseWriter, r *http.Request) {
 
@@ -849,11 +863,11 @@ func (siw *ServerInterfaceWrapper) StartOnboarding(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
-// VerifyOnboardingContact operation middleware
-func (siw *ServerInterfaceWrapper) VerifyOnboardingContact(w http.ResponseWriter, r *http.Request) {
+// ConfirmOnboardingKyc operation middleware
+func (siw *ServerInterfaceWrapper) ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.VerifyOnboardingContact(w, r)
+		siw.Handler.ConfirmOnboardingKyc(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1041,82 +1055,6 @@ func (siw *ServerInterfaceWrapper) GetCurrentSession(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
-// CompleteWebLogin operation middleware
-func (siw *ServerInterfaceWrapper) CompleteWebLogin(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CompleteWebLoginParams
-
-	// ------------- Required query parameter "code" -------------
-
-	if paramValue := r.URL.Query().Get("code"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "code", r.URL.Query(), &params.Code)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "state" -------------
-
-	if paramValue := r.URL.Query().Get("state"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "state", r.URL.Query(), &params.State)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CompleteWebLogin(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// StartWebLogin operation middleware
-func (siw *ServerInterfaceWrapper) StartWebLogin(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params StartWebLoginParams
-
-	// ------------- Optional query parameter "redirect" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "redirect", r.URL.Query(), &params.Redirect)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "redirect", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.StartWebLogin(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // GetWebCsrfToken operation middleware
 func (siw *ServerInterfaceWrapper) GetWebCsrfToken(w http.ResponseWriter, r *http.Request) {
 
@@ -1232,214 +1170,6 @@ func (siw *ServerInterfaceWrapper) RefreshWebSession(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RefreshWebSession(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// BeginWebauthnAssertion operation middleware
-func (siw *ServerInterfaceWrapper) BeginWebauthnAssertion(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
-
-	ctx = context.WithValue(ctx, CsrfAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params BeginWebauthnAssertionParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-CSRF-Token" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-CSRF-Token", valueList[0], &XCSRFToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-CSRF-Token", Err: err})
-			return
-		}
-
-		params.XCSRFToken = XCSRFToken
-
-	} else {
-		err := fmt.Errorf("Header parameter X-CSRF-Token is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-CSRF-Token", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.BeginWebauthnAssertion(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// FinishWebauthnAssertion operation middleware
-func (siw *ServerInterfaceWrapper) FinishWebauthnAssertion(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
-
-	ctx = context.WithValue(ctx, CsrfAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params FinishWebauthnAssertionParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-CSRF-Token" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-CSRF-Token", valueList[0], &XCSRFToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-CSRF-Token", Err: err})
-			return
-		}
-
-		params.XCSRFToken = XCSRFToken
-
-	} else {
-		err := fmt.Errorf("Header parameter X-CSRF-Token is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-CSRF-Token", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.FinishWebauthnAssertion(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// BeginWebauthnRegistration operation middleware
-func (siw *ServerInterfaceWrapper) BeginWebauthnRegistration(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
-
-	ctx = context.WithValue(ctx, CsrfAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params BeginWebauthnRegistrationParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-CSRF-Token" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-CSRF-Token", valueList[0], &XCSRFToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-CSRF-Token", Err: err})
-			return
-		}
-
-		params.XCSRFToken = XCSRFToken
-
-	} else {
-		err := fmt.Errorf("Header parameter X-CSRF-Token is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-CSRF-Token", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.BeginWebauthnRegistration(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// FinishWebauthnRegistration operation middleware
-func (siw *ServerInterfaceWrapper) FinishWebauthnRegistration(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, CookieAuthScopes, []string{})
-
-	ctx = context.WithValue(ctx, CsrfAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params FinishWebauthnRegistrationParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-CSRF-Token" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-CSRF-Token", valueList[0], &XCSRFToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-CSRF-Token", Err: err})
-			return
-		}
-
-		params.XCSRFToken = XCSRFToken
-
-	} else {
-		err := fmt.Errorf("Header parameter X-CSRF-Token is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-CSRF-Token", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.FinishWebauthnRegistration(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1572,19 +1302,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/v1/admin/sandbox/topups", wrapper.SandboxTopup)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/auth/oidc/callback", wrapper.CompleteWebLogin)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/auth/oidc/start", wrapper.StartWebLogin)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/beneficiaries", wrapper.CreateBeneficiary)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/onboarding/activate", wrapper.ActivateOnboarding)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1/onboarding/consents", wrapper.RegisterOnboardingConsents)
-	})
-	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/onboarding/intents", wrapper.StartOnboarding)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1/onboarding/verify-contact", wrapper.VerifyOnboardingContact)
+		r.Post(options.BaseURL+"/api/v1/onboarding/kyc/confirm", wrapper.ConfirmOnboardingKyc)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/payments", wrapper.ExecutePayment)
@@ -1599,31 +1332,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v1/session", wrapper.GetCurrentSession)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/bff/login/callback", wrapper.CompleteWebLogin)
+		r.Get(options.BaseURL+"/api/v1/session/csrf", wrapper.GetWebCsrfToken)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/bff/login/start", wrapper.StartWebLogin)
+		r.Post(options.BaseURL+"/api/v1/session/logout", wrapper.LogoutWebSession)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/bff/session/csrf", wrapper.GetWebCsrfToken)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/bff/session/logout", wrapper.LogoutWebSession)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/bff/session/refresh", wrapper.RefreshWebSession)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/bff/webauthn/assertion/begin", wrapper.BeginWebauthnAssertion)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/bff/webauthn/assertion/finish", wrapper.FinishWebauthnAssertion)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/bff/webauthn/registration/begin", wrapper.BeginWebauthnRegistration)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/bff/webauthn/registration/finish", wrapper.FinishWebauthnRegistration)
+		r.Post(options.BaseURL+"/api/v1/session/refresh", wrapper.RefreshWebSession)
 	})
 
 	return r
@@ -1780,6 +1495,95 @@ func (response SandboxTopup502JSONResponse) VisitSandboxTopupResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type CompleteWebLoginRequestObject struct {
+	Params CompleteWebLoginParams
+}
+
+type CompleteWebLoginResponseObject interface {
+	VisitCompleteWebLoginResponse(w http.ResponseWriter) error
+}
+
+type CompleteWebLogin302ResponseHeaders struct {
+	Location string
+}
+
+type CompleteWebLogin302Response struct {
+	Headers CompleteWebLogin302ResponseHeaders
+}
+
+func (response CompleteWebLogin302Response) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	w.WriteHeader(302)
+	return nil
+}
+
+type CompleteWebLogin400JSONResponse ErrorResponse
+
+func (response CompleteWebLogin400JSONResponse) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CompleteWebLogin401JSONResponse ErrorResponse
+
+func (response CompleteWebLogin401JSONResponse) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CompleteWebLogin502JSONResponse ErrorResponse
+
+func (response CompleteWebLogin502JSONResponse) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartWebLoginRequestObject struct {
+	Params StartWebLoginParams
+}
+
+type StartWebLoginResponseObject interface {
+	VisitStartWebLoginResponse(w http.ResponseWriter) error
+}
+
+type StartWebLogin302ResponseHeaders struct {
+	Location string
+}
+
+type StartWebLogin302Response struct {
+	Headers StartWebLogin302ResponseHeaders
+}
+
+func (response StartWebLogin302Response) VisitStartWebLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	w.WriteHeader(302)
+	return nil
+}
+
+type StartWebLogin400JSONResponse ErrorResponse
+
+func (response StartWebLogin400JSONResponse) VisitStartWebLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartWebLogin502JSONResponse ErrorResponse
+
+func (response StartWebLogin502JSONResponse) VisitStartWebLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type CreateBeneficiaryRequestObject struct {
 	Params CreateBeneficiaryParams
 	Body   *CreateBeneficiaryJSONRequestBody
@@ -1887,43 +1691,8 @@ func (response ActivateOnboarding502JSONResponse) VisitActivateOnboardingRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type RegisterOnboardingConsentsRequestObject struct {
-	Body *RegisterOnboardingConsentsJSONRequestBody
-}
-
-type RegisterOnboardingConsentsResponseObject interface {
-	VisitRegisterOnboardingConsentsResponse(w http.ResponseWriter) error
-}
-
-type RegisterOnboardingConsents200JSONResponse SimpleStatusResponse
-
-func (response RegisterOnboardingConsents200JSONResponse) VisitRegisterOnboardingConsentsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type RegisterOnboardingConsents400JSONResponse ErrorResponse
-
-func (response RegisterOnboardingConsents400JSONResponse) VisitRegisterOnboardingConsentsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type RegisterOnboardingConsents422JSONResponse ErrorResponse
-
-func (response RegisterOnboardingConsents422JSONResponse) VisitRegisterOnboardingConsentsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(422)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type StartOnboardingRequestObject struct {
-	Body *multipart.Reader
+	Body *StartOnboardingJSONRequestBody
 }
 
 type StartOnboardingResponseObject interface {
@@ -1966,37 +1735,46 @@ func (response StartOnboarding502JSONResponse) VisitStartOnboardingResponse(w ht
 	return json.NewEncoder(w).Encode(response)
 }
 
-type VerifyOnboardingContactRequestObject struct {
-	Body *VerifyOnboardingContactJSONRequestBody
+type ConfirmOnboardingKycRequestObject struct {
+	Body *ConfirmOnboardingKycJSONRequestBody
 }
 
-type VerifyOnboardingContactResponseObject interface {
-	VisitVerifyOnboardingContactResponse(w http.ResponseWriter) error
+type ConfirmOnboardingKycResponseObject interface {
+	VisitConfirmOnboardingKycResponse(w http.ResponseWriter) error
 }
 
-type VerifyOnboardingContact200JSONResponse SimpleStatusResponse
+type ConfirmOnboardingKyc200JSONResponse ConfirmKycResponse
 
-func (response VerifyOnboardingContact200JSONResponse) VisitVerifyOnboardingContactResponse(w http.ResponseWriter) error {
+func (response ConfirmOnboardingKyc200JSONResponse) VisitConfirmOnboardingKycResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type VerifyOnboardingContact400JSONResponse ErrorResponse
+type ConfirmOnboardingKyc400JSONResponse ErrorResponse
 
-func (response VerifyOnboardingContact400JSONResponse) VisitVerifyOnboardingContactResponse(w http.ResponseWriter) error {
+func (response ConfirmOnboardingKyc400JSONResponse) VisitConfirmOnboardingKycResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type VerifyOnboardingContact422JSONResponse ErrorResponse
+type ConfirmOnboardingKyc422JSONResponse ErrorResponse
 
-func (response VerifyOnboardingContact422JSONResponse) VisitVerifyOnboardingContactResponse(w http.ResponseWriter) error {
+func (response ConfirmOnboardingKyc422JSONResponse) VisitConfirmOnboardingKycResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ConfirmOnboardingKyc502JSONResponse ErrorResponse
+
+func (response ConfirmOnboardingKyc502JSONResponse) VisitConfirmOnboardingKycResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -2205,95 +1983,6 @@ func (response GetCurrentSession403JSONResponse) VisitGetCurrentSessionResponse(
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CompleteWebLoginRequestObject struct {
-	Params CompleteWebLoginParams
-}
-
-type CompleteWebLoginResponseObject interface {
-	VisitCompleteWebLoginResponse(w http.ResponseWriter) error
-}
-
-type CompleteWebLogin302ResponseHeaders struct {
-	Location string
-}
-
-type CompleteWebLogin302Response struct {
-	Headers CompleteWebLogin302ResponseHeaders
-}
-
-func (response CompleteWebLogin302Response) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
-	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
-	w.WriteHeader(302)
-	return nil
-}
-
-type CompleteWebLogin400JSONResponse ErrorResponse
-
-func (response CompleteWebLogin400JSONResponse) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CompleteWebLogin401JSONResponse ErrorResponse
-
-func (response CompleteWebLogin401JSONResponse) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CompleteWebLogin502JSONResponse ErrorResponse
-
-func (response CompleteWebLogin502JSONResponse) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(502)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StartWebLoginRequestObject struct {
-	Params StartWebLoginParams
-}
-
-type StartWebLoginResponseObject interface {
-	VisitStartWebLoginResponse(w http.ResponseWriter) error
-}
-
-type StartWebLogin302ResponseHeaders struct {
-	Location string
-}
-
-type StartWebLogin302Response struct {
-	Headers StartWebLogin302ResponseHeaders
-}
-
-func (response StartWebLogin302Response) VisitStartWebLoginResponse(w http.ResponseWriter) error {
-	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
-	w.WriteHeader(302)
-	return nil
-}
-
-type StartWebLogin400JSONResponse ErrorResponse
-
-func (response StartWebLogin400JSONResponse) VisitStartWebLoginResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StartWebLogin502JSONResponse ErrorResponse
-
-func (response StartWebLogin502JSONResponse) VisitStartWebLoginResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(502)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type GetWebCsrfTokenRequestObject struct {
 }
 
@@ -2324,6 +2013,15 @@ type GetWebCsrfToken403JSONResponse ErrorResponse
 func (response GetWebCsrfToken403JSONResponse) VisitGetWebCsrfTokenResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetWebCsrfToken502JSONResponse ErrorResponse
+
+func (response GetWebCsrfToken502JSONResponse) VisitGetWebCsrfTokenResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -2415,203 +2113,6 @@ func (response RefreshWebSession502JSONResponse) VisitRefreshWebSessionResponse(
 	return json.NewEncoder(w).Encode(response)
 }
 
-type BeginWebauthnAssertionRequestObject struct {
-	Params BeginWebauthnAssertionParams
-}
-
-type BeginWebauthnAssertionResponseObject interface {
-	VisitBeginWebauthnAssertionResponse(w http.ResponseWriter) error
-}
-
-type BeginWebauthnAssertion200JSONResponse BeginWebauthnAssertionResponse
-
-func (response BeginWebauthnAssertion200JSONResponse) VisitBeginWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type BeginWebauthnAssertion401JSONResponse ErrorResponse
-
-func (response BeginWebauthnAssertion401JSONResponse) VisitBeginWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type BeginWebauthnAssertion403JSONResponse ErrorResponse
-
-func (response BeginWebauthnAssertion403JSONResponse) VisitBeginWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type BeginWebauthnAssertion502JSONResponse ErrorResponse
-
-func (response BeginWebauthnAssertion502JSONResponse) VisitBeginWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(502)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnAssertionRequestObject struct {
-	Params FinishWebauthnAssertionParams
-	Body   *FinishWebauthnAssertionJSONRequestBody
-}
-
-type FinishWebauthnAssertionResponseObject interface {
-	VisitFinishWebauthnAssertionResponse(w http.ResponseWriter) error
-}
-
-type FinishWebauthnAssertion200JSONResponse WebauthnSuccessResponse
-
-func (response FinishWebauthnAssertion200JSONResponse) VisitFinishWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnAssertion400JSONResponse ErrorResponse
-
-func (response FinishWebauthnAssertion400JSONResponse) VisitFinishWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnAssertion401JSONResponse ErrorResponse
-
-func (response FinishWebauthnAssertion401JSONResponse) VisitFinishWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnAssertion403JSONResponse ErrorResponse
-
-func (response FinishWebauthnAssertion403JSONResponse) VisitFinishWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnAssertion502JSONResponse ErrorResponse
-
-func (response FinishWebauthnAssertion502JSONResponse) VisitFinishWebauthnAssertionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(502)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type BeginWebauthnRegistrationRequestObject struct {
-	Params BeginWebauthnRegistrationParams
-	Body   *BeginWebauthnRegistrationJSONRequestBody
-}
-
-type BeginWebauthnRegistrationResponseObject interface {
-	VisitBeginWebauthnRegistrationResponse(w http.ResponseWriter) error
-}
-
-type BeginWebauthnRegistration200JSONResponse BeginWebauthnRegistrationResponse
-
-func (response BeginWebauthnRegistration200JSONResponse) VisitBeginWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type BeginWebauthnRegistration401JSONResponse ErrorResponse
-
-func (response BeginWebauthnRegistration401JSONResponse) VisitBeginWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type BeginWebauthnRegistration403JSONResponse ErrorResponse
-
-func (response BeginWebauthnRegistration403JSONResponse) VisitBeginWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type BeginWebauthnRegistration502JSONResponse ErrorResponse
-
-func (response BeginWebauthnRegistration502JSONResponse) VisitBeginWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(502)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnRegistrationRequestObject struct {
-	Params FinishWebauthnRegistrationParams
-	Body   *FinishWebauthnRegistrationJSONRequestBody
-}
-
-type FinishWebauthnRegistrationResponseObject interface {
-	VisitFinishWebauthnRegistrationResponse(w http.ResponseWriter) error
-}
-
-type FinishWebauthnRegistration200JSONResponse WebauthnSuccessResponse
-
-func (response FinishWebauthnRegistration200JSONResponse) VisitFinishWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnRegistration400JSONResponse ErrorResponse
-
-func (response FinishWebauthnRegistration400JSONResponse) VisitFinishWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnRegistration401JSONResponse ErrorResponse
-
-func (response FinishWebauthnRegistration401JSONResponse) VisitFinishWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnRegistration403JSONResponse ErrorResponse
-
-func (response FinishWebauthnRegistration403JSONResponse) VisitFinishWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FinishWebauthnRegistration502JSONResponse ErrorResponse
-
-func (response FinishWebauthnRegistration502JSONResponse) VisitFinishWebauthnRegistrationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(502)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Resumen de cuentas del customer autenticado
@@ -2623,21 +2124,24 @@ type StrictServerInterface interface {
 	// Top-up admin (sandbox)
 	// (POST /api/v1/admin/sandbox/topups)
 	SandboxTopup(ctx context.Context, request SandboxTopupRequestObject) (SandboxTopupResponseObject, error)
+	// Callback OIDC; crea cookie de sesión y redirige al destino final
+	// (GET /api/v1/auth/oidc/callback)
+	CompleteWebLogin(ctx context.Context, request CompleteWebLoginRequestObject) (CompleteWebLoginResponseObject, error)
+	// Inicia OIDC login y redirige al IdP
+	// (GET /api/v1/auth/oidc/start)
+	StartWebLogin(ctx context.Context, request StartWebLoginRequestObject) (StartWebLoginResponseObject, error)
 	// Crea beneficiario (MVP)
 	// (POST /api/v1/beneficiaries)
 	CreateBeneficiary(ctx context.Context, request CreateBeneficiaryRequestObject) (CreateBeneficiaryResponseObject, error)
 	// Activa onboarding (crea customer + account)
 	// (POST /api/v1/onboarding/activate)
 	ActivateOnboarding(ctx context.Context, request ActivateOnboardingRequestObject) (ActivateOnboardingResponseObject, error)
-	// Registra consentimientos (stub por ahora)
-	// (POST /api/v1/onboarding/consents)
-	RegisterOnboardingConsents(ctx context.Context, request RegisterOnboardingConsentsRequestObject) (RegisterOnboardingConsentsResponseObject, error)
-	// Inicia onboarding (registro/KYC)
+	// Inicia onboarding (registro/KYC) — presigned S3
 	// (POST /api/v1/onboarding/intents)
 	StartOnboarding(ctx context.Context, request StartOnboardingRequestObject) (StartOnboardingResponseObject, error)
-	// Verifica OTP/contacto (stub por ahora)
-	// (POST /api/v1/onboarding/verify-contact)
-	VerifyOnboardingContact(ctx context.Context, request VerifyOnboardingContactRequestObject) (VerifyOnboardingContactResponseObject, error)
+	// Confirma KYC (verifica objetos subidos a S3)
+	// (POST /api/v1/onboarding/kyc/confirm)
+	ConfirmOnboardingKyc(ctx context.Context, request ConfirmOnboardingKycRequestObject) (ConfirmOnboardingKycResponseObject, error)
 	// Ejecuta un pago
 	// (POST /api/v1/payments)
 	ExecutePayment(ctx context.Context, request ExecutePaymentRequestObject) (ExecutePaymentResponseObject, error)
@@ -2650,33 +2154,15 @@ type StrictServerInterface interface {
 	// Identidad y estado de la sesión actual
 	// (GET /api/v1/session)
 	GetCurrentSession(ctx context.Context, request GetCurrentSessionRequestObject) (GetCurrentSessionResponseObject, error)
-	// Callback OIDC; crea cookie de sesión y redirige al destino final
-	// (GET /bff/login/callback)
-	CompleteWebLogin(ctx context.Context, request CompleteWebLoginRequestObject) (CompleteWebLoginResponseObject, error)
-	// Inicia OIDC login y redirige al IdP
-	// (GET /bff/login/start)
-	StartWebLogin(ctx context.Context, request StartWebLoginRequestObject) (StartWebLoginResponseObject, error)
 	// Devuelve el CSRF token actual (o lo crea si no existe)
-	// (GET /bff/session/csrf)
+	// (GET /api/v1/session/csrf)
 	GetWebCsrfToken(ctx context.Context, request GetWebCsrfTokenRequestObject) (GetWebCsrfTokenResponseObject, error)
 	// Cierra sesión (invalida upstream si aplica) y limpia cookies
-	// (POST /bff/session/logout)
+	// (POST /api/v1/session/logout)
 	LogoutWebSession(ctx context.Context, request LogoutWebSessionRequestObject) (LogoutWebSessionResponseObject, error)
 	// Rota/renueva sesión server-side y actualiza cookie
-	// (POST /bff/session/refresh)
+	// (POST /api/v1/session/refresh)
 	RefreshWebSession(ctx context.Context, request RefreshWebSessionRequestObject) (RefreshWebSessionResponseObject, error)
-	// Inicia assertion WebAuthn (MFA)
-	// (POST /bff/webauthn/assertion/begin)
-	BeginWebauthnAssertion(ctx context.Context, request BeginWebauthnAssertionRequestObject) (BeginWebauthnAssertionResponseObject, error)
-	// Finaliza assertion WebAuthn (MFA)
-	// (POST /bff/webauthn/assertion/finish)
-	FinishWebauthnAssertion(ctx context.Context, request FinishWebauthnAssertionRequestObject) (FinishWebauthnAssertionResponseObject, error)
-	// Inicia registro WebAuthn (passkey)
-	// (POST /bff/webauthn/registration/begin)
-	BeginWebauthnRegistration(ctx context.Context, request BeginWebauthnRegistrationRequestObject) (BeginWebauthnRegistrationResponseObject, error)
-	// Finaliza registro WebAuthn
-	// (POST /bff/webauthn/registration/finish)
-	FinishWebauthnRegistration(ctx context.Context, request FinishWebauthnRegistrationRequestObject) (FinishWebauthnRegistrationResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -2792,6 +2278,58 @@ func (sh *strictHandler) SandboxTopup(w http.ResponseWriter, r *http.Request, pa
 	}
 }
 
+// CompleteWebLogin operation middleware
+func (sh *strictHandler) CompleteWebLogin(w http.ResponseWriter, r *http.Request, params CompleteWebLoginParams) {
+	var request CompleteWebLoginRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CompleteWebLogin(ctx, request.(CompleteWebLoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompleteWebLogin")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CompleteWebLoginResponseObject); ok {
+		if err := validResponse.VisitCompleteWebLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartWebLogin operation middleware
+func (sh *strictHandler) StartWebLogin(w http.ResponseWriter, r *http.Request, params StartWebLoginParams) {
+	var request StartWebLoginRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartWebLogin(ctx, request.(StartWebLoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartWebLogin")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartWebLoginResponseObject); ok {
+		if err := validResponse.VisitStartWebLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CreateBeneficiary operation middleware
 func (sh *strictHandler) CreateBeneficiary(w http.ResponseWriter, r *http.Request, params CreateBeneficiaryParams) {
 	var request CreateBeneficiaryRequestObject
@@ -2856,47 +2394,16 @@ func (sh *strictHandler) ActivateOnboarding(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// RegisterOnboardingConsents operation middleware
-func (sh *strictHandler) RegisterOnboardingConsents(w http.ResponseWriter, r *http.Request) {
-	var request RegisterOnboardingConsentsRequestObject
+// StartOnboarding operation middleware
+func (sh *strictHandler) StartOnboarding(w http.ResponseWriter, r *http.Request) {
+	var request StartOnboardingRequestObject
 
-	var body RegisterOnboardingConsentsJSONRequestBody
+	var body StartOnboardingJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
 	}
 	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.RegisterOnboardingConsents(ctx, request.(RegisterOnboardingConsentsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "RegisterOnboardingConsents")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(RegisterOnboardingConsentsResponseObject); ok {
-		if err := validResponse.VisitRegisterOnboardingConsentsResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// StartOnboarding operation middleware
-func (sh *strictHandler) StartOnboarding(w http.ResponseWriter, r *http.Request) {
-	var request StartOnboardingRequestObject
-
-	if reader, err := r.MultipartReader(); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
-		return
-	} else {
-		request.Body = reader
-	}
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.StartOnboarding(ctx, request.(StartOnboardingRequestObject))
@@ -2918,11 +2425,11 @@ func (sh *strictHandler) StartOnboarding(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// VerifyOnboardingContact operation middleware
-func (sh *strictHandler) VerifyOnboardingContact(w http.ResponseWriter, r *http.Request) {
-	var request VerifyOnboardingContactRequestObject
+// ConfirmOnboardingKyc operation middleware
+func (sh *strictHandler) ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request) {
+	var request ConfirmOnboardingKycRequestObject
 
-	var body VerifyOnboardingContactJSONRequestBody
+	var body ConfirmOnboardingKycJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -2930,18 +2437,18 @@ func (sh *strictHandler) VerifyOnboardingContact(w http.ResponseWriter, r *http.
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.VerifyOnboardingContact(ctx, request.(VerifyOnboardingContactRequestObject))
+		return sh.ssi.ConfirmOnboardingKyc(ctx, request.(ConfirmOnboardingKycRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "VerifyOnboardingContact")
+		handler = middleware(handler, "ConfirmOnboardingKyc")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(VerifyOnboardingContactResponseObject); ok {
-		if err := validResponse.VisitVerifyOnboardingContactResponse(w); err != nil {
+	} else if validResponse, ok := response.(ConfirmOnboardingKycResponseObject); ok {
+		if err := validResponse.VisitConfirmOnboardingKycResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -3065,58 +2572,6 @@ func (sh *strictHandler) GetCurrentSession(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// CompleteWebLogin operation middleware
-func (sh *strictHandler) CompleteWebLogin(w http.ResponseWriter, r *http.Request, params CompleteWebLoginParams) {
-	var request CompleteWebLoginRequestObject
-
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CompleteWebLogin(ctx, request.(CompleteWebLoginRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CompleteWebLogin")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CompleteWebLoginResponseObject); ok {
-		if err := validResponse.VisitCompleteWebLoginResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// StartWebLogin operation middleware
-func (sh *strictHandler) StartWebLogin(w http.ResponseWriter, r *http.Request, params StartWebLoginParams) {
-	var request StartWebLoginRequestObject
-
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.StartWebLogin(ctx, request.(StartWebLoginRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "StartWebLogin")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(StartWebLoginResponseObject); ok {
-		if err := validResponse.VisitStartWebLoginResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // GetWebCsrfToken operation middleware
 func (sh *strictHandler) GetWebCsrfToken(w http.ResponseWriter, r *http.Request) {
 	var request GetWebCsrfTokenRequestObject
@@ -3193,192 +2648,65 @@ func (sh *strictHandler) RefreshWebSession(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// BeginWebauthnAssertion operation middleware
-func (sh *strictHandler) BeginWebauthnAssertion(w http.ResponseWriter, r *http.Request, params BeginWebauthnAssertionParams) {
-	var request BeginWebauthnAssertionRequestObject
-
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.BeginWebauthnAssertion(ctx, request.(BeginWebauthnAssertionRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "BeginWebauthnAssertion")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(BeginWebauthnAssertionResponseObject); ok {
-		if err := validResponse.VisitBeginWebauthnAssertionResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// FinishWebauthnAssertion operation middleware
-func (sh *strictHandler) FinishWebauthnAssertion(w http.ResponseWriter, r *http.Request, params FinishWebauthnAssertionParams) {
-	var request FinishWebauthnAssertionRequestObject
-
-	request.Params = params
-
-	var body FinishWebauthnAssertionJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.FinishWebauthnAssertion(ctx, request.(FinishWebauthnAssertionRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "FinishWebauthnAssertion")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(FinishWebauthnAssertionResponseObject); ok {
-		if err := validResponse.VisitFinishWebauthnAssertionResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// BeginWebauthnRegistration operation middleware
-func (sh *strictHandler) BeginWebauthnRegistration(w http.ResponseWriter, r *http.Request, params BeginWebauthnRegistrationParams) {
-	var request BeginWebauthnRegistrationRequestObject
-
-	request.Params = params
-
-	var body BeginWebauthnRegistrationJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.BeginWebauthnRegistration(ctx, request.(BeginWebauthnRegistrationRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "BeginWebauthnRegistration")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(BeginWebauthnRegistrationResponseObject); ok {
-		if err := validResponse.VisitBeginWebauthnRegistrationResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// FinishWebauthnRegistration operation middleware
-func (sh *strictHandler) FinishWebauthnRegistration(w http.ResponseWriter, r *http.Request, params FinishWebauthnRegistrationParams) {
-	var request FinishWebauthnRegistrationRequestObject
-
-	request.Params = params
-
-	var body FinishWebauthnRegistrationJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.FinishWebauthnRegistration(ctx, request.(FinishWebauthnRegistrationRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "FinishWebauthnRegistration")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(FinishWebauthnRegistrationResponseObject); ok {
-		if err := validResponse.VisitFinishWebauthnRegistrationResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

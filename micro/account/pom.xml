@@ -30,6 +30,19 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
   </properties>
 
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>bom</artifactId>
+      <version>2.41.9</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+
+
   <dependencies>
     <!-- Persistencia -->
     <dependency>
@@ -127,6 +140,31 @@
       <version>5.11.0</version>
       <scope>test</scope>
   </dependency>
+
+<!-- JWT decoding (Cognito JWKS via issuer) -->
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+</dependency>
+
+<!-- AWS AVP + EventBridge -->
+<dependency>
+  <groupId>software.amazon.awssdk</groupId>
+  <artifactId>verifiedpermissions</artifactId>
+</dependency>
+<dependency>
+  <groupId>software.amazon.awssdk</groupId>
+  <artifactId>eventbridge</artifactId>
+</dependency>
+
+<dependency>
+  <groupId>com.fasterxml.jackson.core</groupId>
+  <artifactId>jackson-databind</artifactId>
+</dependency>
 
 
   </dependencies>

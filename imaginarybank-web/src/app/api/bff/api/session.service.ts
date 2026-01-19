@@ -105,7 +105,7 @@ export class SessionApi extends BaseService {
 
     /**
      * Devuelve el CSRF token actual (o lo crea si no existe)
-     * @endpoint get /bff/session/csrf
+     * @endpoint get /api/v1/session/csrf
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
@@ -142,7 +142,7 @@ export class SessionApi extends BaseService {
             }
         }
 
-        let localVarPath = `/bff/session/csrf`;
+        let localVarPath = `/api/v1/session/csrf`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<CsrfTokenResponseDto>('get', `${basePath}${localVarPath}`,
             {
@@ -159,7 +159,7 @@ export class SessionApi extends BaseService {
 
     /**
      * Cierra sesión (invalida upstream si aplica) y limpia cookies
-     * @endpoint post /bff/session/logout
+     * @endpoint post /api/v1/session/logout
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -207,7 +207,7 @@ export class SessionApi extends BaseService {
             }
         }
 
-        let localVarPath = `/bff/session/logout`;
+        let localVarPath = `/api/v1/session/logout`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<any>('post', `${basePath}${localVarPath}`,
             {
@@ -224,7 +224,7 @@ export class SessionApi extends BaseService {
 
     /**
      * Rota/renueva sesión server-side y actualiza cookie
-     * @endpoint post /bff/session/refresh
+     * @endpoint post /api/v1/session/refresh
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -272,7 +272,7 @@ export class SessionApi extends BaseService {
             }
         }
 
-        let localVarPath = `/bff/session/refresh`;
+        let localVarPath = `/api/v1/session/refresh`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<RefreshSessionResponseDto>('post', `${basePath}${localVarPath}`,
             {

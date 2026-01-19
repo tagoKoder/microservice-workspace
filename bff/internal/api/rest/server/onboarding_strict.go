@@ -4,42 +4,25 @@ import (
 	"context"
 
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
-	"github.com/tagoKoder/bff/internal/api/rest/middleware"
 )
 
 func (s *Server) StartOnboarding(
 	ctx context.Context,
-	_ openapi.StartOnboardingRequestObject,
+	req openapi.StartOnboardingRequestObject,
 ) (openapi.StartOnboardingResponseObject, error) {
-
-	r, ok := middleware.GetHTTPRequest(ctx)
-	if !ok || r == nil {
-		return openapi.StartOnboarding502JSONResponse(openapi.ErrorResponse{
-			Code:    "INTERNAL",
-			Message: "missing http request context",
-		}), nil
-	}
-
-	return s.onboarding.IntentsMultipartStrict(ctx, r)
+	return s.onboarding.StartOnboardingStrict(ctx, *req.Body)
 }
 
-func (s *Server) VerifyOnboardingContact(
+func (s *Server) ConfirmOnboardingKyc(
 	ctx context.Context,
-	req openapi.VerifyOnboardingContactRequestObject,
-) (openapi.VerifyOnboardingContactResponseObject, error) {
-	return s.onboarding.VerifyContactStrict(ctx, *req.Body)
-}
-
-func (s *Server) RegisterOnboardingConsents(
-	ctx context.Context,
-	req openapi.RegisterOnboardingConsentsRequestObject,
-) (openapi.RegisterOnboardingConsentsResponseObject, error) {
-	return s.onboarding.ConsentsStrict(ctx, *req.Body)
+	req openapi.ConfirmOnboardingKycRequestObject,
+) (openapi.ConfirmOnboardingKycResponseObject, error) {
+	return s.onboarding.ConfirmOnboardingKycStrict(ctx, *req.Body)
 }
 
 func (s *Server) ActivateOnboarding(
 	ctx context.Context,
 	req openapi.ActivateOnboardingRequestObject,
 ) (openapi.ActivateOnboardingResponseObject, error) {
-	return s.onboarding.ActivateStrict(ctx, *req.Body)
+	return s.onboarding.ActivateOnboardingStrict(ctx, *req.Body)
 }

@@ -63,7 +63,7 @@ public class CustomerRepositoryAdapter implements CustomerRepositoryPort {
     public void upsertContact(UUID customerId, String emailOrNull, String phoneOrNull) {
         var c = contactJpa.findFirstByCustomerId(customerId).orElseGet(() -> {
             var x = new CustomerContactEntity();
-            x.getCustomer().setId(customerId);
+            x.setCustomerId(customerId);
             x.setEmailVerified(false);
             return x;
         });

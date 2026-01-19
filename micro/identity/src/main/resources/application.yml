@@ -23,8 +23,14 @@ spring:
       host: localhost
       port: 6379
 
+aws:
+  region: ${AWS_REGION:us-east-1}
 
 identity:
+  audit:
+    bus-name: ${AUDIT_EVENT_BUS:bank-audit-bus}
+    source: ${AUDIT_SOURCE:bank.identity}
+    environment: ${ENVIRONMENT:dev}
   session:
     ttl-seconds: 1800
     absolute-ttl-seconds: 43200  # 12h

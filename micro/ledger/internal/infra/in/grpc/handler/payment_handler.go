@@ -4,8 +4,8 @@ import (
 	"context"
 
 	in "github.com/tagoKoder/ledger/internal/domain/port/in"
+	ledgerpb "github.com/tagoKoder/ledger/internal/genproto/bank/ledgerpayments/v1"
 	"github.com/tagoKoder/ledger/internal/infra/in/grpc/mapper"
-	ledgerpb "github.com/tagoKoder/ledger/proto/gen/ledgerpayments/v1"
 )
 
 type PaymentsHandler struct {

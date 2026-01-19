@@ -1,0 +1,11 @@
+app:
+  env: dev
+  aws:
+    region: us-east-1
+    avpPolicyStoreId: "ps-xxxxxxxxxxxxxxxx"
+    auditBusName: "bank-audit-bus"
+  security:
+    issuerUri: "https://cognito-idp.us-east-1.amazonaws.com/<USER_POOL_ID>"
+    audience: "<COGNITO_APP_CLIENT_ID>"
+    hashSalt: "${SECURITY_HASH_SALT:change-me}"
+    channel: "web"

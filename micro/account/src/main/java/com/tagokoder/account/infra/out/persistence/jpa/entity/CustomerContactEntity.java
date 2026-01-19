@@ -1,6 +1,8 @@
 package com.tagokoder.account.infra.out.persistence.jpa.entity;
 
 
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,6 +22,8 @@ public class CustomerContactEntity {
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
+    @Column(name="customer_id", nullable=false)
+    private UUID customerId;
     @ManyToOne
     @JoinColumn(name="customerId", insertable=false, updatable=false)
     private CustomerEntity customer;

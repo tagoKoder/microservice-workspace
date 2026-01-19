@@ -28,9 +28,9 @@ func (r *ResourceResolver) Resolve(ctx context.Context, fullMethod string, req a
 	switch fullMethod {
 	case "/bank.ledgerpayments.v1.PaymentsService/GetPayment":
 		// req: *ledgerpb.GetPaymentRequest (pero evitamos acoplar a pb aquí).
-		id := extractStringField(req, "PaymentId")
+		id := ExtractStringField(req, "PaymentId")
 		if id == "" {
-			id = extractStringField(req, "payment_id")
+			id = ExtractStringField(req, "payment_id")
 		}
 		res := Resource{Type: "Payment", ID: id}
 
@@ -45,16 +45,16 @@ func (r *ResourceResolver) Resolve(ctx context.Context, fullMethod string, req a
 		return Resource{Type: "Payment", ID: "new"}
 
 	case "/bank.ledgerpayments.v1.LedgerService/CreditAccount":
-		acc := extractStringField(req, "AccountId")
+		acc := ExtractStringField(req, "AccountId")
 		if acc == "" {
-			acc = extractStringField(req, "account_id")
+			acc = ExtractStringField(req, "account_id")
 		}
 		return Resource{Type: "Account", ID: acc}
 
 	case "/bank.ledgerpayments.v1.LedgerService/ListAccountJournalEntries":
-		acc := extractStringField(req, "AccountId")
+		acc := ExtractStringField(req, "AccountId")
 		if acc == "" {
-			acc = extractStringField(req, "account_id")
+			acc = ExtractStringField(req, "account_id")
 		}
 		return Resource{Type: "Account", ID: acc}
 

@@ -19,8 +19,6 @@ func (h *Handler) WhoamiStrict(ctx context.Context) (openapi.GetCurrentSessionRe
 	customerID, _ := ctx.Value(middleware.CtxCustomer).(string)
 	status, _ := ctx.Value(middleware.CtxUserState).(string)
 	roles, _ := ctx.Value(middleware.CtxRoles).([]string)
-	mfaReq, _ := ctx.Value(middleware.CtxMfaRequired).(bool)
-	mfaVer, _ := ctx.Value(middleware.CtxMfaVerified).(bool)
 
 	var custPtr *string
 	if customerID != "" {
@@ -32,8 +30,6 @@ func (h *Handler) WhoamiStrict(ctx context.Context) (openapi.GetCurrentSessionRe
 		CustomerId:    custPtr,
 		UserStatus:    status,
 		Roles:         append([]string{}, roles...),
-		MfaRequired:   mfaReq,
-		MfaVerified:   mfaVer,
 	}
 
 	return openapi.GetCurrentSession200JSONResponse(resp), nil

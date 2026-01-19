@@ -6,18 +6,20 @@ import (
 	"time"
 
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
-	"github.com/tagoKoder/bff/internal/api/rest/middleware"
 	restserver "github.com/tagoKoder/bff/internal/api/rest/server"
 
 	"github.com/tagoKoder/bff/internal/client/grpc"
 	"github.com/tagoKoder/bff/internal/config"
 	"github.com/tagoKoder/bff/internal/security"
+
+	oapimw "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
+	"github.com/getkin/kin-openapi/openapi3filter"
 )
 
 func main() {
 	cfg := config.Load()
 
-	// ---- gRPC clients (tu NewClients(cfg) ya existe)
+	// ---- gRPC clients
 	clients, err := grpc.NewClients(cfg)
 	if err != nil {
 		log.Fatalf("grpc clients: %v", err)
@@ -29,11 +31,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("swagger: %v", err)
 	}
-	swagger.Servers = nil // evita validación por "servers"
+	swagger.Servers = nil // evita validación por servers
+
+	// ---- Validator (auth noop; la auth real está en middleware.AuthSession)
+	validator := oapimw.OapiRequestValidatorWithOptions(swagger, &oapimw.Options{
+		Options: openapi3filter.Options{
+			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+		},
+	})
 
 	cookies := security.NewCookieManager(cfg)
 	csrf := security.NewCSRFManager(cfg)
 	redirect := security.NewRedirectPolicy(cfg.RedirectAllowlist)
+	tokens := security.NewAccessTokenProvider(clients.Identity)
 
 	srv := restserver.New(restserver.Dependencies{
 		Config:   cfg,
@@ -41,31 +51,16 @@ func main() {
 		Cookies:  cookies,
 		CSRF:     csrf,
 		Redirect: redirect,
+		Tokens:   tokens,
 	})
-
-	// Prefijos públicos según tu OpenAPI (security: [])
-	authPublic := []string{
-		"/api/v1/onboarding", // intents/verify/consents/activate (si los dejas públicos)
-		"/api/v1/login",
-	}
-
-	csrfProtected := []string{
-		"/api/v1/accounts",
-		"/api/v1/payments",
-		"/api/v1/beneficiaries",
-		"/api/v1/profile",
-		"/api/v1/admin/sandbox",
-		"/bff/session", // logout
-	}
 
 	router := restserver.NewRouter(
 		restserver.RouterDeps{
-			Server:             srv,
-			HSTS:               cfg.CookieSecure, // si CookieSecure implica HTTPS, activa HSTS
-			AuthPublicPrefixes: authPublic,
-			CSRFProtected:      csrfProtected,
+			Server: srv,
+			HSTS:   cfg.CookieSecure,
 		},
-		middleware.OapiValidator(swagger),
+		swagger,
+		validator,
 	)
 
 	httpSrv := &http.Server{

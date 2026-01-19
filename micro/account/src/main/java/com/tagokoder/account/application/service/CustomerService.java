@@ -16,11 +16,9 @@ import java.util.Map;
 public class CustomerService implements CreateCustomerUseCase, PatchCustomerUseCase {
 
     private final CustomerRepositoryPort customerRepo;
-    private final AuditPort audit;
 
-    public CustomerService(CustomerRepositoryPort customerRepo, AuditPort audit) {
+    public CustomerService(CustomerRepositoryPort customerRepo) {
         this.customerRepo = customerRepo;
-        this.audit = audit;
     }
 
     @Override
@@ -46,9 +44,6 @@ public class CustomerService implements CreateCustomerUseCase, PatchCustomerUseC
 
         customerRepo.upsertPreference(saved.getId(), "email", true);
 
-        audit.record("CREATE_CUSTOMER", "customers", String.valueOf(saved.getId()),
-                "system", Instant.now(), Map.of("riskSegment", saved.getRiskSegment()));
-
         return new CreateCustomerUseCase.Result(saved.getId());
     }
 
@@ -73,10 +68,6 @@ public class CustomerService implements CreateCustomerUseCase, PatchCustomerUseC
         if (c.preferencesOrNull() != null) {
             customerRepo.upsertPreference(c.customerId(), c.preferencesOrNull().channelOrNull(), c.preferencesOrNull().optInOrNull());
         }
-
-        audit.record("PATCH_CUSTOMER", "customers", String.valueOf(c.customerId()),
-                "system", Instant.now(),
-                Map.of("changed", "core/contact/preferences"));
 
         return new PatchCustomerUseCase.Result(c.customerId());
     }

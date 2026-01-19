@@ -136,7 +136,7 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         sessions.save(cur);
         sessions.save(next);
 
-        return new RefreshedSession(newSid, sessionProps.getTtlSeconds());
+        return new RefreshedSession(newSid, sessionProps.getTtlSeconds(), token.accessToken, token.expiresIn);
     }
 
     public void logout(UUID sessionId) {

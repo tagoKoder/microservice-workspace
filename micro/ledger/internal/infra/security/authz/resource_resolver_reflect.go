@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func extractStringField(obj any, field string) string {
+func ExtractStringField(obj any, field string) string {
 	if obj == nil {
 		return ""
 	}

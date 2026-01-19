@@ -1,10 +1,9 @@
 package server
 
 import (
-	"context"
 	"net/http"
-	"time"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
@@ -13,61 +12,59 @@ import (
 )
 
 type RouterDeps struct {
-	Server  *Server
-	Swagger any
-	HSTS    bool
-
-	AuthPublicPrefixes []string
-	CSRFProtected      []string
+	Server *Server
+	HSTS   bool
 }
 
-func NewRouter(deps RouterDeps, swaggerValidator func(http.Handler) http.Handler) chi.Router {
+func NewRouter(deps RouterDeps, swagger *openapi3.T, swaggerValidator func(http.Handler) http.Handler) chi.Router {
 	r := chi.NewRouter()
 
-	// --- Baseline
+	// Resolver OpenAPI para seguridad por operación
+	oas, err := middleware.NewOpenAPISecurity(swagger)
+	if err != nil {
+		panic(err)
+	}
+
+	// 1) Context HTTP disponible desde el inicio
+	r.Use(middleware.WithHTTPMiddleware)
+
+	// 2) Correlation-ID estándar
+	r.Use(middleware.CorrelationID)
+
+	// 3) baseline/hardening
 	r.Use(chimw.RealIP)
-	r.Use(chimw.RequestID)
 	r.Use(middleware.Recover())
 	r.Use(middleware.AccessLog())
-
-	// --- Hardening
 	r.Use(middleware.SecurityHeaders(deps.HSTS))
-	r.Use(middleware.NoStore())
-	r.Use(middleware.MaxBodyBytes(12 << 20))
-	r.Use(middleware.Timeout(12 * time.Second))
 
-	// --- Schema validation
-	r.Use(swaggerValidator)
+	// 4) Schema validation (si lo pasas)
+	if swaggerValidator != nil {
+		r.Use(swaggerValidator)
+	}
 
-	// --- Rate limiting
+	// 5) Rate limiting
 	r.Use(middleware.RateLimit(deps.Server.deps.Config.RateLimitRPS))
 
-	// --- Auth cookie session
+	// 6) Auth cookie session (OpenAPI-driven)
 	r.Use(middleware.AuthSession(middleware.AuthDeps{
-		Config:   deps.Server.deps.Config,
 		Identity: deps.Server.deps.Clients.Identity,
 		Cookies:  deps.Server.deps.Cookies,
-	}, deps.AuthPublicPrefixes))
+	}, oas))
 
-	// --- CSRF
-	r.Use(middleware.CSRF(deps.Server.deps.CSRF, middleware.CSRFRules{
-		PublicPrefixes:    deps.AuthPublicPrefixes,
-		ProtectedPrefixes: deps.CSRFProtected,
-	}))
-
-	// --- OpenAPI STRICT
-	strictMw := openapi.StrictMiddlewareFunc(
-		func(next openapi.StrictHandlerFunc, operationID string) openapi.StrictHandlerFunc {
-			return func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-				ctx = middleware.WithHTTP(ctx, w, r)
-				return next(ctx, w, r, request)
-			}
+	r.Use(middleware.AccessToken(
+		middleware.AccessTokenDeps{
+			Tokens:  deps.Server.deps.Tokens,
+			Cookies: deps.Server.deps.Cookies,
 		},
-	)
+		oas))
 
+	// 7) CSRF (OpenAPI-driven)
+	r.Use(middleware.CSRF(deps.Server.deps.CSRF, oas))
+
+	// 8) OpenAPI STRICT handler
 	strict := openapi.NewStrictHandlerWithOptions(
 		deps.Server,
-		[]openapi.StrictMiddlewareFunc{strictMw}, // OJO: slice, no func suelto
+		nil, // no strict middleware needed
 		openapi.StrictHTTPServerOptions{
 			RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -79,6 +76,5 @@ func NewRouter(deps RouterDeps, swaggerValidator func(http.Handler) http.Handler
 	)
 
 	openapi.HandlerFromMux(strict, r)
-
 	return r
 }

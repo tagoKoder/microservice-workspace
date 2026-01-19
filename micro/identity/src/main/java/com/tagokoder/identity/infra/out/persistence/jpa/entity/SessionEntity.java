@@ -34,12 +34,6 @@ public class SessionEntity {
     @Column(name = "refresh_token_enc", nullable = false, columnDefinition = "text")
     private String refreshTokenEnc;
 
-    @Column(name = "mfa_required", nullable = false)
-    private boolean mfaRequired;
-
-    @Column(name = "mfa_verified_at")
-    private Instant mfaVerifiedAt;
-
 
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
@@ -49,6 +43,7 @@ public class SessionEntity {
 
     @Column(name = "revoked_at")
     private LocalDateTime revokedAt;
+    
     @Column(name = "absolute_expires_at")
     private LocalDateTime absoluteExpiresAt;
 

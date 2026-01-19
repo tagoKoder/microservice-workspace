@@ -1,37 +1,13 @@
+// bff/internal/api/rest/middleware/csrf.go
 package middleware
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/tagoKoder/bff/internal/security"
 )
 
-type CSRFRules struct {
-	// Prefijos públicos (no CSRF)
-	PublicPrefixes []string
-	// Prefijos protegidos por cookieAuth (sí CSRF en métodos mutables)
-	ProtectedPrefixes []string
-}
-
-func CSRF(m *security.CSRFManager, rules CSRFRules) func(http.Handler) http.Handler {
-	isPublic := func(p string) bool {
-		for _, pref := range rules.PublicPrefixes {
-			if strings.HasPrefix(p, pref) {
-				return true
-			}
-		}
-		return false
-	}
-	isProtected := func(p string) bool {
-		for _, pref := range rules.ProtectedPrefixes {
-			if strings.HasPrefix(p, pref) {
-				return true
-			}
-		}
-		return false
-	}
-
+func CSRF(m *security.CSRFManager, oas *OpenAPISecurity) func(http.Handler) http.Handler {
 	isUnsafe := func(method string) bool {
 		switch method {
 		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
@@ -43,20 +19,23 @@ func CSRF(m *security.CSRFManager, rules CSRFRules) func(http.Handler) http.Hand
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if isPublic(r.URL.Path) {
+			ri, ok := oas.Find(r)
+
+			// Si no es una operación OpenAPI conocida o no usa cookieAuth => no CSRF.
+			if !ok || !RequiresScheme(ri.Security, "cookieAuth") {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Para GET/HEAD en rutas protegidas, emitimos token si no existe.
-			if isProtected(r.URL.Path) && !isUnsafe(r.Method) {
+			// Safe methods: asegura token si hay sesión (mejora UX del frontend).
+			if !isUnsafe(r.Method) {
 				_ = m.EnsureToken(w, r)
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Para métodos mutables, exigir CSRF en rutas protegidas.
-			if isProtected(r.URL.Path) && isUnsafe(r.Method) {
+			// Mutables: sólo valida si OpenAPI pide csrfAuth además de cookieAuth (AND).
+			if RequiresBothInSameRequirement(ri.Security, "cookieAuth", "csrfAuth") {
 				if !m.Validate(r) {
 					w.WriteHeader(http.StatusForbidden)
 					return

@@ -3,30 +3,41 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { switchMap } from 'rxjs';
 import { CsrfService } from '../security/csrf.service';
 
-function pathOf(url: string): string {
-  try { return new URL(url, window.location.origin).pathname; } catch { return url; }
+function parsed(url: string): URL | null {
+  try { return new URL(url, window.location.origin); } catch { return null; }
 }
 
-const CSRF_REQUIRED_PREFIXES = [
-  '/bff/session/logout',
-  '/api/v1/beneficiaries',
-  '/api/v1/payments',
-  '/api/v1/profile',
-  '/api/v1/admin/sandbox/topups'
-];
+function isSameOrigin(url: string): boolean {
+  const u = parsed(url);
+  if (!u) return true; // url relativa
+  return u.origin === window.location.origin;
+}
 
-function requiresCsrf(url: string, method: string): boolean {
-  const m = method.toUpperCase();
-  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(m)) return false;
+function pathOf(url: string): string {
+  const u = parsed(url);
+  return u ? u.pathname : url;
+}
 
-  const path = pathOf(url);
-  return CSRF_REQUIRED_PREFIXES.some(p => path.startsWith(p));
+function isApiPath(path: string): boolean {
+  // Evita “listas por endpoint”; solo por prefijo de dominio interno
+  return path.startsWith('/api/');
+}
+
+function isMutating(method: string): boolean {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase());
 }
 
 export const csrfInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!requiresCsrf(req.url, req.method) || req.headers.has('X-CSRF-Token')) {
-    return next(req);
-  }
+  // No duplicar si ya viene el header
+  if (req.headers.has('X-CSRF-Token')) return next(req);
+
+  // Nunca adjuntar CSRF a dominios externos (ej: S3 presigned)
+  if (!isSameOrigin(req.url)) return next(req);
+
+  const path = pathOf(req.url);
+  if (!isApiPath(path)) return next(req);
+
+  if (!isMutating(req.method)) return next(req);
 
   const csrf = inject(CsrfService);
   return csrf.getToken().pipe(

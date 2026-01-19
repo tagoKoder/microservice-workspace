@@ -102,9 +102,8 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 
 		j := &dm.JournalEntry{
 			ID:          jid,
-			ExternalRef: "payment:"  paymentID.String(),
+			ExternalRef: "payment:" + paymentID.String(),
 			BookedAt:    now,
-			CreatedBy:   cmd.InitiatedBy,
 			Status:      dm.JournalPosted,
 			Currency:    cmd.Currency,
 			CreatedBy:   initiatedBy,
@@ -119,12 +118,12 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 		_ = w.Payments().InsertStep(ctx, &dm.PaymentStep{
 			ID: uuid.New(), PaymentID: paymentID,
 			Step: "reserve_hold", State: "ok",
-			DetailsJSON: `{"account":"`  srcRef  `"}`, AttemptedAt: now,
+			DetailsJSON: `{"account":"` + srcRef + `}`, AttemptedAt: now,
 		})
 		_ = w.Payments().InsertStep(ctx, &dm.PaymentStep{
 			ID: uuid.New(), PaymentID: paymentID,
 			Step: "post_ledger", State: "ok",
-			DetailsJSON: `{"journal_id":"`  jid.String()  `"}`, AttemptedAt: now,
+			DetailsJSON: `{"journal_id":"` + jid.String() + `}`, AttemptedAt: now,
 		})
 
 		// 3.5 outbox payment.posted

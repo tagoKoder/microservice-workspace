@@ -19,15 +19,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	OnboardingService_StartRegistration_FullMethodName = "/bank.identity.v1.OnboardingService/StartRegistration"
+	OnboardingService_StartRegistration_FullMethodName      = "/bank.identity.v1.OnboardingService/StartRegistration"
+	OnboardingService_ConfirmRegistrationKyc_FullMethodName = "/bank.identity.v1.OnboardingService/ConfirmRegistrationKyc"
 )
 
 // OnboardingServiceClient is the client API for OnboardingService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OnboardingServiceClient interface {
-	// Start user registration (KYC)
+	// Start user registration (KYC) — v1 presigned flow
 	StartRegistration(ctx context.Context, in *StartRegistrationRequest, opts ...grpc.CallOption) (*StartRegistrationResponse, error)
+	// Confirm uploaded KYC objects — v1
+	ConfirmRegistrationKyc(ctx context.Context, in *ConfirmRegistrationKycRequest, opts ...grpc.CallOption) (*ConfirmRegistrationKycResponse, error)
 }
 
 type onboardingServiceClient struct {
@@ -48,12 +51,24 @@ func (c *onboardingServiceClient) StartRegistration(ctx context.Context, in *Sta
 	return out, nil
 }
 
+func (c *onboardingServiceClient) ConfirmRegistrationKyc(ctx context.Context, in *ConfirmRegistrationKycRequest, opts ...grpc.CallOption) (*ConfirmRegistrationKycResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConfirmRegistrationKycResponse)
+	err := c.cc.Invoke(ctx, OnboardingService_ConfirmRegistrationKyc_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OnboardingServiceServer is the server API for OnboardingService service.
 // All implementations must embed UnimplementedOnboardingServiceServer
 // for forward compatibility.
 type OnboardingServiceServer interface {
-	// Start user registration (KYC)
+	// Start user registration (KYC) — v1 presigned flow
 	StartRegistration(context.Context, *StartRegistrationRequest) (*StartRegistrationResponse, error)
+	// Confirm uploaded KYC objects — v1
+	ConfirmRegistrationKyc(context.Context, *ConfirmRegistrationKycRequest) (*ConfirmRegistrationKycResponse, error)
 	mustEmbedUnimplementedOnboardingServiceServer()
 }
 
@@ -66,6 +81,9 @@ type UnimplementedOnboardingServiceServer struct{}
 
 func (UnimplementedOnboardingServiceServer) StartRegistration(context.Context, *StartRegistrationRequest) (*StartRegistrationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartRegistration not implemented")
+}
+func (UnimplementedOnboardingServiceServer) ConfirmRegistrationKyc(context.Context, *ConfirmRegistrationKycRequest) (*ConfirmRegistrationKycResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConfirmRegistrationKyc not implemented")
 }
 func (UnimplementedOnboardingServiceServer) mustEmbedUnimplementedOnboardingServiceServer() {}
 func (UnimplementedOnboardingServiceServer) testEmbeddedByValue()                           {}
@@ -106,6 +124,24 @@ func _OnboardingService_StartRegistration_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OnboardingService_ConfirmRegistrationKyc_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmRegistrationKycRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OnboardingServiceServer).ConfirmRegistrationKyc(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OnboardingService_ConfirmRegistrationKyc_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OnboardingServiceServer).ConfirmRegistrationKyc(ctx, req.(*ConfirmRegistrationKycRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OnboardingService_ServiceDesc is the grpc.ServiceDesc for OnboardingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -116,6 +152,10 @@ var OnboardingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartRegistration",
 			Handler:    _OnboardingService_StartRegistration_Handler,
+		},
+		{
+			MethodName: "ConfirmRegistrationKyc",
+			Handler:    _OnboardingService_ConfirmRegistrationKyc_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -138,7 +178,7 @@ type OidcAuthServiceClient interface {
 	StartOidcLogin(ctx context.Context, in *StartOidcLoginRequest, opts ...grpc.CallOption) (*StartOidcLoginResponse, error)
 	// Complete OIDC login (BFF)
 	CompleteOidcLogin(ctx context.Context, in *CompleteOidcLoginRequest, opts ...grpc.CallOption) (*CompleteOidcLoginResponse, error)
-	// Sesión server-side (banca)
+	// Session server-side (banking)
 	RefreshSession(ctx context.Context, in *RefreshSessionRequest, opts ...grpc.CallOption) (*RefreshSessionResponse, error)
 	LogoutSession(ctx context.Context, in *LogoutSessionRequest, opts ...grpc.CallOption) (*LogoutSessionResponse, error)
 	GetSessionInfo(ctx context.Context, in *GetSessionInfoRequest, opts ...grpc.CallOption) (*GetSessionInfoResponse, error)
@@ -210,7 +250,7 @@ type OidcAuthServiceServer interface {
 	StartOidcLogin(context.Context, *StartOidcLoginRequest) (*StartOidcLoginResponse, error)
 	// Complete OIDC login (BFF)
 	CompleteOidcLogin(context.Context, *CompleteOidcLoginRequest) (*CompleteOidcLoginResponse, error)
-	// Sesión server-side (banca)
+	// Session server-side (banking)
 	RefreshSession(context.Context, *RefreshSessionRequest) (*RefreshSessionResponse, error)
 	LogoutSession(context.Context, *LogoutSessionRequest) (*LogoutSessionResponse, error)
 	GetSessionInfo(context.Context, *GetSessionInfoRequest) (*GetSessionInfoResponse, error)
@@ -376,222 +416,6 @@ var OidcAuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSessionInfo",
 			Handler:    _OidcAuthService_GetSessionInfo_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "bank/identity/v1/identity.proto",
-}
-
-const (
-	WebauthnService_BeginWebauthnRegistration_FullMethodName  = "/bank.identity.v1.WebauthnService/BeginWebauthnRegistration"
-	WebauthnService_FinishWebauthnRegistration_FullMethodName = "/bank.identity.v1.WebauthnService/FinishWebauthnRegistration"
-	WebauthnService_BeginWebauthnAssertion_FullMethodName     = "/bank.identity.v1.WebauthnService/BeginWebauthnAssertion"
-	WebauthnService_FinishWebauthnAssertion_FullMethodName    = "/bank.identity.v1.WebauthnService/FinishWebauthnAssertion"
-)
-
-// WebauthnServiceClient is the client API for WebauthnService service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type WebauthnServiceClient interface {
-	BeginWebauthnRegistration(ctx context.Context, in *BeginWebauthnRegistrationRequest, opts ...grpc.CallOption) (*BeginWebauthnRegistrationResponse, error)
-	FinishWebauthnRegistration(ctx context.Context, in *FinishWebauthnRegistrationRequest, opts ...grpc.CallOption) (*FinishWebauthnRegistrationResponse, error)
-	BeginWebauthnAssertion(ctx context.Context, in *BeginWebauthnAssertionRequest, opts ...grpc.CallOption) (*BeginWebauthnAssertionResponse, error)
-	FinishWebauthnAssertion(ctx context.Context, in *FinishWebauthnAssertionRequest, opts ...grpc.CallOption) (*FinishWebauthnAssertionResponse, error)
-}
-
-type webauthnServiceClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewWebauthnServiceClient(cc grpc.ClientConnInterface) WebauthnServiceClient {
-	return &webauthnServiceClient{cc}
-}
-
-func (c *webauthnServiceClient) BeginWebauthnRegistration(ctx context.Context, in *BeginWebauthnRegistrationRequest, opts ...grpc.CallOption) (*BeginWebauthnRegistrationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BeginWebauthnRegistrationResponse)
-	err := c.cc.Invoke(ctx, WebauthnService_BeginWebauthnRegistration_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *webauthnServiceClient) FinishWebauthnRegistration(ctx context.Context, in *FinishWebauthnRegistrationRequest, opts ...grpc.CallOption) (*FinishWebauthnRegistrationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FinishWebauthnRegistrationResponse)
-	err := c.cc.Invoke(ctx, WebauthnService_FinishWebauthnRegistration_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *webauthnServiceClient) BeginWebauthnAssertion(ctx context.Context, in *BeginWebauthnAssertionRequest, opts ...grpc.CallOption) (*BeginWebauthnAssertionResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BeginWebauthnAssertionResponse)
-	err := c.cc.Invoke(ctx, WebauthnService_BeginWebauthnAssertion_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *webauthnServiceClient) FinishWebauthnAssertion(ctx context.Context, in *FinishWebauthnAssertionRequest, opts ...grpc.CallOption) (*FinishWebauthnAssertionResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FinishWebauthnAssertionResponse)
-	err := c.cc.Invoke(ctx, WebauthnService_FinishWebauthnAssertion_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// WebauthnServiceServer is the server API for WebauthnService service.
-// All implementations must embed UnimplementedWebauthnServiceServer
-// for forward compatibility.
-type WebauthnServiceServer interface {
-	BeginWebauthnRegistration(context.Context, *BeginWebauthnRegistrationRequest) (*BeginWebauthnRegistrationResponse, error)
-	FinishWebauthnRegistration(context.Context, *FinishWebauthnRegistrationRequest) (*FinishWebauthnRegistrationResponse, error)
-	BeginWebauthnAssertion(context.Context, *BeginWebauthnAssertionRequest) (*BeginWebauthnAssertionResponse, error)
-	FinishWebauthnAssertion(context.Context, *FinishWebauthnAssertionRequest) (*FinishWebauthnAssertionResponse, error)
-	mustEmbedUnimplementedWebauthnServiceServer()
-}
-
-// UnimplementedWebauthnServiceServer must be embedded to have
-// forward compatible implementations.
-//
-// NOTE: this should be embedded by value instead of pointer to avoid a nil
-// pointer dereference when methods are called.
-type UnimplementedWebauthnServiceServer struct{}
-
-func (UnimplementedWebauthnServiceServer) BeginWebauthnRegistration(context.Context, *BeginWebauthnRegistrationRequest) (*BeginWebauthnRegistrationResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method BeginWebauthnRegistration not implemented")
-}
-func (UnimplementedWebauthnServiceServer) FinishWebauthnRegistration(context.Context, *FinishWebauthnRegistrationRequest) (*FinishWebauthnRegistrationResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method FinishWebauthnRegistration not implemented")
-}
-func (UnimplementedWebauthnServiceServer) BeginWebauthnAssertion(context.Context, *BeginWebauthnAssertionRequest) (*BeginWebauthnAssertionResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method BeginWebauthnAssertion not implemented")
-}
-func (UnimplementedWebauthnServiceServer) FinishWebauthnAssertion(context.Context, *FinishWebauthnAssertionRequest) (*FinishWebauthnAssertionResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method FinishWebauthnAssertion not implemented")
-}
-func (UnimplementedWebauthnServiceServer) mustEmbedUnimplementedWebauthnServiceServer() {}
-func (UnimplementedWebauthnServiceServer) testEmbeddedByValue()                         {}
-
-// UnsafeWebauthnServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to WebauthnServiceServer will
-// result in compilation errors.
-type UnsafeWebauthnServiceServer interface {
-	mustEmbedUnimplementedWebauthnServiceServer()
-}
-
-func RegisterWebauthnServiceServer(s grpc.ServiceRegistrar, srv WebauthnServiceServer) {
-	// If the following call panics, it indicates UnimplementedWebauthnServiceServer was
-	// embedded by pointer and is nil.  This will cause panics if an
-	// unimplemented method is ever invoked, so we test this at initialization
-	// time to prevent it from happening at runtime later due to I/O.
-	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	s.RegisterService(&WebauthnService_ServiceDesc, srv)
-}
-
-func _WebauthnService_BeginWebauthnRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BeginWebauthnRegistrationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(WebauthnServiceServer).BeginWebauthnRegistration(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WebauthnService_BeginWebauthnRegistration_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebauthnServiceServer).BeginWebauthnRegistration(ctx, req.(*BeginWebauthnRegistrationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _WebauthnService_FinishWebauthnRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FinishWebauthnRegistrationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(WebauthnServiceServer).FinishWebauthnRegistration(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WebauthnService_FinishWebauthnRegistration_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebauthnServiceServer).FinishWebauthnRegistration(ctx, req.(*FinishWebauthnRegistrationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _WebauthnService_BeginWebauthnAssertion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BeginWebauthnAssertionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(WebauthnServiceServer).BeginWebauthnAssertion(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WebauthnService_BeginWebauthnAssertion_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebauthnServiceServer).BeginWebauthnAssertion(ctx, req.(*BeginWebauthnAssertionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _WebauthnService_FinishWebauthnAssertion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FinishWebauthnAssertionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(WebauthnServiceServer).FinishWebauthnAssertion(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WebauthnService_FinishWebauthnAssertion_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebauthnServiceServer).FinishWebauthnAssertion(ctx, req.(*FinishWebauthnAssertionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// WebauthnService_ServiceDesc is the grpc.ServiceDesc for WebauthnService service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var WebauthnService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "bank.identity.v1.WebauthnService",
-	HandlerType: (*WebauthnServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "BeginWebauthnRegistration",
-			Handler:    _WebauthnService_BeginWebauthnRegistration_Handler,
-		},
-		{
-			MethodName: "FinishWebauthnRegistration",
-			Handler:    _WebauthnService_FinishWebauthnRegistration_Handler,
-		},
-		{
-			MethodName: "BeginWebauthnAssertion",
-			Handler:    _WebauthnService_BeginWebauthnAssertion_Handler,
-		},
-		{
-			MethodName: "FinishWebauthnAssertion",
-			Handler:    _WebauthnService_FinishWebauthnAssertion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

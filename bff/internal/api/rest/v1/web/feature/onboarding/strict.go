@@ -2,101 +2,42 @@ package onboarding
 
 import (
 	"context"
-	"io"
-	"net/http"
-	"strconv"
-	"strings"
+	"time"
 
-	"github.com/google/uuid"
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
 	"github.com/tagoKoder/bff/internal/client/ports"
 )
 
-const (
-	maxMemory      = 8 << 20 // memoria para ParseMultipartForm
-	maxFilePerPart = 6 << 20 // 6MB por archivo
-)
-
-func (h *Handler) IntentsMultipartStrict(
+func (h *Handler) StartOnboardingStrict(
 	ctx context.Context,
-	r *http.Request,
+	body openapi.OnboardingIntentRequest,
 ) (openapi.StartOnboardingResponseObject, error) {
 
-	if err := r.ParseMultipartForm(maxMemory); err != nil {
-		return openapi.StartOnboarding400JSONResponse(openapi.ErrorResponse{
-			Code:    "BAD_REQUEST",
-			Message: "invalid multipart form",
-		}), nil
+	channel := "web"
+	if body.Channel != nil && *body.Channel != "" {
+		channel = *body.Channel
 	}
 
-	get := func(k string) string { return strings.TrimSpace(r.FormValue(k)) }
-
-	email := get("email")
-	phone := get("phone")
-	channel := get("channel")
-	if channel == "" {
-		channel = "web"
+	idCT := ""
+	if body.IdFrontContentType != nil {
+		idCT = *body.IdFrontContentType
 	}
-
-	nationalID := get("national_id")
-	issueDate := get("national_id_issue_date")
-	fingerprint := get("fingerprint_code")
-	occupation := get("occupation_type")
-
-	miStr := get("monthly_income")
-	monthlyIncome, err := strconv.ParseFloat(miStr, 64)
-	if err != nil {
-		return openapi.StartOnboarding422JSONResponse(openapi.ErrorResponse{
-			Code:    "VALIDATION",
-			Message: "monthly_income must be a number",
-		}), nil
-	}
-
-	idFile, _, err := r.FormFile("id_document_front")
-	if err != nil {
-		return openapi.StartOnboarding422JSONResponse(openapi.ErrorResponse{
-			Code:    "VALIDATION",
-			Message: "id_document_front is required",
-		}), nil
-	}
-	defer idFile.Close()
-
-	selfieFile, _, err := r.FormFile("selfie")
-	if err != nil {
-		return openapi.StartOnboarding422JSONResponse(openapi.ErrorResponse{
-			Code:    "VALIDATION",
-			Message: "selfie is required",
-		}), nil
-	}
-	defer selfieFile.Close()
-
-	idBytes, err := io.ReadAll(io.LimitReader(idFile, maxFilePerPart))
-	if err != nil || len(idBytes) == 0 {
-		return openapi.StartOnboarding400JSONResponse(openapi.ErrorResponse{
-			Code:    "BAD_REQUEST",
-			Message: "cannot read id_document_front",
-		}), nil
-	}
-
-	selfieBytes, err := io.ReadAll(io.LimitReader(selfieFile, maxFilePerPart))
-	if err != nil || len(selfieBytes) == 0 {
-		return openapi.StartOnboarding400JSONResponse(openapi.ErrorResponse{
-			Code:    "BAD_REQUEST",
-			Message: "cannot read selfie",
-		}), nil
+	selfieCT := ""
+	if body.SelfieContentType != nil {
+		selfieCT = *body.SelfieContentType
 	}
 
 	out, err := h.clients.Identity.StartRegistration(ctx, ports.StartRegistrationInput{
 		Channel:             channel,
-		Email:               email,
-		Phone:               phone,
-		NationalID:          nationalID,
-		NationalIDIssueDate: issueDate,
-		FingerprintCode:     fingerprint,
-		IdDocumentFront:     idBytes,
-		Selfie:              selfieBytes,
-		MonthlyIncome:       monthlyIncome,
-		OccupationType:      occupation,
+		Email:               string(body.Email),
+		Phone:               body.Phone,
+		NationalID:          body.NationalId,
+		NationalIDIssueDate: body.NationalIdIssueDate,
+		FingerprintCode:     body.FingerprintCode,
+		MonthlyIncome:       float64(body.MonthlyIncome),
+		OccupationType:      string(body.OccupationType),
+		IdFrontContentType:  idCT,
+		SelfieContentType:   selfieCT,
 	})
 	if err != nil {
 		return openapi.StartOnboarding502JSONResponse(openapi.ErrorResponse{
@@ -105,73 +46,180 @@ func (h *Handler) IntentsMultipartStrict(
 		}), nil
 	}
 
-	return openapi.StartOnboarding201JSONResponse(openapi.OnboardingIntentResponse{
+	uploads := make([]openapi.PresignedUpload, 0, len(out.Uploads))
+	for _, u := range out.Uploads {
+		hh := make([]openapi.PresignedHeader, 0, len(u.Headers))
+		for _, hhh := range u.Headers {
+			hh = append(hh, openapi.PresignedHeader{Name: hhh.Name, Value: hhh.Value})
+		}
+
+		docType := openapi.KycDocType("unspecified")
+		if u.DocType == "id_front" {
+			docType = openapi.KycDocType("id_front")
+		} else if u.DocType == "selfie" {
+			docType = openapi.KycDocType("selfie")
+		}
+
+		uploads = append(uploads, openapi.PresignedUpload{
+			DocType:          docType,
+			Bucket:           u.Bucket,
+			Key:              u.Key,
+			UploadUrl:        u.UploadURL,
+			Headers:          hh,
+			MaxBytes:         u.MaxBytes,
+			ContentType:      u.ContentType,
+			ExpiresInSeconds: u.ExpiresInSeconds,
+		})
+	}
+
+	state := openapi.RegistrationState("unspecified")
+	switch out.State {
+	case "started":
+		state = openapi.RegistrationState("started")
+	case "contact_verified":
+		state = openapi.RegistrationState("contact_verified")
+	case "consented":
+		state = openapi.RegistrationState("consented")
+	case "activated":
+		state = openapi.RegistrationState("activated")
+	case "rejected":
+		state = openapi.RegistrationState("rejected")
+	}
+
+	var createdAtPtr *time.Time
+	if out.CreatedAtRFC3339 != "" {
+		if t, e := time.Parse(time.RFC3339, out.CreatedAtRFC3339); e == nil {
+			createdAtPtr = &t
+		}
+	}
+
+	resp := openapi.OnboardingIntentResponse{
 		RegistrationId: out.RegistrationID,
-		OtpChannelHint: "email",
+		State:          state,
+		Uploads:        uploads,
+		CreatedAt:      createdAtPtr,
+		// otp_channel_hint queda opcional/legacy
+	}
+
+	return openapi.StartOnboarding201JSONResponse(resp), nil
+}
+
+func (h *Handler) ConfirmOnboardingKycStrict(
+	ctx context.Context,
+	body openapi.ConfirmKycRequest,
+) (openapi.ConfirmOnboardingKycResponseObject, error) {
+
+	channel := "web"
+	if body.Channel != nil && *body.Channel != "" {
+		channel = *body.Channel
+	}
+
+	objects := make([]ports.UploadedObject, 0, len(body.Objects))
+	for _, o := range body.Objects {
+		etag := ""
+		if o.Etag != nil {
+			etag = *o.Etag
+		}
+		ct := ""
+		if o.ContentType != nil {
+			ct = *o.ContentType
+		}
+		size := int64(0)
+		if o.SizeBytes != nil {
+			size = *o.SizeBytes
+		}
+
+		objects = append(objects, ports.UploadedObject{
+			DocType:     string(o.DocType),
+			Bucket:      o.Bucket,
+			Key:         o.Key,
+			ETag:        etag,
+			SizeBytes:   size,
+			ContentType: ct,
+		})
+	}
+
+	out, err := h.clients.Identity.ConfirmRegistrationKyc(ctx, ports.ConfirmRegistrationKycInput{
+		RegistrationID: body.RegistrationId,
+		Objects:        objects,
+		Channel:        channel,
+	})
+	if err != nil {
+		return openapi.ConfirmOnboardingKyc502JSONResponse(openapi.ErrorResponse{
+			Code:    "UPSTREAM_ERROR",
+			Message: "identity service unavailable",
+		}), nil
+	}
+
+	state := openapi.RegistrationState("unspecified")
+	switch out.State {
+	case "started":
+		state = openapi.RegistrationState("started")
+	case "contact_verified":
+		state = openapi.RegistrationState("contact_verified")
+	case "consented":
+		state = openapi.RegistrationState("consented")
+	case "activated":
+		state = openapi.RegistrationState("activated")
+	case "rejected":
+		state = openapi.RegistrationState("rejected")
+	}
+
+	statuses := make([]openapi.KycObjectStatus, 0, len(out.Statuses))
+	for _, st := range out.Statuses {
+		docType := openapi.KycDocType("unspecified")
+		if st.DocType == "id_front" {
+			docType = openapi.KycDocType("id_front")
+		} else if st.DocType == "selfie" {
+			docType = openapi.KycDocType("selfie")
+		}
+
+		status := openapi.KycUploadStatus("unspecified")
+		if st.Status == "pending" {
+			status = openapi.KycUploadStatus("pending")
+		} else if st.Status == "confirmed" {
+			status = openapi.KycUploadStatus("confirmed")
+		}
+
+		var etagPtr *string
+		if st.ETag != "" {
+			etag := st.ETag
+			etagPtr = &etag
+		}
+
+		statuses = append(statuses, openapi.KycObjectStatus{
+			DocType: docType,
+			Status:  status,
+			Bucket:  st.Bucket,
+			Key:     st.Key,
+			Etag:    etagPtr,
+		})
+	}
+
+	var confirmedAtPtr *time.Time
+	if out.ConfirmedAtRFC3339 != "" {
+		if t, e := time.Parse(time.RFC3339, out.ConfirmedAtRFC3339); e == nil {
+			confirmedAtPtr = &t
+		}
+	}
+
+	return openapi.ConfirmOnboardingKyc200JSONResponse(openapi.ConfirmKycResponse{
+		RegistrationId: out.RegistrationID,
+		State:          state,
+		Statuses:       statuses,
+		ConfirmedAt:    confirmedAtPtr,
 	}), nil
 }
 
-func (h *Handler) VerifyContactStrict(
-	ctx context.Context,
-	body openapi.VerifyContactRequest,
-) (openapi.VerifyOnboardingContactResponseObject, error) {
-	// Tu ports.Identity no expone un RPC de verify OTP/contacto en lo que pegaste.
-	// Mantengo comportamiento estable según tu OpenAPI (“stub por ahora”).
-	_ = body.RegistrationId
-	_ = body.Otp
-
-	return openapi.VerifyOnboardingContact200JSONResponse(openapi.SimpleStatusResponse{Status: "ok"}), nil
-}
-
-func (h *Handler) ConsentsStrict(
-	ctx context.Context,
-	body openapi.ConsentsRequest,
-) (openapi.RegisterOnboardingConsentsResponseObject, error) {
-	// Igual: no hay RPC en ports para persistir consents en lo que pegaste.
-	_ = body.RegistrationId
-	_ = body.Accepted
-
-	return openapi.RegisterOnboardingConsents200JSONResponse(openapi.SimpleStatusResponse{Status: "ok"}), nil
-}
-
-func (h *Handler) ActivateStrict(
+func (h *Handler) ActivateOnboardingStrict(
 	ctx context.Context,
 	body openapi.ActivateRequest,
 ) (openapi.ActivateOnboardingResponseObject, error) {
-	cust, err := h.clients.Accounts.CreateCustomer(ctx, ports.CreateCustomerInput{
-		FullName:    body.FullName,
-		BirthDate:   body.BirthDate,
-		TIN:         body.Tin,
-		Email:       body.Email,
-		Phone:       body.Phone,
-		RiskSegment: ports.RiskLow,
-		Address: &ports.CustomerAddressCreate{
-			Country: body.Country,
-		},
-	})
-	if err != nil {
-		return openapi.ActivateOnboarding502JSONResponse(openapi.ErrorResponse{
-			Code:    "UPSTREAM_ERROR",
-			Message: "accounts service unavailable (create customer)",
-		}), nil
-	}
 
-	acc, err := h.clients.Accounts.CreateAccount(ctx, ports.CreateAccountInput{
-		CustomerID:  cust.CustomerID,
-		ProductType: ports.ProductChecking,
-		Currency:    "USD",
-	})
-	if err != nil {
-		return openapi.ActivateOnboarding502JSONResponse(openapi.ErrorResponse{
-			Code:    "UPSTREAM_ERROR",
-			Message: "accounts service unavailable (create account)",
-		}), nil
-	}
-
-	resp := openapi.ActivateResponse{
-		CustomerId:    cust.CustomerID,
-		AccountId:     acc.AccountID,
-		ActivationRef: uuid.NewString(),
-	}
-	return openapi.ActivateOnboarding201JSONResponse(resp), nil
+	// STUB: aún no hay RPC/servicio mostrado para activar (crear customer + account).
+	// Deja el contrato listo y evita romper el build.
+	return openapi.ActivateOnboarding502JSONResponse(openapi.ErrorResponse{
+		Code:    "NOT_IMPLEMENTED",
+		Message: "activate onboarding not implemented in BFF yet",
+	}), nil
 }

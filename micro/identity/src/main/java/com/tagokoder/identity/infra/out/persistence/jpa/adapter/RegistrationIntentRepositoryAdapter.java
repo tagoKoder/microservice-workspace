@@ -5,6 +5,10 @@ import com.tagokoder.identity.domain.port.out.RegistrationIntentRepositoryPort;
 import com.tagokoder.identity.infra.out.persistence.jpa.SpringDataRegistrationIntentJpa;
 import com.tagokoder.identity.infra.out.persistence.jpa.entity.RegistrationIntentEntity;
 import com.tagokoder.identity.infra.out.persistence.jpa.mapper.RegistrationIntentJpaMapper;
+
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -25,4 +29,11 @@ public class RegistrationIntentRepositoryAdapter implements RegistrationIntentRe
         RegistrationIntentEntity saved = jpa.save(entity);
         return mapper.toDomain(saved);
     }
+
+    @Override
+    public Optional<RegistrationIntent> findById(UUID registrationId) {
+        return jpa.findById(registrationId).map(mapper::toDomain);
+    }
+
+    
 }

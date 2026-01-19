@@ -1,6 +1,6 @@
 # @
 
-API del BFF para canal web (cookie session + CSRF). 
+API del BFF para canal web (cookie session + CSRF). Onboarding usa flujo presigned S3 (no se suben bytes al BFF). 
 
 The version of the OpenAPI document: 1.0.0
 
