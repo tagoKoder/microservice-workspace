@@ -14,10 +14,10 @@ export class AuthService {
 
   // OIDC start: navegación (no XHR)
   startLogin(redirectPath: string = '/home'): void {
-    // Enviar solo paths relativos (tu BFF “sanitiza” igual)
-    const url = `/bff/login/start?redirect=${encodeURIComponent(redirectPath)}`;
+    const url = `/api/v1/auth/oidc/start?redirect=${encodeURIComponent(redirectPath)}`;
     window.location.assign(url);
   }
+
 
   async logout(): Promise<void> {
     // POST /bff/session/logout (CSRF se adjunta por interceptor)

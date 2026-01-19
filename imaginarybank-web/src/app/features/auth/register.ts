@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { CommonModule } from '@angular/common';
 
 import { CardModule } from 'primeng/card';
 import { StepsModule } from 'primeng/steps';
@@ -8,24 +9,36 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DividerModule } from 'primeng/divider';
+import { SelectModule } from 'primeng/select';
+import { DatePickerModule } from 'primeng/datepicker';
+
+import { FileUploadModule } from 'primeng/fileupload';
+import { InputNumberModule } from 'primeng/inputnumber';
 
 import { MenuItem } from 'primeng/api';
 import { Router } from '@angular/router';
 
-import { OnboardingApi } from '../../api/bff'; // para verify/consents/activate como ya lo usas
+import { OnboardingApi } from '../../api/bff';
 import { PresignedUploadService } from '../../core/security/presigned-upload.service';
+
+type OccupationOption = { label: string; value: string };
 
 @Component({
   standalone: true,
   selector: 'app-register-page',
   imports: [
+    CommonModule,
     ReactiveFormsModule,
     CardModule,
     StepsModule,
     ButtonModule,
     InputTextModule,
     CheckboxModule,
-    DividerModule
+    DividerModule,
+    SelectModule,
+    DatePickerModule,
+    FileUploadModule,
+    InputNumberModule
   ],
   templateUrl: './register.html',
   styleUrls: ['./register.scss']
@@ -33,22 +46,29 @@ import { PresignedUploadService } from '../../core/security/presigned-upload.ser
 export class Register {
   steps: MenuItem[] = [
     { label: 'Contacto + KYC' },
-    { label: 'OTP' },
-    { label: 'Consentimientos' },
     { label: 'Activación' }
   ];
   activeIndex = 0;
   busy = false;
 
   registrationId: string | null = null;
-  otpChannelHint: string | null = null;
 
   idFile: File | null = null;
   selfieFile: File | null = null;
 
+  // Presigned uploads retornados por /intents
+  private idFrontUpload: any | null = null;
+  private selfieUpload: any | null = null;
+
+  occupationOptions: OccupationOption[] = [
+    { label: 'Estudiante', value: 'student' },
+    { label: 'Empleado', value: 'employee'},
+    { label: 'Independiente', value: 'self_employed' },
+    { label: 'Desempleado', value: 'unemployed' },
+    { label: 'Jubilado', value: 'retired' }
+  ];
+
   contactForm!: FormGroup;
-  otpForm!: FormGroup;
-  consentForm!: FormGroup;
   activateForm!: FormGroup;
 
   constructor(
@@ -62,20 +82,19 @@ export class Register {
       phone: ['', [Validators.required, Validators.minLength(7)]],
 
       national_id: ['', [Validators.required, Validators.minLength(5)]],
-      national_id_issue_date: ['', [Validators.required]], // YYYY-MM-DD
+      national_id_issue_date: ['', [Validators.required]],
+
       fingerprint_code: ['', [Validators.required, Validators.minLength(4)]],
       monthly_income: [null, [Validators.required]],
       occupation_type: ['employee', [Validators.required]]
     });
 
-    this.otpForm = this.fb.group({ otp: ['', [Validators.required, Validators.minLength(4)]] });
-    this.consentForm = this.fb.group({ accepted: [false, [Validators.requiredTrue]] });
-
     this.activateForm = this.fb.group({
       full_name: ['', [Validators.required, Validators.minLength(3)]],
       tin: ['', [Validators.required, Validators.minLength(5)]],
       birth_date: ['', [Validators.required]],
-      country: ['EC', [Validators.required, Validators.minLength(2), Validators.maxLength(2)]]
+      country: ['EC', [Validators.required, Validators.minLength(2), Validators.maxLength(2)]],
+      accepted: [false, [Validators.requiredTrue]]
     });
   }
 
@@ -87,14 +106,33 @@ export class Register {
     this.activeIndex = Math.max(0, this.activeIndex - 1);
   }
 
-  onIdFile(ev: Event): void {
-    const file = (ev.target as HTMLInputElement).files?.[0] || null;
+  onIdSelected(ev: any): void {
+    const file = ev?.files?.[0] || null;
     this.idFile = file;
   }
 
-  onSelfieFile(ev: Event): void {
-    const file = (ev.target as HTMLInputElement).files?.[0] || null;
+  onSelfieSelected(ev: any): void {
+    const file = ev?.files?.[0] || null;
     this.selfieFile = file;
+  }
+
+  private pickUpload(intent: any, docType: 'id_front' | 'selfie'): any | null {
+    const uploads = intent?.uploads || [];
+    return uploads.find((u: any) => u.doc_type === docType) ?? null;
+  }
+
+  private validateFileAgainstPresigned(file: File, upload: any): void {
+    // max_bytes
+    const maxBytes = upload?.max_bytes;
+    if (typeof maxBytes === 'number' && file.size > maxBytes) {
+      throw new Error(`El archivo excede el tamaño máximo permitido (${maxBytes} bytes).`);
+    }
+
+    // content_type (si viene)
+    const expectedCt = upload?.content_type;
+    if (expectedCt && file.type && file.type !== expectedCt) {
+      throw new Error(`Content-Type inválido. Esperado: ${expectedCt}. Recibido: ${file.type}.`);
+    }
   }
 
   async startIntent(): Promise<void> {
@@ -104,56 +142,76 @@ export class Register {
     try {
       const v = this.contactForm.value;
 
-      // 1) Intent (SIN archivos)
-      //    Tu OpenAPI debe exponer algo equivalente a esto:
-      //    POST /api/v1/onboarding/intents (json)
-      const intent: any = await firstValueFrom(
+      // 1) Intent (JSON)
+      const intent = await firstValueFrom(
         this.onboardingApi.startOnboarding({
           onboardingIntentRequestDto: {
             email: v.email,
             phone: v.phone,
             channel: 'web',
             locale: 'es-EC',
+
             national_id: v.national_id,
-            national_id_issue_date: v.national_id_issue_date,
+            national_id_issue_date: this.toDateString(v.national_id_issue_date),
             fingerprint_code: v.fingerprint_code,
+
             monthly_income: v.monthly_income,
-            occupation_type: v.occupation_type
+            occupation_type: v.occupation_type,
+
+            id_front_content_type: this.idFile.type || 'application/octet-stream',
+            selfie_content_type: this.selfieFile.type || 'application/octet-stream'
           }
         })
       );
 
-      this.registrationId = intent.registration_id;
-      this.otpChannelHint = intent.otp_channel_hint;
+      this.registrationId = (intent as any).registration_id;
 
-      const idFront = intent.kyc_uploads?.id_front;
-      const selfie  = intent.kyc_uploads?.selfie;
+      this.idFrontUpload = this.pickUpload(intent, 'id_front');
+      this.selfieUpload = this.pickUpload(intent, 'selfie');
 
-      if (!this.registrationId || !idFront?.url || !idFront?.key || !selfie?.url || !selfie?.key) {
-        throw new Error('OpenAPI/BFF: falta kyc_uploads (id_front/selfie) en la respuesta del intent');
+      if (!this.registrationId || !this.idFrontUpload?.upload_url || !this.selfieUpload?.upload_url) {
+        throw new Error('Respuesta inválida: faltan presigned uploads (id_front/selfie).');
       }
 
-      // 2) Upload a S3 directo (paralelo)
+      // 2) Validar archivos contra presigned (size/content-type)
+      this.validateFileAgainstPresigned(this.idFile, this.idFrontUpload);
+      this.validateFileAgainstPresigned(this.selfieFile, this.selfieUpload);
+
+      // 3) Subir a S3 directo con headers presigned
       const [idRes, selfieRes] = await Promise.all([
-        this.presigned.putFile(idFront.url, this.idFile),
-        this.presigned.putFile(selfie.url, this.selfieFile)
+        this.presigned.putFile(this.idFrontUpload.upload_url, this.idFile, this.idFrontUpload.headers || []),
+        this.presigned.putFile(this.selfieUpload.upload_url, this.selfieFile, this.selfieUpload.headers || [])
       ]);
 
-      // 3) Confirmar al backend (guardar bucket/key/etag)
-      //    POST /api/v1/onboarding/kyc/confirm
+      // 4) Confirmar KYC en backend
       await firstValueFrom(
         this.onboardingApi.confirmOnboardingKyc({
           confirmKycRequestDto: {
             registration_id: this.registrationId,
-            id_front_key: idFront.key,
-            id_front_etag: idRes.etag,
-            selfie_key: selfie.key,
-            selfie_etag: selfieRes.etag
+            channel: 'web',
+            objects: [
+              {
+                doc_type: 'id_front',
+                bucket: this.idFrontUpload.bucket,
+                key: this.idFrontUpload.key,
+                etag: idRes.etag,
+                size_bytes: this.idFile.size,
+                content_type: this.idFile.type
+              },
+              {
+                doc_type: 'selfie',
+                bucket: this.selfieUpload.bucket,
+                key: this.selfieUpload.key,
+                etag: selfieRes.etag,
+                size_bytes: this.selfieFile.size,
+                content_type: this.selfieFile.type
+              }
+            ]
           }
         })
       );
 
-      // 4) Siguiente paso: OTP
+      // 5) Ir a activación
       this.activeIndex = 1;
 
     } finally {
@@ -161,57 +219,44 @@ export class Register {
     }
   }
 
-
-  async verifyOtp(): Promise<void> {
-    if (!this.registrationId) return;
-    this.busy = true;
-    try {
-      await firstValueFrom(this.onboardingApi.verifyOnboardingContact({
-        verifyContactRequestDto: {
-          registration_id: this.registrationId,
-          otp: this.otpForm.value.otp!
-        }
-      }));
-      this.activeIndex = 2;
-    } finally {
-      this.busy = false;
-    }
-  }
-
-  async submitConsents(): Promise<void> {
-    if (!this.registrationId) return;
-    this.busy = true;
-    try {
-      await firstValueFrom(this.onboardingApi.registerOnboardingConsents({
-        consentsRequestDto: {
-          registration_id: this.registrationId,
-          accepted: true
-          }
-      }));
-      this.activeIndex = 3;
-    } finally {
-      this.busy = false;
-    }
-  }
-
   async activate(): Promise<void> {
     if (!this.registrationId) return;
+
     this.busy = true;
     try {
-      await firstValueFrom(this.onboardingApi.activateOnboarding({
-        activateRequestDto: {
-          registration_id: this.registrationId,
-          full_name: this.activateForm.value.full_name!,
-          tin: this.activateForm.value.tin!,
-          birth_date: this.activateForm.value.birth_date!,
-          country: this.activateForm.value.country!,
-          email: this.contactForm.value.email!,
-          phone: this.contactForm.value.phone!
+      const v1 = this.contactForm.value;
+      const v2 = this.activateForm.value;
+
+      await firstValueFrom(
+        this.onboardingApi.activateOnboarding({
+          activateRequestDto: {
+            registration_id: this.registrationId,
+            full_name: v2.full_name,
+            tin: v2.tin,
+            birth_date: this.toDateString(v2.birth_date),
+            country: v2.country,
+            email: v1.email,
+            phone: v1.phone
           }
-      }));
+        })
+      );
+
+      // Activado -> ir a login (Cognito)
       await this.router.navigateByUrl('/login');
+
     } finally {
       this.busy = false;
     }
+  }
+
+  private toDateString(v: any): string {
+    // p-calendar puede entregar Date
+    if (v instanceof Date) {
+      const y = v.getFullYear();
+      const m = String(v.getMonth() + 1).padStart(2, '0');
+      const d = String(v.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return String(v);
   }
 }

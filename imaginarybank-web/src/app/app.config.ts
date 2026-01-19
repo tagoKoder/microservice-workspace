@@ -12,13 +12,23 @@ import { csrfInterceptor } from './core/interceptors/csrf.interceptor';
 import { apiErrorInterceptor } from './core/interceptors/api-error.interceptor';
 import { ApiModule, Configuration } from './api/bff';
 import { environment } from '../environments/environment';
+import Lara from '@primeuix/themes/lara'
+import { providePrimeNG } from 'primeng/config';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-        provideRouter(routes),
+    provideRouter(routes),
     provideAnimations(),
 
     MessageService,
+    
+    providePrimeNG({
+      theme: {
+        preset: Lara // 👈 aquí defines el tema
+      },
+      ripple: true,           // opcional
+      inputVariant: 'filled', // opcional
+    }),
 
     provideHttpClient(
       withInterceptors([credentialsInterceptor, csrfInterceptor, apiErrorInterceptor])
@@ -29,6 +39,5 @@ export const appConfig: ApplicationConfig = {
     ),
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes)
   ]
 };

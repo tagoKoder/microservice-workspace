@@ -1,143 +1,146 @@
+<div class="min-h-screen flex justify-content-center p-4">
+  <p-card header="Onboarding / Registro" styleClass="w-full lg:w-40rem">
+    <p-steps [model]="steps" [activeIndex]="activeIndex"></p-steps>
+    <p-divider></p-divider>
 
-    <div class="min-h-screen flex justify-content-center p-4">
-      <p-card header="Onboarding / Registro" styleClass="w-full lg:w-40rem">
-        <p-steps [model]="steps" [activeIndex]="activeIndex"></p-steps>
-
-        <p-divider></p-divider>
-
-        <!-- STEP 0: CONTACT -->
-       <!-- STEP 0: CONTACT + KYC -->
+    <!-- STEP 0: CONTACT + KYC -->
     <form *ngIf="activeIndex === 0" [formGroup]="contactForm" class="flex flex-column gap-3">
-    <div>
-        <label class="block mb-2">Email</label>
-        <input pInputText type="email" class="w-full" formControlName="email" />
-    </div>
 
-    <div>
-        <label class="block mb-2">Teléfono</label>
-        <input pInputText type="text" class="w-full" formControlName="phone" />
-    </div>
+      <div class="grid">
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Email</label>
+          <input pInputText type="email" class="w-full" formControlName="email" />
+        </div>
 
-    <div>
-        <label class="block mb-2">Cédula (National ID)</label>
-        <input pInputText type="text" class="w-full" formControlName="national_id" />
-    </div>
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Teléfono</label>
+          <input pInputText type="text" class="w-full" formControlName="phone" />
+        </div>
 
-    <div>
-        <label class="block mb-2">Fecha expedición (YYYY-MM-DD)</label>
-        <input pInputText type="text" class="w-full" formControlName="national_id_issue_date" placeholder="2020-01-31" />
-    </div>
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Cédula (National ID)</label>
+          <input pInputText type="text" class="w-full" formControlName="national_id" />
+        </div>
 
-    <div>
-        <label class="block mb-2">Código dactilar</label>
-        <input pInputText type="text" class="w-full" formControlName="fingerprint_code" />
-    </div>
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Fecha expedición</label>
+          <p-datepicker
+            formControlName="national_id_issue_date"
+            dateFormat="yy-mm-dd"
+            [showIcon]="true"
+            inputId="issueDate"
+            class="w-full">
+          </p-datepicker>
+        </div>
 
-    <div>
-        <label class="block mb-2">Ingreso mensual</label>
-        <input pInputText type="number" class="w-full" formControlName="monthly_income" />
-    </div>
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Código dactilar</label>
+          <input pInputText type="text" class="w-full" formControlName="fingerprint_code" />
+        </div>
 
-    <div>
-        <label class="block mb-2">Ocupación</label>
-        <input pInputText type="text" class="w-full" formControlName="occupation_type" placeholder="employee" />
-    </div>
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Ingreso mensual</label>
+          <p-inputNumber formControlName="monthly_income" class="w-full" [min]="0" mode="decimal"></p-inputNumber>
+        </div>
 
-    <div class="flex flex-column gap-2">
-        <label class="block">Cédula frontal (imagen)</label>
-        <input type="file" accept="image/*" (change)="onIdFile($event)" />
-    </div>
+        <div class="col-12">
+          <label class="block mb-2">Ocupación</label>
+          <p-select
+            class="w-full"
+            [options]="occupationOptions"
+            optionLabel="label"
+            optionValue="value"
+            formControlName="occupation_type">
+          </p-select>
+        </div>
+      </div>
 
-    <div class="flex flex-column gap-2">
-        <label class="block">Selfie (imagen)</label>
-        <input type="file" accept="image/*" (change)="onSelfieFile($event)" />
-    </div>
+      <p-divider></p-divider>
 
-    <div class="flex justify-content-end gap-2">
-        <button pButton type="button" label="Cancelar" class="p-button-secondary" (click)="goLogin()"></button>
+      <div class="grid">
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Cédula frontal (imagen)</label>
+          <p-fileUpload
+            mode="basic"
+            chooseLabel="Seleccionar"
+            [auto]="false"
+            [customUpload]="true"
+            accept="image/*"
+            (onSelect)="onIdSelected($event)">
+          </p-fileUpload>
+          <small class="block mt-2 text-600" *ngIf="idFile">Archivo: {{ idFile.name }} ({{ idFile.size }} bytes)</small>
+        </div>
+
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Selfie (imagen)</label>
+          <p-fileUpload
+            mode="basic"
+            chooseLabel="Seleccionar"
+            [auto]="false"
+            [customUpload]="true"
+            accept="image/*"
+            (onSelect)="onSelfieSelected($event)">
+          </p-fileUpload>
+          <small class="block mt-2 text-600" *ngIf="selfieFile">Archivo: {{ selfieFile.name }} ({{ selfieFile.size }} bytes)</small>
+        </div>
+      </div>
+
+      <div class="flex justify-content-end gap-2">
+        <button pButton type="button" label="Cancelar" class="p-button-secondary" (click)="goLogin()" [disabled]="busy"></button>
         <button
-        pButton
-        type="button"
-        label="Continuar"
-        (click)="startIntent()"
-        [disabled]="contactForm.invalid || busy || !idFile || !selfieFile">
+          pButton
+          type="button"
+          label="Continuar"
+          (click)="startIntent()"
+          [disabled]="contactForm.invalid || busy || !idFile || !selfieFile">
         </button>
-    </div>
+      </div>
+
+      <p class="text-600 mt-2 mb-0" *ngIf="busy">Procesando…</p>
     </form>
 
+    <!-- STEP 1: ACTIVATE -->
+    <form *ngIf="activeIndex === 1" [formGroup]="activateForm" class="flex flex-column gap-3">
 
-        <!-- STEP 1: OTP -->
-        <form *ngIf="activeIndex === 1" [formGroup]="otpForm" class="flex flex-column gap-3">
-          <p class="text-600 mt-0 mb-0">
-            Te enviamos un OTP. Canal sugerido: <b>{{ otpChannelHint || '-' }}</b>
-          </p>
+      <div class="grid">
+        <div class="col-12">
+          <label class="block mb-2">Nombre completo</label>
+          <input pInputText class="w-full" formControlName="full_name" />
+        </div>
 
-          <div>
-            <label class="block mb-2">OTP</label>
-            <input pInputText type="text" class="w-full" formControlName="otp" />
-          </div>
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Cédula/RUC (TIN)</label>
+          <input pInputText class="w-full" formControlName="tin" />
+        </div>
 
-          <div class="flex justify-content-between gap-2">
-            <button pButton type="button" label="Atrás" class="p-button-secondary" (click)="back()"></button>
-            <button pButton type="button" label="Verificar" (click)="verifyOtp()" [disabled]="otpForm.invalid || busy"></button>
-          </div>
-        </form>
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">Fecha de nacimiento</label>
+          <p-datepicker
+            formControlName="birth_date"
+            dateFormat="yy-mm-dd"
+            [showIcon]="true"
+            inputId="birthDate"
+            class="w-full">
+          </p-datepicker>
+        </div>
 
-        <!-- STEP 2: CONSENTS -->
-        <form *ngIf="activeIndex === 2" [formGroup]="consentForm" class="flex flex-column gap-3">
-          <div class="flex align-items-center gap-2">
-            <p-checkbox binary="true" formControlName="accepted"></p-checkbox>
-            <span>Acepto términos, privacidad y tratamiento de datos.</span>
-          </div>
+        <div class="col-12 md:col-6">
+          <label class="block mb-2">País (ISO-3166-1 alpha-2)</label>
+          <input pInputText class="w-full" formControlName="country" />
+        </div>
+      </div>
 
-          <div class="flex justify-content-between gap-2">
-            <button pButton type="button" label="Atrás" class="p-button-secondary" (click)="back()"></button>
-            <button pButton type="button" label="Continuar" (click)="submitConsents()" [disabled]="busy || !consentForm.value.accepted"></button>
-          </div>
-        </form>
+      <div class="flex align-items-center gap-2">
+        <p-checkbox binary="true" formControlName="accepted"></p-checkbox>
+        <span>Acepto términos, privacidad y tratamiento de datos.</span>
+      </div>
 
-        <!-- STEP 3: ACTIVATE (+ KYC local UI) -->
-        <form *ngIf="activeIndex === 3" [formGroup]="activateForm" class="flex flex-column gap-3">
-          <div>
-            <label class="block mb-2">Nombre completo</label>
-            <input pInputText class="w-full" formControlName="full_name" />
-          </div>
+      <div class="flex justify-content-between gap-2">
+        <button pButton type="button" label="Atrás" class="p-button-secondary" (click)="back()" [disabled]="busy"></button>
+        <button pButton type="button" label="Activar" (click)="activate()" [disabled]="activateForm.invalid || busy"></button>
+      </div>
 
-          <div>
-            <label class="block mb-2">Cédula/RUC (TIN)</label>
-            <input pInputText class="w-full" formControlName="tin" />
-          </div>
-
-          <div>
-            <label class="block mb-2">Fecha de nacimiento (YYYY-MM-DD)</label>
-            <input pInputText class="w-full" formControlName="birth_date" placeholder="1990-01-31" />
-          </div>
-
-          <div>
-            <label class="block mb-2">País (ISO-3166-1 alpha-2)</label>
-            <input pInputText class="w-full" formControlName="country" placeholder="EC" />
-          </div>
-
-          <p class="text-600 mt-2 mb-0">
-            KYC (MVP UI): sube tu cédula (frontal) y selfie.
-            <br />
-            <b>Nota:</b> con el OpenAPI actual, estos archivos no se envían todavía (ver corrección más abajo).
-          </p>
-
-          <div class="flex flex-column gap-2">
-            <label class="block">Cédula frontal (imagen)</label>
-            <input type="file" accept="image/*" (change)="onIdFile($event)" />
-          </div>
-
-          <div class="flex flex-column gap-2">
-            <label class="block">Selfie (imagen)</label>
-            <input type="file" accept="image/*" (change)="onSelfieFile($event)" />
-          </div>
-
-          <div class="flex justify-content-between gap-2">
-            <button pButton type="button" label="Atrás" class="p-button-secondary" (click)="back()"></button>
-            <button pButton type="button" label="Activar" (click)="activate()" [disabled]="activateForm.invalid || busy"></button>
-          </div>
-        </form>
-      </p-card>
-    </div>
+      <p class="text-600 mt-2 mb-0" *ngIf="busy">Procesando…</p>
+    </form>
+  </p-card>
+</div>
