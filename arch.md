@@ -10,8 +10,8 @@
 
 - **Envoy Gateway**:  
   - `jwt_authn`: validates OIDC/AuthN  
-  - `ext_authz`: delegates authorization to OPA (ABAC/AuthZ)  
-  - Zero Trust principle: per-request verification  
+  - `ext_authz`: delegates authorization to OPA (ABAC/AuthZ)
+  - Zero Trust principle: per-request verification
   - Reference: *NIST Technical Publications*
 
 ---
@@ -191,7 +191,7 @@ Reference: *NIST Security Center*
 
 ### STRIDE on Transfer Flow
 
-| Threat            | Control Applied                        | Evidence                        |
+| Threat            | Control Applied                        | Evidence                         |
 |-------------------|----------------------------------------|----------------------------------|
 | Spoofing          | Invalid token → Envoy 401 (ASVS V2)    | Envoy logs                       |
 | Tampering         | Modified body → JWT signature + logic  | 400 + business logs              |

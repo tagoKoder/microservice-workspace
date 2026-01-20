@@ -40,8 +40,5 @@ public class IdentityEntity {
     private Instant createdAt;
 
     @OneToMany(mappedBy = "identity", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MfaFactorEntity> mfaFactors = new ArrayList<>();
-
-    @OneToMany(mappedBy = "identity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SessionEntity> sessions = new ArrayList<>();
 }

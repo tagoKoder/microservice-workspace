@@ -27,6 +27,10 @@ aws:
   region: ${AWS_REGION:us-east-1}
 
 identity:
+  clients:
+    accountsTarget: "dns:///accounts:9090"
+    ledgerTarget: "dns:///ledgerpayments:9090"
+    serviceAccessToken: "${IDENTITY_SVC_ACCESS_TOKEN}"
   audit:
     bus-name: ${AUDIT_EVENT_BUS:bank-audit-bus}
     source: ${AUDIT_SOURCE:bank.identity}
