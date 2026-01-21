@@ -1,3 +1,4 @@
+// micro\ledger\internal\application\service\payment_service.go
 package service
 
 import (
@@ -207,7 +208,6 @@ func (s *paymentService) GetPayment(ctx context.Context, paymentID uuid.UUID) (i
 	})
 	return res, err
 }
-
 
 func uuidFromStringOrNil(s string) uuid.UUID {
 	u, err := uuid.Parse(s)

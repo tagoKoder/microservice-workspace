@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\out\persistence\gorm\db.go
 package gormdb
 
 import (

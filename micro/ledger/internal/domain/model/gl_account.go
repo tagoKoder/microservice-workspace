@@ -1,3 +1,4 @@
+// micro\ledger\internal\domain\model\gl_account.go
 package model
 
 import "github.com/google/uuid"

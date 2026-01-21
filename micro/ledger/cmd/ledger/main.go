@@ -1,3 +1,4 @@
+// micro\ledger\cmd\ledger\main.go
 package main
 
 import (
@@ -63,9 +64,9 @@ func main() {
 	}
 
 	// Kafka publisher (outbox events del dominio)
-	pub := messaging.NewKafkaPublisher(cfg.KafkaBrokers, cfg.KafkaClientID)
-
 	eb := eventbridge.NewFromConfig(awsCfg)
+	pub := messaging.NewEventBridgePublisher(eb, cfg.DomainEventBusName)
+
 	vp := verifiedpermissions.NewFromConfig(awsCfg)
 
 	// AuditPort: EventBridge best-effort (fallback a logs interno)

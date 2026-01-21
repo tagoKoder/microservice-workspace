@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\out\persistence\gorm\entity\journal.go
 package entity
 
 import (

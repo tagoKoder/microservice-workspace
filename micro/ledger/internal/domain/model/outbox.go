@@ -1,3 +1,4 @@
+// micro\ledger\internal\domain\model\outbox.go
 package model
 
 import (

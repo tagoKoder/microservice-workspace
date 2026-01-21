@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\out\audit\eventbridge_audit.go
 package audit
 
 import (
@@ -8,9 +9,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	ebtypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
+	"github.com/tagoKoder/ledger/internal/domain/model"
 	out "github.com/tagoKoder/ledger/internal/domain/port/out"
 	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
-	"github.com/tagoKoder/ledger/internal/domain/model"
 )
 
 type EventBridgeAudit struct {
@@ -29,23 +30,21 @@ func NewEventBridgeAudit(eb *eventbridge.Client, busName, source, detailType, se
 	}
 }
 
-
-
 func (a *EventBridgeAudit) Record(ctx context.Context, action, entity, entityID, actor string, at time.Time, details map[string]any) error {
 	ev := model.AuditEventV1{
-		Version:      "1.0",
-		EventID:      newEventID(),
-		OccurredAt:   at.UTC().Format(time.RFC3339Nano),
-		Service:      a.service,
-		Environment:  a.env,
+		Version:       "1.0",
+		EventID:       newEventID(),
+		OccurredAt:    at.UTC().Format(time.RFC3339Nano),
+		Service:       a.service,
+		Environment:   a.env,
 		CorrelationID: authctx.CorrelationID(ctx),
 		RouteTemplate: authctx.RouteTemplate(ctx),
 		Action:        authctx.ActionID(ctx),
-		Entity:        struct {
+		Entity: struct {
 			Type string `json:"type"`
 			ID   string `json:"id"`
 		}{Type: entity, ID: entityID},
-		Details:       details,
+		Details: details,
 	}
 
 	act := authctx.ActorFrom(ctx)
@@ -101,5 +100,5 @@ func (a *EventBridgeAudit) Record(ctx context.Context, action, entity, entityID,
 
 func newEventID() string { return time.Now().UTC().Format("20060102T150405.000000000Z07:00") }
 
-func ptr(s string) *string { return &s }
+func ptr(s string) *string           { return &s }
 func ptrTime(t time.Time) *time.Time { return &t }

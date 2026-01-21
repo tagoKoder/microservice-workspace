@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\out\persistence\gorm\adapter\journal_repo.go
 package adapter
 
 import (

@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\out\persistence\gorm\adapter\outbox_repo.go
 package adapter
 
 import (

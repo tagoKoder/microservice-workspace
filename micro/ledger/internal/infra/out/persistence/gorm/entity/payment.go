@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\out\persistence\gorm\entity\payment.go
 package entity
 
 import (

@@ -1,3 +1,4 @@
+// micro\ledger\internal\domain\model\audit_event.go
 package model
 
 type AuditEventV1 struct {

@@ -1,3 +1,4 @@
+// micro\ledger\internal\domain\model\idempotency.go
 package model
 
 import (

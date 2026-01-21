@@ -1,3 +1,4 @@
+// micro\ledger\internal\domain\model\journal.go
 package model
 
 import (
