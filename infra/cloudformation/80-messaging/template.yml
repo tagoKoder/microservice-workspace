@@ -1,0 +1,188 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "80-messaging: Domain EventBridge bus + SQS queues (encrypted) for ledger.journal.posted"
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: bank
+
+  Env:
+    Type: String
+    AllowedValues: [dev, prod]
+
+  # Event contract controls (keep strict)
+  LedgerEventSource:
+    Type: String
+    Default: "bank.ledger"
+    Description: "EventBridge 'source' that ledger publisher must use"
+
+  LedgerEventDetailType:
+    Type: String
+    Default: "ledger.journal.posted"
+    Description: "EventBridge 'detail-type' for the task"
+
+  # Queue tuning
+  QueueVisibilityTimeoutSeconds:
+    Type: Number
+    Default: 60
+  QueueMessageRetentionSeconds:
+    Type: Number
+    Default: 345600  # 4 days
+  QueueReceiveWaitTimeSeconds:
+    Type: Number
+    Default: 20      # long polling
+  MaxReceiveCountBeforeDLQ:
+    Type: Number
+    Default: 5
+
+Resources:
+  # ------------------------
+  # KMS key for messaging
+  # ------------------------
+  MessagingKmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub "${ProjectName}-${Env} messaging key (SQS targets + EventBridge delivery)"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          # Root/admin full control
+          - Sid: AllowAccountRoot
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: "*"
+
+          # Required for EventBridge -> encrypted SQS target delivery (per AWS docs)
+          - Sid: AllowEventBridgeUseKey
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Action:
+              - "kms:Decrypt"
+              - "kms:GenerateDataKey"
+            Resource: "*"
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+
+  MessagingKmsAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${ProjectName}/${Env}/messaging"
+      TargetKeyId: !Ref MessagingKmsKey
+
+  # ------------------------
+  # Domain bus
+  # ------------------------
+  DomainEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${ProjectName}-${Env}-domain-bus"
+
+  # ------------------------
+  # SQS queues (encrypted) + DLQ
+  # ------------------------
+  LedgerJournalPostedDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ProjectName}-${Env}-ledger-journal-posted-dlq"
+      KmsMasterKeyId: !Ref MessagingKmsKey
+      MessageRetentionPeriod: !Ref QueueMessageRetentionSeconds
+      ReceiveMessageWaitTimeSeconds: !Ref QueueReceiveWaitTimeSeconds
+
+  LedgerJournalPostedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ProjectName}-${Env}-ledger-journal-posted"
+      KmsMasterKeyId: !Ref MessagingKmsKey
+      VisibilityTimeout: !Ref QueueVisibilityTimeoutSeconds
+      MessageRetentionPeriod: !Ref QueueMessageRetentionSeconds
+      ReceiveMessageWaitTimeSeconds: !Ref QueueReceiveWaitTimeSeconds
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt LedgerJournalPostedDLQ.Arn
+        maxReceiveCount: !Ref MaxReceiveCountBeforeDLQ
+
+  # ------------------------
+  # EventBridge rule -> SQS
+  # ------------------------
+  LedgerJournalPostedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${ProjectName}-${Env}-ledger-journal-posted-to-sqs"
+      EventBusName: !Ref DomainEventBus
+      EventPattern:
+        source:
+          - !Ref LedgerEventSource
+        detail-type:
+          - !Ref LedgerEventDetailType
+      State: ENABLED
+      Targets:
+        - Id: LedgerJournalPostedQueueTarget
+          Arn: !GetAtt LedgerJournalPostedQueue.Arn
+
+  # Allow EventBridge to send messages to the queue (resource-based policy required)
+  LedgerJournalPostedQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref LedgerJournalPostedQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowEventBridgeSendMessage
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Action: "sqs:SendMessage"
+            Resource: !GetAtt LedgerJournalPostedQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt LedgerJournalPostedRule.Arn
+
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "sqs:*"
+            Resource: !GetAtt LedgerJournalPostedQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+Outputs:
+  DomainEventBusName:
+    Value: !Ref DomainEventBus
+    Export:
+      Name: !Sub "${AWS::StackName}-DomainEventBusName"
+
+  DomainEventBusArn:
+    Value: !GetAtt DomainEventBus.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-DomainEventBusArn"
+
+  LedgerJournalPostedRuleArn:
+    Value: !GetAtt LedgerJournalPostedRule.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-LedgerJournalPostedRuleArn"
+
+  LedgerJournalPostedQueueUrl:
+    Value: !Ref LedgerJournalPostedQueue
+    Export:
+      Name: !Sub "${AWS::StackName}-LedgerJournalPostedQueueUrl"
+
+  LedgerJournalPostedQueueArn:
+    Value: !GetAtt LedgerJournalPostedQueue.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-LedgerJournalPostedQueueArn"
+
+  LedgerJournalPostedDLQArn:
+    Value: !GetAtt LedgerJournalPostedDLQ.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-LedgerJournalPostedDLQArn"
+
+  MessagingKmsKeyArn:
+    Value: !GetAtt MessagingKmsKey.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-MessagingKmsKeyArn"

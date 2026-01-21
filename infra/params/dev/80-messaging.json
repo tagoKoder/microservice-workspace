@@ -1,0 +1,10 @@
+{
+  "ProjectName": "bank",
+  "Env": "dev",
+  "LedgerEventSource": "bank.ledger",
+  "LedgerEventDetailType": "ledger.journal.posted",
+  "QueueVisibilityTimeoutSeconds": 60,
+  "QueueMessageRetentionSeconds": 345600,
+  "QueueReceiveWaitTimeSeconds": 20,
+  "MaxReceiveCountBeforeDLQ": 5
+}

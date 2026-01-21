@@ -117,6 +117,10 @@ Parameters:
   AvpPolicyStoreId:
     Type: String
     Description: "Output PolicyStoreId del stack 70-authz-avp"
+    
+  MessagingStackName:
+    Type: String
+    Description: "Nombre del stack 80-messaging para ImportValue"
 
 Conditions:
   HasIdentityDbSecret: !Not [!Equals [!Ref IdentityDbSecretArn, ""]]
@@ -228,6 +232,26 @@ Resources:
                 Effect: Allow
                 Action: "verifiedpermissions:IsAuthorizedWithToken"
                 Resource: "*"
+        - PolicyName: account-sqs-consume-ledger-posted
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ConsumeQueue
+                Effect: Allow
+                Action:
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                  - "sqs:ChangeMessageVisibility"
+                  - "sqs:GetQueueAttributes"
+                Resource: !ImportValue
+                  Fn::Sub: "${MessagingStackName}-LedgerJournalPostedQueueArn"
+
+              - Sid: KmsDecryptForSqs
+                Effect: Allow
+                Action:
+                  - "kms:Decrypt"
+                Resource: !ImportValue
+                  Fn::Sub: "${MessagingStackName}-MessagingKmsKeyArn"
 
   LedgerTaskRole:
     Type: AWS::IAM::Role
@@ -253,6 +277,15 @@ Resources:
                 Effect: Allow
                 Action: "verifiedpermissions:IsAuthorizedWithToken"
                 Resource: "*"
+        - PolicyName: ledger-domainbus-publish
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PutDomainEvents
+                Effect: Allow
+                Action: "events:PutEvents"
+                Resource: !ImportValue
+                  Fn::Sub: "${MessagingStackName}-DomainEventBusArn"
 
   # -----------------------------
   # ALB (public) -> BFF (private)
@@ -419,6 +452,10 @@ Resources:
               - Name: DB_DSN
                 ValueFrom: !Sub "${AccountDbSecretArn}:DB_DSN::"
               - !Ref "AWS::NoValue"
+          Environment:
+            - Name: LEDGER_JOURNAL_POSTED_QUEUE_URL
+              Value: !ImportValue
+                Fn::Sub: "${MessagingStackName}-LedgerJournalPostedQueueUrl"
 
   TaskDefLedger:
     Type: AWS::ECS::TaskDefinition
@@ -451,6 +488,10 @@ Resources:
               - Name: DB_DSN
                 ValueFrom: !Sub "${LedgerDbSecretArn}:DB_DSN::"
               - !Ref "AWS::NoValue"
+          Environment:
+            - Name: DOMAIN_EVENT_BUS_NAME
+              Value: !ImportValue
+                Fn::Sub: "${MessagingStackName}-DomainEventBusName"
 
   # -----------------------------
   # ECS Services

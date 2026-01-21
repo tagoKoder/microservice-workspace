@@ -21,3 +21,8 @@ $stack10 = ("{0}-{1}-10-network" -f $cfg.ProjectName, $env)
   -StackName $stack10 `
   -TemplatePath "infra\cloudformation\10-network\template.yml" `
   -ParamsPath  "infra\params\dev\10-network.json"
+
+
+& "$PSScriptRoot/01-deploy-stack.ps1" -Env $Env -StackName "$ProjectName-$Env-80-messaging" `
+  -TemplatePath "$RepoRoot/infra/cloudformation/80-messaging/template.yml" `
+  -ParamsPath "$RepoRoot/infra/params/$Env/80-messaging.json"
