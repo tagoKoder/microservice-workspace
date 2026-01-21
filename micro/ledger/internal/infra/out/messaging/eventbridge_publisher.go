@@ -36,7 +36,7 @@ func (p *EventBridgePublisher) Publish(ctx context.Context, eventType, key strin
 	if err != nil {
 		return err
 	}
-	if out.FailedEntryCount != nil && *out.FailedEntryCount > 0 {
+	if out.FailedEntryCount != 0 && out.FailedEntryCount > 0 {
 		return &TemporaryPublishError{Message: "eventbridge put-events partial failure"}
 	}
 	return nil
