@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import com.google.protobuf.Timestamp;
 import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
 import com.tagokoder.identity.domain.model.kyc.UploadedObject;
+import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase.ActivateRegistrationCommand;
+import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase.ActivatedAccount;
 import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase;
 import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase.ConfirmRegistrationKycCommand;
 import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase;
@@ -116,6 +118,45 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
           default -> RegistrationState.REGISTRATION_STATE_UNSPECIFIED;
       };
   }
+
+    @Override
+    public void activateRegistration(ActivateRegistrationRequest request,
+        StreamObserver<ActivateRegistrationResponse> responseObserver) {
+
+    var res = activateRegistrationUseCase.activate(
+        new ActivateRegistrationCommand(
+        UUID.fromString(request.getRegistrationId()),
+        request.getChannel(),
+        request.getFullName(),
+        request.getTin(),
+        LocalDate.parse(request.getBirthDate()),
+        request.getCountry(),
+        request.getEmail(),
+        request.getPhone(),
+        request.getAcceptedTerms()
+        )
+    );
+
+    var b = ActivateRegistrationResponse.newBuilder()
+        .setRegistrationId(res.registrationId().toString())
+        .setState(RegistrationState.REGISTRATION_STATE_ACTIVATED)
+        .setCustomerId(res.customerId() == null ? "" : res.customerId())
+        .setPrimaryAccountId(res.primaryAccountId() == null ? "" : res.primaryAccountId())
+        .setActivationRef(res.activationRef() == null ? "" : res.activationRef())
+        .setBonusJournalId(res.bonusJournalId() == null ? "" : res.bonusJournalId())
+        .setCorrelationId(res.correlationId() == null ? "" : res.correlationId());
+
+    for (var a : res.accounts()) {
+        b.addAccounts(ActivatedAccount.newBuilder()
+        .setAccountId(a.accountId())
+        .setCurrency(a.currency())
+        .setProductType(a.productType())
+        .build());
+    }
+
+    responseObserver.onNext(b.build());
+    responseObserver.onCompleted();
+    }
 
     
     private UploadedObject mapUploaded(bank.identity.v1.UploadedObject o) {

@@ -7,77 +7,62 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import jakarta.persistence.CascadeType;
+import org.checkerframework.checker.units.qual.C;
+
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 import lombok.Data;
 
-@Entity
 @Data
-@Table(name = "registration_intents")
 public class RegistrationIntentEntity {
 
-    @Id
-    @Column(name = "id", nullable = false)
     private UUID id;
-
-    @Column(name = "email", nullable = false)
     private String email;
-
-    @Column(name = "phone", nullable = false, length = 20)
     private String phone;
-
-    @Column(name = "channel", nullable = false)
     private String channel; // 'web'
-
-    @Column(name = "state", nullable = false)
-    private String state; // 'started','contact_verified','consented','activated','rejected'
+    private String state;   // 'started','contact_verified','consented','activated','rejected'
 
     // KYC específicos
-    @Column(name = "national_id", nullable = false, length = 20)
+    @Column(name = "national_id", length = 32)
     private String nationalId;
-
-    @Column(name = "national_id_issue_date", nullable = false)
+    @Column(name = "national_id_issue_date")
     private LocalDate nationalIdIssueDate;
-
-    @Column(name = "fingerprint_code", nullable = false, length = 64)
+    @Column(name = "fingerprint_code", length = 64)
     private String fingerprintCode;
 
-
-
-    @OneToMany(
-        mappedBy = "registration",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true,
-        fetch = FetchType.LAZY
-    )
+    // Colección de objetos KYC
     private List<RegistrationKycObjectEntity> kycObjects = new ArrayList<>();
 
-    // helpers
     public void addKycObject(RegistrationKycObjectEntity obj) {
-        obj.setRegistration(this);
         this.kycObjects.add(obj);
     }
 
     public void removeKycObject(RegistrationKycObjectEntity obj) {
-        obj.setRegistration(null);
         this.kycObjects.remove(obj);
     }
-
-
-    @Column(name = "monthly_income", nullable = false, precision = 15, scale = 2)
+    @Column(name = "monthly_income", precision = 19, scale = 4)
     private BigDecimal monthlyIncome;
-
-    @Column(name = "occupation_type", nullable = false)
+    @Column(name = "occupation_type", length = 64)
     private String occupationType;
-
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at")
     private Instant createdAt;
-
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Column(name = "activation_ref", unique = true, length = 64) 
+    private String activationRef; 
+    // Puedes reutilizar "state", pero si prefieres separar: 
+    @Column(name = "activation_state", length = 32) 
+    private String activationState; 
+    @Column(name = "customer_id", length = 64) 
+    private String customerId; 
+    @Column(name = "checking_account_id", length = 64) 
+    private String checkingAccountId; 
+    @Column(name = "savings_account_id", length = 64) 
+    private String savingsAccountId; 
+    // opcional 
+    @Column(name = "bonus_journal_id", length = 64) 
+    private String bonusJournalId; 
+    // opcional 
+    @Column(name = "activated_at") 
+    private Instant activatedAt;
 }

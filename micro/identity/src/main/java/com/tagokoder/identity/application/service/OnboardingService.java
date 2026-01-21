@@ -9,14 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tagokoder.identity.domain.model.RegistrationIntent;
 import com.tagokoder.identity.domain.model.kyc.FinalizedObject;
-import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
+import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase;
 import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase;
 import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase;
 import com.tagokoder.identity.domain.port.out.KycPresignedStoragePort;
 import com.tagokoder.identity.domain.port.out.RegistrationIntentRepositoryPort;
 
 @Service
-public class OnboardingService implements StartRegistrationUseCase, ConfirmRegistrationKycUseCase {
+public class OnboardingService implements StartRegistrationUseCase, ConfirmRegistrationKycUseCase, ActivateRegistrationUseCase  {
 
     private final RegistrationIntentRepositoryPort registrationRepo;
     private final KycPresignedStoragePort kycStorage;
@@ -64,18 +64,10 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
 
         List<FinalizedObject> finalized = kycStorage.confirmAndFinalize(regId, command.objects());
 
-        FinalizedObject idFront = finalized.stream()
-                .filter(x -> x.kind() == KycDocumentKind.ID_FRONT).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("missing finalized ID_FRONT"));
-
-        FinalizedObject selfie = finalized.stream()
-                .filter(x -> x.kind() == KycDocumentKind.SELFIE).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("missing finalized SELFIE"));
-
-        reg.setIdFrontBucket(idFront.bucket());
-        reg.setIdFrontKey(idFront.key());
-        reg.setSelfieBucket(selfie.bucket());
-        reg.setSelfieKey(selfie.key());
+        // Upsert FINAL objects en la lista (dominio)
+        for (FinalizedObject f : finalized) {
+            reg.addKycObject(f);
+        }
 
         reg.setState(RegistrationIntent.State.KYC_CONFIRMED);
         reg.setUpdatedAt(Instant.now());
@@ -85,4 +77,82 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
         return new ConfirmRegistrationKycResult(regId, "kyc_confirmed", reg.getUpdatedAt(), finalized);
         
     }
+
+  @Override
+  public ActivateRegistrationResult activate(ActivateRegistrationCommand c) {
+    UUID regId = c.registrationId();
+
+    // (1) Tx corta: validar y preparar activationRef
+    RegistrationIntent reg = registrationRepo.findById(regId)
+      .orElseThrow(() -> new IllegalStateException("registration not found"));
+
+    if (reg.getState() == RegistrationIntent.State.ACTIVATED) {
+      return buildResponse(reg);
+    }
+    if (reg.getState() != RegistrationIntent.State.KYC_CONFIRMED &&
+        reg.getState() != RegistrationIntent.State.ACTIVATING) {
+      throw new IllegalStateException("registration must be KYC_CONFIRMED to activate");
+    }
+    if (!c.acceptedTerms()) {
+      throw new IllegalArgumentException("accepted_terms required");
+    }
+
+    if (reg.getActivationRef() == null || reg.getActivationRef().isBlank()) {
+      reg.setActivationRef("act:" + regId); // estable
+    }
+    reg.setState(RegistrationIntent.State.ACTIVATING);
+    registrationRepo.save(reg);
+
+    String activationRef = reg.getActivationRef();
+
+    // (2) Paso: CreateCustomer (idempotente en Accounts)
+    if (reg.getCustomerId() == null) {
+      String customerId = accounts.createCustomer(
+        activationRef,
+        regId.toString(),
+        c.fullName(), c.birthDate(), c.tin(),
+        c.email(), c.phone(), c.country()
+      );
+      reg = registrationRepo.findById(regId).orElseThrow();
+      reg.setCustomerId(customerId);
+      registrationRepo.save(reg);
+    }
+
+    // (3) Paso: Create CHECKING
+    if (reg.getPrimaryAccountId() == null) {
+      String accId = accounts.createAccount(
+        activationRef + ":checking",
+        regId + ":CHECKING",
+        reg.getCustomerId(),
+        "USD",
+        "CHECKING"
+      );
+      reg = registrationRepo.findById(regId).orElseThrow();
+      reg.setPrimaryAccountId(accId);
+      registrationRepo.save(reg);
+    }
+
+    // (4) (Opcional) bonus en ledger (ya tiene idempotency_key)
+    if (reg.getBonusJournalId() == null) {
+      String journalId = ledger.creditAccount(
+        activationRef + ":bonus",
+        reg.getPrimaryAccountId(),
+        "USD",
+        "5.00",
+        "registration_bonus",
+        reg.getCustomerId()
+      );
+      reg = registrationRepo.findById(regId).orElseThrow();
+      reg.setBonusJournalId(journalId);
+      registrationRepo.save(reg);
+    }
+
+    // (5) Finalizar
+    reg = registrationRepo.findById(regId).orElseThrow();
+    reg.setState(RegistrationIntent.State.ACTIVATED);
+    reg.setActivatedAt(Instant.now());
+    registrationRepo.save(reg);
+
+    return buildResponse(reg);
+  }
 }
