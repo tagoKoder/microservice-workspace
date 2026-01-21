@@ -7,6 +7,6 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface SpringDataAccountLimitJpa extends JpaRepository<AccountLimitEntity, Long> {
+public interface SpringDataAccountLimitJpa extends JpaRepository<AccountLimitEntity, UUID> {
     Optional<AccountLimitEntity> findByAccountId(UUID accountId);
 }

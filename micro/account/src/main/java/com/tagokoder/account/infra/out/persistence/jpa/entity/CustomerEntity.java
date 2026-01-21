@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 public class CustomerEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id= UUID.randomUUID();
+    private UUID id;
     @Column(name="full_name")
     private String fullname;
     @Column(name="birth_date")
@@ -36,6 +36,6 @@ public class CustomerEntity {
     private String kycLevel;
     @Column(name="kyc_verified_at")
     private LocalDateTime kycVerifiedAt;
-    @OneToMany(mappedBy = "customerId", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     private List<CustomerContactEntity> contacts;
 }

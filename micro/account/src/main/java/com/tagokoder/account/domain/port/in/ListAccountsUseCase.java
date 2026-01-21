@@ -1,5 +1,6 @@
 package com.tagokoder.account.domain.port.in;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +17,7 @@ public interface ListAccountsUseCase {
             Balances balances
     ) {}
 
-    record Balances(double ledger, double available, double hold) {}
+    record Balances(BigDecimal ledger, BigDecimal available, BigDecimal hold) {}
 
     record Result(List<AccountView> accounts) {}
 

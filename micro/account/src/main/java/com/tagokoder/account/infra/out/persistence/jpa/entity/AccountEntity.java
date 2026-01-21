@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 public class AccountEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id= UUID.randomUUID();
+    private UUID id;
 
     @Column(name = "customer_id", nullable = false)
     private UUID customerId;

@@ -1,5 +1,6 @@
 package com.tagokoder.account.domain.port.in;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public interface ValidateAccountsAndLimitsUseCase {
@@ -7,7 +8,7 @@ public interface ValidateAccountsAndLimitsUseCase {
     record Command(UUID sourceAccountId,
                    UUID destinationAccountId,
                    String currency,
-                   Double amount) {}
+                   BigDecimal amount) {}
 
     record Result(boolean ok, String reasonOrNull) {}
 
