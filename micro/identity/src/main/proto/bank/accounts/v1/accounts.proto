@@ -95,6 +95,9 @@ message CreateCustomerRequest {
   string email = 5;
   string phone = 6;
   CustomerAddressCreate address = 7; // opcional
+  // NEW (idempotencia M2M)
+  string idempotency_key = 20;  // recomendado
+  string external_ref = 21;     // ej: registration_id
 }
 
 message CustomerAddressCreate {
@@ -160,6 +163,9 @@ message CreateAccountRequest {
   ProductType product_type = 2;
   // OpenAPI: currency minLength=3 maxLength=3 (ISO-4217)
   string currency = 3;
+  // NEW
+  string idempotency_key = 20;
+  string external_ref = 21; // ej: registration_id + product_type
 }
 
 message CreateAccountResponse {
