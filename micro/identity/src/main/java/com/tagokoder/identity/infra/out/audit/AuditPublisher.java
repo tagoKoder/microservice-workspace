@@ -1,7 +1,8 @@
 package com.tagokoder.identity.infra.out.audit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tagokoder.identity.infra.config.AppProps;
+import com.tagokoder.identity.application.AppProps;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;

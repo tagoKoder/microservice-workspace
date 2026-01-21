@@ -1,6 +1,6 @@
 package com.tagokoder.identity.infra.security.grpc;
 
-import com.tagokoder.identity.infra.config.AppProps;
+import com.tagokoder.identity.application.AppProps;
 import com.tagokoder.identity.infra.out.audit.AuditPublisher;
 import com.tagokoder.identity.infra.security.authz.ActionResolver;
 import com.tagokoder.identity.infra.security.authz.ResourceResolver;

@@ -1,4 +1,4 @@
-package com.tagokoder.identity.infra.config;
+package com.tagokoder.identity.application;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -6,7 +6,7 @@ import lombok.Data;
 
 @ConfigurationProperties(prefix = "identity.clients")
 @Data
-public class IdentityProps {
+public class IdentityClientsProperties {
     private String accountsTarget; // e.g. "dns:///accounts:9090"
     private String ledgerTarget;   // e.g. "dns:///ledgerpayments:9090"
 

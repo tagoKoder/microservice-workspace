@@ -49,4 +49,11 @@ public class RegistrationIntent {
 
     private  Instant createdAt;
     private  Instant updatedAt;
+
+    private String activationRef;
+    private String customerId;
+    private String primaryAccountId;   // checking
+    private String savingsAccountId;   // si luego lo agregas
+    private String bonusJournalId;
+    private Instant activatedAt;
 }

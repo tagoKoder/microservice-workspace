@@ -1,11 +1,12 @@
 package com.tagokoder.identity.infra.security.avp;
 
-import com.tagokoder.identity.infra.config.AppProps;
 import software.amazon.awssdk.services.verifiedpermissions.VerifiedPermissionsClient;
 import software.amazon.awssdk.services.verifiedpermissions.model.*;
 
 import java.util.List;
 import java.util.Map;
+
+import com.tagokoder.identity.application.AppProps;
 
 public class AvpAuthorizer {
 

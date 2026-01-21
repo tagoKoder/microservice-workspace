@@ -5,18 +5,20 @@ import io.grpc.ManagedChannelBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.tagokoder.identity.application.IdentityClientsProperties;
+
 @Configuration
 public class GrpcClientsConfig {
 
   @Bean(destroyMethod = "shutdownNow")
-  public ManagedChannel accountsChannel(IdentityProps props) {
+  public ManagedChannel accountsChannel(IdentityClientsProperties props) {
     return ManagedChannelBuilder.forTarget(props.getAccountsTarget())
       .usePlaintext() // en prod: mTLS
       .build();
   }
 
   @Bean(destroyMethod = "shutdownNow")
-  public ManagedChannel ledgerChannel(IdentityProps props) {
+  public ManagedChannel ledgerChannel(IdentityClientsProperties props) {
     return ManagedChannelBuilder.forTarget(props.getLedgerTarget())
       .usePlaintext()
       .build();

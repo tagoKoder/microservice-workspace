@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.tagokoder.identity.application.AppProps;
 import com.tagokoder.identity.application.OidcProperties;
 import com.tagokoder.identity.domain.model.Identity;
 import com.tagokoder.identity.domain.port.in.CompleteLoginUseCase;
@@ -23,7 +24,6 @@ import com.tagokoder.identity.domain.port.out.OidcIdpClientPort;
 import com.tagokoder.identity.domain.port.out.OidcStateRepositoryPort;
 import com.tagokoder.identity.domain.port.out.WebauthnCredentialRepositoryPort;
 import com.tagokoder.identity.infra.audit.AuditEventV1;
-import com.tagokoder.identity.infra.config.AppProps;
 import com.tagokoder.identity.infra.security.OidcIdTokenValidator;
 import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
 

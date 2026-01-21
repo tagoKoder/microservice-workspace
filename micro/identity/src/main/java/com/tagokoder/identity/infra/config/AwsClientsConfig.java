@@ -2,6 +2,9 @@ package com.tagokoder.identity.infra.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.tagokoder.identity.application.AppProps;
+
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.verifiedpermissions.VerifiedPermissionsClient;

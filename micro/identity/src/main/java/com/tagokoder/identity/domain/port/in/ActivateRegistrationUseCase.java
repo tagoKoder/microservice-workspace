@@ -2,6 +2,8 @@ package com.tagokoder.identity.domain.port.in;
 
 import java.util.UUID;
 
+import lombok.Builder;
+
 public interface ActivateRegistrationUseCase {
   record ActivateRegistrationCommand(
       UUID registrationId,
@@ -12,7 +14,8 @@ public interface ActivateRegistrationUseCase {
       String country,
       String email,
       String phone,
-      boolean acceptedTerms
+      boolean acceptedTerms,
+      String correlationId
   ) {}
 
   record ActivateRegistrationResult(
@@ -25,7 +28,6 @@ public interface ActivateRegistrationUseCase {
       String bonusJournalId,
       String correlationId
   ) {}
-
   record ActivatedAccount(String accountId, String currency, String productType) {}
 
   ActivateRegistrationResult activate(ActivateRegistrationCommand cmd);

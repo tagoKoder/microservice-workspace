@@ -1,6 +1,6 @@
 package com.tagokoder.identity.infra.security.grpc;
 
-import com.tagokoder.identity.infra.config.AppProps;
+import com.tagokoder.identity.application.AppProps;
 import com.tagokoder.identity.infra.security.context.AuthCtx;
 import io.grpc.*;
 

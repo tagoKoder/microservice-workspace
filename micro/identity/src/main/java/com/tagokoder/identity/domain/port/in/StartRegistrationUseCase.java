@@ -1,4 +1,5 @@
 package com.tagokoder.identity.domain.port.in;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -15,7 +16,7 @@ public interface StartRegistrationUseCase {
         String nationalId,
         LocalDate nationalIdIssueDate,
         String fingerprintCode,
-        double monthlyIncome,
+        BigDecimal monthlyIncome,
         String occupationType,
         String email,
         String phone,

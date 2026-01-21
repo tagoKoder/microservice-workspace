@@ -1,4 +1,4 @@
-package com.tagokoder.identity.infra.config;
+package com.tagokoder.identity.application;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

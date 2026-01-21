@@ -1,5 +1,6 @@
 package com.tagokoder.identity.infra.in.grpc;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -9,17 +10,19 @@ import org.springframework.stereotype.Component;
 import com.google.protobuf.Timestamp;
 import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
 import com.tagokoder.identity.domain.model.kyc.UploadedObject;
+import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase;
 import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase.ActivateRegistrationCommand;
-import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase.ActivatedAccount;
 import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase;
 import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase.ConfirmRegistrationKycCommand;
 import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase;
 import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase.StartRegistrationCommand;
+import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
 
+import bank.identity.v1.ActivateRegistrationRequest;
+import bank.identity.v1.ActivateRegistrationResponse;
+import bank.identity.v1.ActivatedAccount;
 import bank.identity.v1.ConfirmRegistrationKycRequest;
 import bank.identity.v1.ConfirmRegistrationKycResponse;
-import bank.identity.v1.KycDocType;
-import bank.identity.v1.OccupationType;
 import bank.identity.v1.OnboardingServiceGrpc;
 import bank.identity.v1.PresignedUpload;
 import bank.identity.v1.RegistrationState;
@@ -27,15 +30,18 @@ import bank.identity.v1.StartRegistrationRequest;
 import bank.identity.v1.StartRegistrationResponse;
 import io.grpc.stub.StreamObserver;
 
+
 @Component
 public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServiceImplBase {
 
   private final StartRegistrationUseCase startRegistration;
   private final ConfirmRegistrationKycUseCase confirmKyc;
+  private final ActivateRegistrationUseCase activateRegistrationUseCase;
 
-  public OnboardingGrpcService(StartRegistrationUseCase startRegistration, ConfirmRegistrationKycUseCase confirmKyc) {
+  public OnboardingGrpcService(StartRegistrationUseCase startRegistration, ConfirmRegistrationKycUseCase confirmKyc, ActivateRegistrationUseCase activateRegistrationUseCase) {
     this.startRegistration = startRegistration;
     this.confirmKyc = confirmKyc;
+    this.activateRegistrationUseCase = activateRegistrationUseCase;
   }
 
   @Override
@@ -47,7 +53,7 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
                 request.getNationalId(),
                 LocalDate.parse(request.getNationalIdIssueDate()),
                 request.getFingerprintCode(),
-                request.getMonthlyIncome(),
+                BigDecimal.valueOf(request.getMonthlyIncome()),
                 request.getOccupationType().name(),
                 request.getEmail(),
                 request.getPhone(),
@@ -122,6 +128,7 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
     @Override
     public void activateRegistration(ActivateRegistrationRequest request,
         StreamObserver<ActivateRegistrationResponse> responseObserver) {
+        String corrId = CorrelationServerInterceptor.getCorrelationId();
 
     var res = activateRegistrationUseCase.activate(
         new ActivateRegistrationCommand(
@@ -133,7 +140,8 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
         request.getCountry(),
         request.getEmail(),
         request.getPhone(),
-        request.getAcceptedTerms()
+        request.getAcceptedTerms(),
+        corrId
         )
     );
 

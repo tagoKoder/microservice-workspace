@@ -1,6 +1,5 @@
 package com.tagokoder.identity.infra.out.storage;
 
-import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
@@ -12,8 +11,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.tagokoder.identity.application.IdentityKycStorageProperties;
-import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
 import com.tagokoder.identity.domain.model.kyc.FinalizedObject;
+import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
 import com.tagokoder.identity.domain.model.kyc.PresignedUpload;
 import com.tagokoder.identity.domain.model.kyc.UploadHeader;
 import com.tagokoder.identity.domain.model.kyc.UploadedObject;
@@ -199,7 +198,14 @@ public class S3PresignedKycStorage implements KycPresignedStoragePort {
         s3.copyObject(copy.build());
         s3.deleteObject(DeleteObjectRequest.builder().bucket(obj.bucket()).key(obj.key()).build());
 
-        return new FinalizedObject(obj.kind(), obj.bucket(), finalKey);
+        return new FinalizedObject(
+            obj.kind(),
+            obj.bucket(),
+            finalKey,
+            stripQuotes(head.eTag()),
+            len,
+            ct
+        );
     }
 
     private UploadedObject find(List<UploadedObject> objects, KycDocumentKind kind) {
