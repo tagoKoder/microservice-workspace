@@ -1,8 +1,9 @@
+// micro\ledger\internal\infra\security\authz\action_resolver.go
 package authz
 
 // Action (catálogo) + route_template (obligatorio para AuditEvent v1.0).
 type Action struct {
-	ID           string // p.ej. "ledger.payments.post"
+	ID            string // p.ej. "ledger.payments.post"
 	RouteTemplate string // p.ej. "POST /ledgerpayments.v1.PaymentsService/PostPayment"
 }
 

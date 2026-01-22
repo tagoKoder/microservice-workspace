@@ -8,8 +8,8 @@ import (
 )
 
 type Config struct {
-	AppEnv   string
-	GrpcAddr string
+	AppEnv      string
+	GrpcAddr    string
 	ServiceName string
 
 	// AWS
@@ -39,9 +39,8 @@ type Config struct {
 	AccountsBaseURL     string
 	AccountsInternalTok string
 
-	// Kafka
-	KafkaBrokers  []string
-	KafkaClientID string
+	// EventBridge
+	DomainEventBusName string
 
 	// Audit
 	AuditTopic string
@@ -56,8 +55,8 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		AppEnv:   getEnv("APP_ENV", "dev"),
-		GrpcAddr: getEnv("GRPC_ADDR", ":8082"),
+		AppEnv:      getEnv("APP_ENV", "dev"),
+		GrpcAddr:    getEnv("GRPC_ADDR", ":8082"),
 		ServiceName: getEnv("SERVICE_NAME", "ledger-payments"),
 
 		AWSRegion: getEnv("AWS_REGION", "us-east-1"),
@@ -80,8 +79,7 @@ func Load() Config {
 		AccountsBaseURL:     strings.TrimRight(getEnv("ACCOUNTS_BASE_URL", "http://accounts:8080"), "/"),
 		AccountsInternalTok: getEnv("ACCOUNTS_INTERNAL_TOKEN", ""),
 
-		KafkaBrokers:  splitCSV(getEnv("KAFKA_BROKERS", "localhost:9092")),
-		KafkaClientID: getEnv("KAFKA_CLIENT_ID", "ledger-payments"),
+		DomainEventBusName: getEnv("DOMAIN_EVENTBUS_NAME", "default"),
 
 		AuditTopic: getEnv("AUDIT_TOPIC", "audit.events"),
 

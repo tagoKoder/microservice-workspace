@@ -40,14 +40,23 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 	}
 
 	// 1) Idempotencia (read)
-	var cached *model.IdempotencyRecord
-	_ = s.uow.DoRead(ctx, func(r uow.ReadRepos) error {
-		cached, _ = r.Idempotency().Get(ctx, cmd.IdempotencyKey)
+	var cachedJSON string
+	if err := s.uow.DoRead(ctx, func(r uow.ReadRepos) error {
+		rec, err := r.Idempotency().Get(ctx, cmd.IdempotencyKey)
+		if err != nil {
+			return err
+		}
+		if rec != nil {
+			cachedJSON = rec.ResponseJSON
+		}
 		return nil
-	})
-	if cached != nil {
+	}); err != nil {
+		return in.PostPaymentResult{}, err
+	}
+
+	if cachedJSON != "" {
 		var pr in.PostPaymentResult
-		_ = json.Unmarshal([]byte(cached.ResponseJSON), &pr)
+		_ = json.Unmarshal([]byte(cachedJSON), &pr)
 		return pr, nil
 	}
 

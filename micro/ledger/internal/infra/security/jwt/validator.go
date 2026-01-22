@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\security\jwt\validator.go
 package jwtvalidator
 
 import (
@@ -17,9 +18,9 @@ import (
 )
 
 var (
-	ErrMissingToken   = errors.New("missing bearer token")
-	ErrInvalidToken   = errors.New("invalid token")
-	ErrInvalidIssuer  = errors.New("invalid issuer")
+	ErrMissingToken    = errors.New("missing bearer token")
+	ErrInvalidToken    = errors.New("invalid token")
+	ErrInvalidIssuer   = errors.New("invalid issuer")
 	ErrInvalidAudience = errors.New("invalid audience")
 )
 

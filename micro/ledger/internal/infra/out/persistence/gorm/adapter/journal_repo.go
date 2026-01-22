@@ -39,14 +39,17 @@ func (r *JournalRepo) InsertJournal(ctx context.Context, j *dm.JournalEntry) err
 		})
 	}
 
-	// transacción local (si UoW ya está en TX, esto sigue en la misma TX)
-	if err := r.db.WithContext(ctx).Create(&m).Error; err != nil {
-		return err
-	}
-	if len(lines) > 0 {
-		return r.db.WithContext(ctx).Create(&lines).Error
-	}
-	return nil
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&m).Error; err != nil {
+			return err
+		}
+		if len(lines) > 0 {
+			if err := tx.Create(&lines).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *JournalRepo) GetJournalByID(ctx context.Context, id uuid.UUID) (*dm.JournalEntry, error) {
@@ -90,9 +93,13 @@ func (r *JournalRepo) ListActivityByAccount(ctx context.Context, accountID uuid.
 	// (en tu diseño original es "counterparty_ref text"; aquí guardamos el UUID string del account)
 	var js []entity.JournalEntryEntity
 	err := r.db.WithContext(ctx).
-		Joins("JOIN entry_line_entitys el ON el.journal_id = journal_entry_entitys.id").
-		Where("el.counterparty_ref = ? AND journal_entry_entitys.booked_at >= ? AND journal_entry_entitys.booked_at <= ?", accountID.String(), from, to).
-		Order("journal_entry_entitys.booked_at desc").
+		Joins("JOIN entry_lines el ON el.journal_id = journal_entries.id").
+		Where(`
+			el.counterparty_ref = ?
+			AND journal_entries.booked_at >= ?
+			AND journal_entries.booked_at <= ?
+		`, accountID.String(), from, to).
+		Order("journal_entries.booked_at desc").
 		Limit(size).Offset(offset).
 		Preload("Lines").
 		Find(&js).Error

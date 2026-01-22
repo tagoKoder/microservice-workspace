@@ -27,6 +27,9 @@ func (r *PaymentRepo) FindById(ctx context.Context, id uuid.UUID) (*dm.Payment, 
 func (r *PaymentRepo) FindByIdempotencyKey(ctx context.Context, key string) (*dm.Payment, error) {
 	var m entity.PaymentEntity
 	err := r.db.WithContext(ctx).Preload("Steps").First(&m, "idempotency_key = ?", key).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return &dm.Payment{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

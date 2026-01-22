@@ -1,8 +1,8 @@
-// micro\ledger\internal\infra\out\persistence\gorm\adapter\outbox_repo.go
 package adapter
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,13 +12,9 @@ import (
 	"gorm.io/gorm"
 )
 
-type OutboxRepo struct {
-	db *gorm.DB
-}
+type OutboxRepo struct{ db *gorm.DB }
 
-func NewOutboxRepo(db *gorm.DB) out.OutboxRepositoryPort {
-	return &OutboxRepo{db: db}
-}
+func NewOutboxRepo(db *gorm.DB) out.OutboxRepositoryPort { return &OutboxRepo{db: db} }
 
 func (r *OutboxRepo) Insert(ctx context.Context, e *dm.OutboxEvent) error {
 	m := entity.OutboxEventEntity{
@@ -33,9 +29,6 @@ func (r *OutboxRepo) Insert(ctx context.Context, e *dm.OutboxEvent) error {
 	return r.db.WithContext(ctx).Create(&m).Error
 }
 
-// FetchNextUnpublished:
-// 1) En TX corta: selecciona N pendientes y las "claim" (processing=true) con SKIP LOCKED
-// 2) Devuelve esas filas para publicar fuera del TX
 func (r *OutboxRepo) FetchNextUnpublished(ctx context.Context, limit int) ([]dm.OutboxEvent, error) {
 	if limit <= 0 {
 		limit = 50
@@ -43,19 +36,29 @@ func (r *OutboxRepo) FetchNextUnpublished(ctx context.Context, limit int) ([]dm.
 
 	var claimed []entity.OutboxEventEntity
 	now := time.Now().UTC()
+	ttl := 2 * time.Minute // claim TTL mínimo para destrabar
+
+	owner := os.Getenv("HOSTNAME")
+	if owner == "" {
+		owner = "unknown"
+	}
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 1) seleccionar ids con lock (solo dentro de esta TX corta)
 		var ids []uuid.UUID
+
+		// TABLA CORRECTA: outbox_events (no outbox_event_entities)
 		if err := tx.Raw(`
 			SELECT id
-			FROM outbox_event_entities
+			FROM outbox_events
 			WHERE published = false
-			  AND processing = false
+			  AND (
+			       processing = false
+			       OR (processing = true AND processing_at < ?)
+			  )
 			ORDER BY created_at ASC
 			LIMIT ?
 			FOR UPDATE SKIP LOCKED
-		`, limit).Scan(&ids).Error; err != nil {
+		`, now.Add(-ttl), limit).Scan(&ids).Error; err != nil {
 			return err
 		}
 		if len(ids) == 0 {
@@ -63,23 +66,20 @@ func (r *OutboxRepo) FetchNextUnpublished(ctx context.Context, limit int) ([]dm.
 			return nil
 		}
 
-		// 2) marcar como processing (claim)
 		if err := tx.Model(&entity.OutboxEventEntity{}).
 			Where("id IN ?", ids).
 			Updates(map[string]any{
 				"processing":       true,
-				"processing_owner": nil,
+				"processing_owner": owner,
 				"processing_at":    now,
 			}).Error; err != nil {
 			return err
 		}
 
-		// 3) leer filas ya claimeadas para devolver payload completo
 		return tx.Where("id IN ?", ids).
 			Order("created_at ASC").
 			Find(&claimed).Error
 	})
-
 	if err != nil {
 		return nil, err
 	}

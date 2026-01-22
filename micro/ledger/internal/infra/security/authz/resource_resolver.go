@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\security\authz\resource_resolver.go
 package authz
 
 import (

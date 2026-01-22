@@ -39,7 +39,7 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 
 	// Idempotencia
 	var cachedJSON string
-	_ = s.uow.DoRead(ctx, func(r uow.ReadRepos) error {
+	if err := s.uow.DoRead(ctx, func(r uow.ReadRepos) error {
 		rec, err := r.Idempotency().Get(ctx, cmd.IdempotencyKey)
 		if err != nil {
 			return err
@@ -48,7 +48,10 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 			cachedJSON = rec.ResponseJSON
 		}
 		return nil
-	})
+	}); err != nil {
+		return in.CreditAccountResult{}, err
+	}
+
 	if cachedJSON != "" {
 		var prev in.CreditAccountResult
 		_ = json.Unmarshal([]byte(cachedJSON), &prev)
