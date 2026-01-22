@@ -166,6 +166,12 @@
   <artifactId>jackson-databind</artifactId>
 </dependency>
 
+<!-- AWS SDK v2 - SQS -->
+<dependency>
+  <groupId>software.amazon.awssdk</groupId>
+  <artifactId>sqs</artifactId>
+</dependency>
+
 
   </dependencies>
 

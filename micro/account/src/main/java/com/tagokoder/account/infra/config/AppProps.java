@@ -8,6 +8,6 @@ public record AppProps(
         Aws aws,
         Security security
 ) {
-    public record Aws(String region, String avpPolicyStoreId, String auditBusName) {}
+    public record Aws(String region, String avpPolicyStoreId, String auditBusName, String ledgerEventsQueueUrl) {}
     public record Security(String issuerUri, String audience, String hashSalt, String channel) {}
 }

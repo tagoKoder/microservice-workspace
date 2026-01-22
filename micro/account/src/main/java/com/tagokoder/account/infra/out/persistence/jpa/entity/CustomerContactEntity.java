@@ -25,7 +25,7 @@ public class CustomerContactEntity {
     @Column(name="customer_id", nullable=false)
     private UUID customerId;
     @ManyToOne
-    @JoinColumn(name="customerId", insertable=false, updatable=false)
+    @JoinColumn(name="customer_id", insertable=false, updatable=false)
     private CustomerEntity customer;
     private String email;
     @Column(name="email_verified")

@@ -1,5 +1,6 @@
 package com.tagokoder.account.application.service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -60,7 +61,7 @@ public class AccountService implements
         Account saved = accountRepo.save(a);
 
         balanceRepo.initZero(saved.getId());
-        limitsRepo.patch(saved.getId(), 0.0, 0.0);
+        limitsRepo.patch(saved.getId(), BigDecimal.ZERO, BigDecimal.ZERO);
 
         return new CreateAccountUseCase.Result(saved.getId());
     }
@@ -71,7 +72,7 @@ public class AccountService implements
 
         var views = accounts.stream().map(a -> {
             var bal = balanceRepo.findByAccountId(a.getId())
-                    .orElse(new AccountBalanceRepositoryPort.BalancesRow(0, 0, 0));
+                    .orElse(new AccountBalanceRepositoryPort.BalancesRow(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
 
             return new ListAccountsUseCase.AccountView(
                     a.getId(),
@@ -98,8 +99,8 @@ public class AccountService implements
     @Override
     @Transactional
     public PatchAccountLimitsUseCase.Result patch(PatchAccountLimitsUseCase.Command c) {
-        if (c.dailyOut() != null && c.dailyOut() < 0) throw new IllegalArgumentException("dailyOut must be >= 0");
-        if (c.dailyIn() != null && c.dailyIn() < 0) throw new IllegalArgumentException("dailyIn must be >= 0");
+        if (c.dailyOut() != null && c.dailyOut().compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("dailyOut must be >= 0");
+        if (c.dailyIn() != null && c.dailyIn().compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("dailyIn must be >= 0");
 
         var row = limitsRepo.patch(c.accountId(), c.dailyOut(), c.dailyIn());
         return new PatchAccountLimitsUseCase.Result(c.accountId(), row.dailyOut(), row.dailyIn());
@@ -109,7 +110,7 @@ public class AccountService implements
     @Override
     @Transactional(readOnly = true)
     public ValidateAccountsAndLimitsUseCase.Result validate(ValidateAccountsAndLimitsUseCase.Command c) {
-        if (c.amount() == null || c.amount() <= 0) {
+        if (c.amount() == null || c.amount().compareTo(BigDecimal.ZERO) <= 0) {
             return new ValidateAccountsAndLimitsUseCase.Result(false, "amount must be > 0");
         }
         if (c.currency() == null || c.currency().length() != 3) {
@@ -132,9 +133,9 @@ public class AccountService implements
         if (!c.currency().equalsIgnoreCase(dst.getCurrency())) return new ValidateAccountsAndLimitsUseCase.Result(false, "destination currency mismatch");
 
         var bal = balanceRepo.findByAccountId(src.getId())
-                .orElse(new AccountBalanceRepositoryPort.BalancesRow(0, 0, 0));
+                .orElse(new AccountBalanceRepositoryPort.BalancesRow(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
 
-        if (bal.available() < c.amount()) {
+        if (bal.available().compareTo(c.amount()) < 0) {
             return new ValidateAccountsAndLimitsUseCase.Result(false, "insufficient available");
         }
 
@@ -143,7 +144,7 @@ public class AccountService implements
         if (limOpt.isPresent()) {
             var lim = limOpt.get();
             // ejemplo simple: dailyOut debe ser >= amount si dailyOut>0
-            if (lim.dailyOut() > 0 && c.amount() > lim.dailyOut()) {
+            if (lim.dailyOut().compareTo(BigDecimal.ZERO) > 0 && c.amount().compareTo(lim.dailyOut()) > 0) {
                 return new ValidateAccountsAndLimitsUseCase.Result(false, "dailyOut limit exceeded");
             }
         }
@@ -154,7 +155,7 @@ public class AccountService implements
     @Override
     @Transactional
     public ReserveHoldUseCase.Result reserve(ReserveHoldUseCase.Command c) {
-        if (c.amount() == null || c.amount() <= 0) throw new IllegalArgumentException("amount must be > 0");
+        if (c.amount() == null || c.amount().compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("amount must be > 0");
         var acc = accountRepo.findById(c.accountId()).orElseThrow(() -> new IllegalArgumentException("account not found"));
 
         if (!"active".equalsIgnoreCase(acc.getStatus())) throw new IllegalArgumentException("account not active");
@@ -169,7 +170,7 @@ public class AccountService implements
     @Override
     @Transactional
     public ReleaseHoldUseCase.Result release(ReleaseHoldUseCase.Command c) {
-        if (c.amount() == null || c.amount() <= 0) throw new IllegalArgumentException("amount must be > 0");
+        if (c.amount() == null || c.amount().compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("amount must be > 0");
         var acc = accountRepo.findById(c.accountId()).orElseThrow(() -> new IllegalArgumentException("account not found"));
 
         if (!c.currency().equalsIgnoreCase(acc.getCurrency())) throw new IllegalArgumentException("currency mismatch");

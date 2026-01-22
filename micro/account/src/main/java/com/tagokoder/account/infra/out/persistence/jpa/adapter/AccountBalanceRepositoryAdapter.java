@@ -19,40 +19,35 @@ public class AccountBalanceRepositoryAdapter implements AccountBalanceRepository
         this.jpa = jpa;
     }
 
-    @Override
-    public Optional<BalancesRow> findByAccountId(UUID accountId) {
-        return jpa.findByAccountId(accountId).map(e ->
-                new BalancesRow(
-                        e.getLedger().doubleValue(),
-                        e.getAvailable().doubleValue(),
-                        e.getHold().doubleValue()
-                ));
-    }
+ @Override
+  public Optional<BalancesRow> findByAccountId(UUID accountId) {
+    return jpa.findById(accountId).map(e ->
+      new BalancesRow(e.getLedger(), e.getAvailable(), e.getHold())
+    );
+  }
 
-    @Override
-    public void initZero(UUID accountId) {
-        AccountBalanceEntity e = new AccountBalanceEntity();
-        e.setAccountId(accountId);
-        e.setLedger(BigDecimal.ZERO);
-        e.setAvailable(BigDecimal.ZERO);
-        e.setHold(BigDecimal.ZERO);
-        jpa.save(e);
-    }
+  @Override
+  public void initZero(UUID accountId) {
+    AccountBalanceEntity e = new AccountBalanceEntity();
+    e.setAccountId(accountId);
+    e.setLedger(BigDecimal.ZERO);
+    e.setAvailable(BigDecimal.ZERO);
+    e.setHold(BigDecimal.ZERO);
+    jpa.save(e);
+  }
 
-    @Override
-    public Double incrementHold(UUID accountId, Double amount) {
-        var _ = jpa.findByAccountId(accountId).orElseThrow(() -> new IllegalArgumentException("balances not found"));
-        jpa.addHold(accountId, BigDecimal.valueOf(amount));
-        var updated = jpa.findByAccountId(accountId).orElseThrow();
-        return updated.getHold().doubleValue();
-    }
+  @Override
+  public BigDecimal incrementHold(UUID accountId, BigDecimal amount) {
+    int updated = jpa.reserveHoldAtomic(accountId, amount);
+    if (updated != 1) throw new IllegalArgumentException("insufficient available or balances not found");
+    return jpa.findById(accountId).orElseThrow().getHold();
+  }
 
-    @Override
-    public Double decrementHold(UUID accountId, Double amount) {
-        var _ = jpa.findByAccountId(accountId).orElseThrow(() -> new IllegalArgumentException("balances not found"));
-        jpa.subHold(accountId, BigDecimal.valueOf(amount));
-        var updated = jpa.findByAccountId(accountId).orElseThrow();
-        return updated.getHold().doubleValue();
-    }
+  @Override
+  public BigDecimal decrementHold(UUID accountId, BigDecimal amount) {
+    int updated = jpa.releaseHoldAtomic(accountId, amount);
+    if (updated != 1) throw new IllegalArgumentException("insufficient hold or balances not found");
+    return jpa.findById(accountId).orElseThrow().getHold();
+  }
 
 }

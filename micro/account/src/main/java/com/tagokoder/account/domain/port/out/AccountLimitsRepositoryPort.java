@@ -7,6 +7,7 @@ import java.util.UUID;
 public interface AccountLimitsRepositoryPort {
     Optional<LimitsRow> findByAccountId(UUID accountId);
     LimitsRow patch(UUID accountId, BigDecimal dailyOut, BigDecimal dailyIn);
+    
 
     record LimitsRow(BigDecimal dailyOut, BigDecimal dailyIn) {}
 }

@@ -21,13 +21,13 @@ public class AccountLimitsRepositoryAdapter implements AccountLimitsRepositoryPo
     @Override
     public Optional<LimitsRow> findByAccountId(UUID accountId) {
         return jpa.findByAccountId(accountId).map(e -> new LimitsRow(
-                e.getDailyOut().doubleValue(),
-                e.getDailyIn().doubleValue()
+                e.getDailyOut(),
+                e.getDailyIn()
         ));
     }
 
     @Override
-    public LimitsRow patch(UUID accountId, Double dailyOut, Double dailyIn) {
+    public LimitsRow patch(UUID accountId, BigDecimal dailyOut, BigDecimal dailyIn) {
         AccountLimitEntity e = jpa.findByAccountId(accountId).orElseGet(() -> {
             AccountLimitEntity x = new AccountLimitEntity();
             x.setAccountId(accountId);
@@ -36,10 +36,10 @@ public class AccountLimitsRepositoryAdapter implements AccountLimitsRepositoryPo
             return x;
         });
 
-        if (dailyOut != null) e.setDailyOut(BigDecimal.valueOf(dailyOut));
-        if (dailyIn != null) e.setDailyIn(BigDecimal.valueOf(dailyIn));
+        if (dailyOut != null) e.setDailyOut(dailyOut);
+        if (dailyIn != null) e.setDailyIn(dailyIn);
 
         AccountLimitEntity saved = jpa.save(e);
-        return new LimitsRow(saved.getDailyOut().doubleValue(), saved.getDailyIn().doubleValue());
+        return new LimitsRow(saved.getDailyOut(), saved.getDailyIn());
     }
 }
