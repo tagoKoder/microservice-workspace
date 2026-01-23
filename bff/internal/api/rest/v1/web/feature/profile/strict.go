@@ -6,6 +6,7 @@ import (
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
 	"github.com/tagoKoder/bff/internal/api/rest/middleware"
 	"github.com/tagoKoder/bff/internal/client/ports"
+	"github.com/tagoKoder/bff/internal/security"
 )
 
 func (h *Handler) PatchStrict(
@@ -14,12 +15,13 @@ func (h *Handler) PatchStrict(
 	body openapi.PatchProfileRequest,
 ) (openapi.UpdateProfileResponseObject, error) {
 	_ = params.XCSRFToken // validado arriba
-
+	corrId := security.CorrelationID(ctx)
 	customerID, _ := ctx.Value(middleware.CtxCustomer).(string)
 	if customerID == "" {
 		return openapi.UpdateProfile403JSONResponse(openapi.ErrorResponse{
 			Code:    "FORBIDDEN",
 			Message: "missing customer context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -46,10 +48,16 @@ func (h *Handler) PatchStrict(
 		return openapi.UpdateProfile502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "accounts service unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
-	return openapi.UpdateProfile200JSONResponse(openapi.PatchProfileResponse{Updated: true}), nil
+	return openapi.UpdateProfile200JSONResponse{
+		Body: openapi.PatchProfileResponse{Updated: true},
+		Headers: openapi.UpdateProfile200ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
 
 func mapPref(s openapi.PatchProfileRequestPreferencesChannel) ports.PreferenceChannel {
