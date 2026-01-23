@@ -236,6 +236,278 @@ func (RegistrationState) EnumDescriptor() ([]byte, []int) {
 	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{3}
 }
 
+type ActivateRegistrationRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	RegistrationId string                 `protobuf:"bytes,1,opt,name=registration_id,json=registrationId,proto3" json:"registration_id,omitempty"` // uuid
+	Channel        string                 `protobuf:"bytes,2,opt,name=channel,proto3" json:"channel,omitempty"`                                     // web|mobile|etc
+	// datos mínimos para CreateCustomer en accounts
+	FullName  string `protobuf:"bytes,3,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	Tin       string `protobuf:"bytes,4,opt,name=tin,proto3" json:"tin,omitempty"`
+	BirthDate string `protobuf:"bytes,5,opt,name=birth_date,json=birthDate,proto3" json:"birth_date,omitempty"` // YYYY-MM-DD
+	Country   string `protobuf:"bytes,6,opt,name=country,proto3" json:"country,omitempty"`                      // ISO-3166-1 alpha-2 (tu OpenAPI manda solo country)
+	Email     string `protobuf:"bytes,7,opt,name=email,proto3" json:"email,omitempty"`
+	Phone     string `protobuf:"bytes,8,opt,name=phone,proto3" json:"phone,omitempty"`
+	// recomendado (aunque tu OpenAPI no lo tenga aún)
+	AcceptedTerms bool `protobuf:"varint,9,opt,name=accepted_terms,json=acceptedTerms,proto3" json:"accepted_terms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ActivateRegistrationRequest) Reset() {
+	*x = ActivateRegistrationRequest{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ActivateRegistrationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ActivateRegistrationRequest) ProtoMessage() {}
+
+func (x *ActivateRegistrationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ActivateRegistrationRequest.ProtoReflect.Descriptor instead.
+func (*ActivateRegistrationRequest) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *ActivateRegistrationRequest) GetRegistrationId() string {
+	if x != nil {
+		return x.RegistrationId
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationRequest) GetFullName() string {
+	if x != nil {
+		return x.FullName
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationRequest) GetTin() string {
+	if x != nil {
+		return x.Tin
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationRequest) GetBirthDate() string {
+	if x != nil {
+		return x.BirthDate
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationRequest) GetCountry() string {
+	if x != nil {
+		return x.Country
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationRequest) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationRequest) GetAcceptedTerms() bool {
+	if x != nil {
+		return x.AcceptedTerms
+	}
+	return false
+}
+
+type ActivatedAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Currency      string                 `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency,omitempty"`
+	ProductType   string                 `protobuf:"bytes,3,opt,name=product_type,json=productType,proto3" json:"product_type,omitempty"` // "CHECKING" | "SAVINGS" (string para no acoplar a accounts.proto)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ActivatedAccount) Reset() {
+	*x = ActivatedAccount{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ActivatedAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ActivatedAccount) ProtoMessage() {}
+
+func (x *ActivatedAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ActivatedAccount.ProtoReflect.Descriptor instead.
+func (*ActivatedAccount) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ActivatedAccount) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *ActivatedAccount) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *ActivatedAccount) GetProductType() string {
+	if x != nil {
+		return x.ProductType
+	}
+	return ""
+}
+
+type ActivateRegistrationResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	RegistrationId string                 `protobuf:"bytes,1,opt,name=registration_id,json=registrationId,proto3" json:"registration_id,omitempty"`
+	State          RegistrationState      `protobuf:"varint,2,opt,name=state,proto3,enum=bank.identity.v1.RegistrationState" json:"state,omitempty"` // REGISTRATION_STATE_ACTIVATED
+	// para tu OpenAPI ActivateResponse
+	CustomerId       string `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	PrimaryAccountId string `protobuf:"bytes,4,opt,name=primary_account_id,json=primaryAccountId,proto3" json:"primary_account_id,omitempty"` // checking
+	ActivationRef    string `protobuf:"bytes,5,opt,name=activation_ref,json=activationRef,proto3" json:"activation_ref,omitempty"`            // estable e idempotente
+	// opcional (útil para debug/demo)
+	Accounts       []*ActivatedAccount `protobuf:"bytes,6,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	BonusJournalId string              `protobuf:"bytes,7,opt,name=bonus_journal_id,json=bonusJournalId,proto3" json:"bonus_journal_id,omitempty"`
+	CorrelationId  string              `protobuf:"bytes,8,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ActivateRegistrationResponse) Reset() {
+	*x = ActivateRegistrationResponse{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ActivateRegistrationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ActivateRegistrationResponse) ProtoMessage() {}
+
+func (x *ActivateRegistrationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ActivateRegistrationResponse.ProtoReflect.Descriptor instead.
+func (*ActivateRegistrationResponse) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ActivateRegistrationResponse) GetRegistrationId() string {
+	if x != nil {
+		return x.RegistrationId
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationResponse) GetState() RegistrationState {
+	if x != nil {
+		return x.State
+	}
+	return RegistrationState_REGISTRATION_STATE_UNSPECIFIED
+}
+
+func (x *ActivateRegistrationResponse) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationResponse) GetPrimaryAccountId() string {
+	if x != nil {
+		return x.PrimaryAccountId
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationResponse) GetActivationRef() string {
+	if x != nil {
+		return x.ActivationRef
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationResponse) GetAccounts() []*ActivatedAccount {
+	if x != nil {
+		return x.Accounts
+	}
+	return nil
+}
+
+func (x *ActivateRegistrationResponse) GetBonusJournalId() string {
+	if x != nil {
+		return x.BonusJournalId
+	}
+	return ""
+}
+
+func (x *ActivateRegistrationResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
 // StartRegistrationV1Request
 // Creates a registration intent and returns presigned upload URLs (no bytes in request).
 type StartRegistrationRequest struct {
@@ -258,7 +530,7 @@ type StartRegistrationRequest struct {
 
 func (x *StartRegistrationRequest) Reset() {
 	*x = StartRegistrationRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[0]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -270,7 +542,7 @@ func (x *StartRegistrationRequest) String() string {
 func (*StartRegistrationRequest) ProtoMessage() {}
 
 func (x *StartRegistrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[0]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -283,7 +555,7 @@ func (x *StartRegistrationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartRegistrationRequest.ProtoReflect.Descriptor instead.
 func (*StartRegistrationRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{0}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StartRegistrationRequest) GetChannel() string {
@@ -372,7 +644,7 @@ type StartRegistrationResponse struct {
 
 func (x *StartRegistrationResponse) Reset() {
 	*x = StartRegistrationResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[1]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -384,7 +656,7 @@ func (x *StartRegistrationResponse) String() string {
 func (*StartRegistrationResponse) ProtoMessage() {}
 
 func (x *StartRegistrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[1]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -397,7 +669,7 @@ func (x *StartRegistrationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartRegistrationResponse.ProtoReflect.Descriptor instead.
 func (*StartRegistrationResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{1}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *StartRegistrationResponse) GetRegistrationId() string {
@@ -455,7 +727,7 @@ type PresignedUpload struct {
 
 func (x *PresignedUpload) Reset() {
 	*x = PresignedUpload{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[2]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +739,7 @@ func (x *PresignedUpload) String() string {
 func (*PresignedUpload) ProtoMessage() {}
 
 func (x *PresignedUpload) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[2]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +752,7 @@ func (x *PresignedUpload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresignedUpload.ProtoReflect.Descriptor instead.
 func (*PresignedUpload) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{2}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PresignedUpload) GetDocType() KycDocType {
@@ -549,7 +821,7 @@ type Header struct {
 
 func (x *Header) Reset() {
 	*x = Header{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[3]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -561,7 +833,7 @@ func (x *Header) String() string {
 func (*Header) ProtoMessage() {}
 
 func (x *Header) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[3]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -574,7 +846,7 @@ func (x *Header) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Header.ProtoReflect.Descriptor instead.
 func (*Header) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{3}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Header) GetName() string {
@@ -605,7 +877,7 @@ type ConfirmRegistrationKycRequest struct {
 
 func (x *ConfirmRegistrationKycRequest) Reset() {
 	*x = ConfirmRegistrationKycRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[4]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -617,7 +889,7 @@ func (x *ConfirmRegistrationKycRequest) String() string {
 func (*ConfirmRegistrationKycRequest) ProtoMessage() {}
 
 func (x *ConfirmRegistrationKycRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[4]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -630,7 +902,7 @@ func (x *ConfirmRegistrationKycRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmRegistrationKycRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmRegistrationKycRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{4}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ConfirmRegistrationKycRequest) GetRegistrationId() string {
@@ -671,7 +943,7 @@ type UploadedObject struct {
 
 func (x *UploadedObject) Reset() {
 	*x = UploadedObject{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[5]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -683,7 +955,7 @@ func (x *UploadedObject) String() string {
 func (*UploadedObject) ProtoMessage() {}
 
 func (x *UploadedObject) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[5]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -696,7 +968,7 @@ func (x *UploadedObject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadedObject.ProtoReflect.Descriptor instead.
 func (*UploadedObject) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{5}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UploadedObject) GetDocType() KycDocType {
@@ -755,7 +1027,7 @@ type ConfirmRegistrationKycResponse struct {
 
 func (x *ConfirmRegistrationKycResponse) Reset() {
 	*x = ConfirmRegistrationKycResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[6]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -767,7 +1039,7 @@ func (x *ConfirmRegistrationKycResponse) String() string {
 func (*ConfirmRegistrationKycResponse) ProtoMessage() {}
 
 func (x *ConfirmRegistrationKycResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[6]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -780,7 +1052,7 @@ func (x *ConfirmRegistrationKycResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmRegistrationKycResponse.ProtoReflect.Descriptor instead.
 func (*ConfirmRegistrationKycResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{6}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ConfirmRegistrationKycResponse) GetRegistrationId() string {
@@ -832,7 +1104,7 @@ type KycObjectStatus struct {
 
 func (x *KycObjectStatus) Reset() {
 	*x = KycObjectStatus{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[7]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -844,7 +1116,7 @@ func (x *KycObjectStatus) String() string {
 func (*KycObjectStatus) ProtoMessage() {}
 
 func (x *KycObjectStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[7]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -857,7 +1129,7 @@ func (x *KycObjectStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KycObjectStatus.ProtoReflect.Descriptor instead.
 func (*KycObjectStatus) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{7}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *KycObjectStatus) GetDocType() KycDocType {
@@ -905,7 +1177,7 @@ type StartOidcLoginRequest struct {
 
 func (x *StartOidcLoginRequest) Reset() {
 	*x = StartOidcLoginRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[8]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -917,7 +1189,7 @@ func (x *StartOidcLoginRequest) String() string {
 func (*StartOidcLoginRequest) ProtoMessage() {}
 
 func (x *StartOidcLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[8]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +1202,7 @@ func (x *StartOidcLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartOidcLoginRequest.ProtoReflect.Descriptor instead.
 func (*StartOidcLoginRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{8}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StartOidcLoginRequest) GetChannel() string {
@@ -957,7 +1229,7 @@ type StartOidcLoginResponse struct {
 
 func (x *StartOidcLoginResponse) Reset() {
 	*x = StartOidcLoginResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[9]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -969,7 +1241,7 @@ func (x *StartOidcLoginResponse) String() string {
 func (*StartOidcLoginResponse) ProtoMessage() {}
 
 func (x *StartOidcLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[9]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -982,7 +1254,7 @@ func (x *StartOidcLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartOidcLoginResponse.ProtoReflect.Descriptor instead.
 func (*StartOidcLoginResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{9}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *StartOidcLoginResponse) GetAuthorizationUrl() string {
@@ -1012,7 +1284,7 @@ type CompleteOidcLoginRequest struct {
 
 func (x *CompleteOidcLoginRequest) Reset() {
 	*x = CompleteOidcLoginRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[10]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1024,7 +1296,7 @@ func (x *CompleteOidcLoginRequest) String() string {
 func (*CompleteOidcLoginRequest) ProtoMessage() {}
 
 func (x *CompleteOidcLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[10]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1037,7 +1309,7 @@ func (x *CompleteOidcLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteOidcLoginRequest.ProtoReflect.Descriptor instead.
 func (*CompleteOidcLoginRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{10}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CompleteOidcLoginRequest) GetCode() string {
@@ -1090,7 +1362,7 @@ type CompleteOidcLoginResponse struct {
 
 func (x *CompleteOidcLoginResponse) Reset() {
 	*x = CompleteOidcLoginResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[11]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1102,7 +1374,7 @@ func (x *CompleteOidcLoginResponse) String() string {
 func (*CompleteOidcLoginResponse) ProtoMessage() {}
 
 func (x *CompleteOidcLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[11]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1115,7 +1387,7 @@ func (x *CompleteOidcLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteOidcLoginResponse.ProtoReflect.Descriptor instead.
 func (*CompleteOidcLoginResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{11}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CompleteOidcLoginResponse) GetIdentityId() string {
@@ -1178,7 +1450,7 @@ type OidcUser struct {
 
 func (x *OidcUser) Reset() {
 	*x = OidcUser{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[12]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1190,7 +1462,7 @@ func (x *OidcUser) String() string {
 func (*OidcUser) ProtoMessage() {}
 
 func (x *OidcUser) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[12]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1203,7 +1475,7 @@ func (x *OidcUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OidcUser.ProtoReflect.Descriptor instead.
 func (*OidcUser) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{12}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *OidcUser) GetName() string {
@@ -1238,7 +1510,7 @@ type RefreshSessionRequest struct {
 
 func (x *RefreshSessionRequest) Reset() {
 	*x = RefreshSessionRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[13]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1250,7 +1522,7 @@ func (x *RefreshSessionRequest) String() string {
 func (*RefreshSessionRequest) ProtoMessage() {}
 
 func (x *RefreshSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[13]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1263,7 +1535,7 @@ func (x *RefreshSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSessionRequest.ProtoReflect.Descriptor instead.
 func (*RefreshSessionRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{13}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RefreshSessionRequest) GetSessionId() string {
@@ -1300,7 +1572,7 @@ type RefreshSessionResponse struct {
 
 func (x *RefreshSessionResponse) Reset() {
 	*x = RefreshSessionResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[14]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1312,7 +1584,7 @@ func (x *RefreshSessionResponse) String() string {
 func (*RefreshSessionResponse) ProtoMessage() {}
 
 func (x *RefreshSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[14]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1325,7 +1597,7 @@ func (x *RefreshSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSessionResponse.ProtoReflect.Descriptor instead.
 func (*RefreshSessionResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{14}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RefreshSessionResponse) GetSessionId() string {
@@ -1365,7 +1637,7 @@ type LogoutSessionRequest struct {
 
 func (x *LogoutSessionRequest) Reset() {
 	*x = LogoutSessionRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[15]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1377,7 +1649,7 @@ func (x *LogoutSessionRequest) String() string {
 func (*LogoutSessionRequest) ProtoMessage() {}
 
 func (x *LogoutSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[15]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1390,7 +1662,7 @@ func (x *LogoutSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutSessionRequest.ProtoReflect.Descriptor instead.
 func (*LogoutSessionRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{15}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *LogoutSessionRequest) GetSessionId() string {
@@ -1409,7 +1681,7 @@ type LogoutSessionResponse struct {
 
 func (x *LogoutSessionResponse) Reset() {
 	*x = LogoutSessionResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[16]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1421,7 +1693,7 @@ func (x *LogoutSessionResponse) String() string {
 func (*LogoutSessionResponse) ProtoMessage() {}
 
 func (x *LogoutSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[16]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1434,7 +1706,7 @@ func (x *LogoutSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutSessionResponse.ProtoReflect.Descriptor instead.
 func (*LogoutSessionResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{16}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *LogoutSessionResponse) GetSuccess() bool {
@@ -1455,7 +1727,7 @@ type GetSessionInfoRequest struct {
 
 func (x *GetSessionInfoRequest) Reset() {
 	*x = GetSessionInfoRequest{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[17]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1467,7 +1739,7 @@ func (x *GetSessionInfoRequest) String() string {
 func (*GetSessionInfoRequest) ProtoMessage() {}
 
 func (x *GetSessionInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[17]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1480,7 +1752,7 @@ func (x *GetSessionInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetSessionInfoRequest) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{17}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetSessionInfoRequest) GetSessionId() string {
@@ -1519,7 +1791,7 @@ type GetSessionInfoResponse struct {
 
 func (x *GetSessionInfoResponse) Reset() {
 	*x = GetSessionInfoResponse{}
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[18]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1531,7 +1803,7 @@ func (x *GetSessionInfoResponse) String() string {
 func (*GetSessionInfoResponse) ProtoMessage() {}
 
 func (x *GetSessionInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_identity_v1_identity_proto_msgTypes[18]
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1544,7 +1816,7 @@ func (x *GetSessionInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionInfoResponse) Descriptor() ([]byte, []int) {
-	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{18}
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetSessionInfoResponse) GetIdentityId() string {
@@ -1600,7 +1872,33 @@ var File_bank_identity_v1_identity_proto protoreflect.FileDescriptor
 
 const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"\n" +
-	"\x1fbank/identity/v1/identity.proto\x12\x10bank.identity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb6\x03\n" +
+	"\x1fbank/identity/v1/identity.proto\x12\x10bank.identity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9b\x02\n" +
+	"\x1bActivateRegistrationRequest\x12'\n" +
+	"\x0fregistration_id\x18\x01 \x01(\tR\x0eregistrationId\x12\x18\n" +
+	"\achannel\x18\x02 \x01(\tR\achannel\x12\x1b\n" +
+	"\tfull_name\x18\x03 \x01(\tR\bfullName\x12\x10\n" +
+	"\x03tin\x18\x04 \x01(\tR\x03tin\x12\x1d\n" +
+	"\n" +
+	"birth_date\x18\x05 \x01(\tR\tbirthDate\x12\x18\n" +
+	"\acountry\x18\x06 \x01(\tR\acountry\x12\x14\n" +
+	"\x05email\x18\a \x01(\tR\x05email\x12\x14\n" +
+	"\x05phone\x18\b \x01(\tR\x05phone\x12%\n" +
+	"\x0eaccepted_terms\x18\t \x01(\bR\racceptedTerms\"p\n" +
+	"\x10ActivatedAccount\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x1a\n" +
+	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x12!\n" +
+	"\fproduct_type\x18\x03 \x01(\tR\vproductType\"\x89\x03\n" +
+	"\x1cActivateRegistrationResponse\x12'\n" +
+	"\x0fregistration_id\x18\x01 \x01(\tR\x0eregistrationId\x129\n" +
+	"\x05state\x18\x02 \x01(\x0e2#.bank.identity.v1.RegistrationStateR\x05state\x12\x1f\n" +
+	"\vcustomer_id\x18\x03 \x01(\tR\n" +
+	"customerId\x12,\n" +
+	"\x12primary_account_id\x18\x04 \x01(\tR\x10primaryAccountId\x12%\n" +
+	"\x0eactivation_ref\x18\x05 \x01(\tR\ractivationRef\x12>\n" +
+	"\baccounts\x18\x06 \x03(\v2\".bank.identity.v1.ActivatedAccountR\baccounts\x12(\n" +
+	"\x10bonus_journal_id\x18\a \x01(\tR\x0ebonusJournalId\x12%\n" +
+	"\x0ecorrelation_id\x18\b \x01(\tR\rcorrelationId\"\xb6\x03\n" +
 	"\x18StartRegistrationRequest\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12\x1f\n" +
 	"\vnational_id\x18\x02 \x01(\tR\n" +
@@ -1741,10 +2039,11 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"#REGISTRATION_STATE_CONTACT_VERIFIED\x10\x02\x12 \n" +
 	"\x1cREGISTRATION_STATE_CONSENTED\x10\x03\x12 \n" +
 	"\x1cREGISTRATION_STATE_ACTIVATED\x10\x04\x12\x1f\n" +
-	"\x1bREGISTRATION_STATE_REJECTED\x10\x052\xfe\x01\n" +
+	"\x1bREGISTRATION_STATE_REJECTED\x10\x052\xf5\x02\n" +
 	"\x11OnboardingService\x12l\n" +
 	"\x11StartRegistration\x12*.bank.identity.v1.StartRegistrationRequest\x1a+.bank.identity.v1.StartRegistrationResponse\x12{\n" +
-	"\x16ConfirmRegistrationKyc\x12/.bank.identity.v1.ConfirmRegistrationKycRequest\x1a0.bank.identity.v1.ConfirmRegistrationKycResponse2\x90\x04\n" +
+	"\x16ConfirmRegistrationKyc\x12/.bank.identity.v1.ConfirmRegistrationKycRequest\x1a0.bank.identity.v1.ConfirmRegistrationKycResponse\x12u\n" +
+	"\x14ActivateRegistration\x12-.bank.identity.v1.ActivateRegistrationRequest\x1a..bank.identity.v1.ActivateRegistrationResponse2\x90\x04\n" +
 	"\x0fOidcAuthService\x12c\n" +
 	"\x0eStartOidcLogin\x12'.bank.identity.v1.StartOidcLoginRequest\x1a(.bank.identity.v1.StartOidcLoginResponse\x12l\n" +
 	"\x11CompleteOidcLogin\x12*.bank.identity.v1.CompleteOidcLoginRequest\x1a+.bank.identity.v1.CompleteOidcLoginResponse\x12c\n" +
@@ -1766,68 +2065,75 @@ func file_bank_identity_v1_identity_proto_rawDescGZIP() []byte {
 }
 
 var file_bank_identity_v1_identity_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_bank_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_bank_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_bank_identity_v1_identity_proto_goTypes = []any{
 	(OccupationType)(0),                    // 0: bank.identity.v1.OccupationType
 	(KycDocType)(0),                        // 1: bank.identity.v1.KycDocType
 	(KycUploadStatus)(0),                   // 2: bank.identity.v1.KycUploadStatus
 	(RegistrationState)(0),                 // 3: bank.identity.v1.RegistrationState
-	(*StartRegistrationRequest)(nil),       // 4: bank.identity.v1.StartRegistrationRequest
-	(*StartRegistrationResponse)(nil),      // 5: bank.identity.v1.StartRegistrationResponse
-	(*PresignedUpload)(nil),                // 6: bank.identity.v1.PresignedUpload
-	(*Header)(nil),                         // 7: bank.identity.v1.Header
-	(*ConfirmRegistrationKycRequest)(nil),  // 8: bank.identity.v1.ConfirmRegistrationKycRequest
-	(*UploadedObject)(nil),                 // 9: bank.identity.v1.UploadedObject
-	(*ConfirmRegistrationKycResponse)(nil), // 10: bank.identity.v1.ConfirmRegistrationKycResponse
-	(*KycObjectStatus)(nil),                // 11: bank.identity.v1.KycObjectStatus
-	(*StartOidcLoginRequest)(nil),          // 12: bank.identity.v1.StartOidcLoginRequest
-	(*StartOidcLoginResponse)(nil),         // 13: bank.identity.v1.StartOidcLoginResponse
-	(*CompleteOidcLoginRequest)(nil),       // 14: bank.identity.v1.CompleteOidcLoginRequest
-	(*CompleteOidcLoginResponse)(nil),      // 15: bank.identity.v1.CompleteOidcLoginResponse
-	(*OidcUser)(nil),                       // 16: bank.identity.v1.OidcUser
-	(*RefreshSessionRequest)(nil),          // 17: bank.identity.v1.RefreshSessionRequest
-	(*RefreshSessionResponse)(nil),         // 18: bank.identity.v1.RefreshSessionResponse
-	(*LogoutSessionRequest)(nil),           // 19: bank.identity.v1.LogoutSessionRequest
-	(*LogoutSessionResponse)(nil),          // 20: bank.identity.v1.LogoutSessionResponse
-	(*GetSessionInfoRequest)(nil),          // 21: bank.identity.v1.GetSessionInfoRequest
-	(*GetSessionInfoResponse)(nil),         // 22: bank.identity.v1.GetSessionInfoResponse
-	(*timestamppb.Timestamp)(nil),          // 23: google.protobuf.Timestamp
+	(*ActivateRegistrationRequest)(nil),    // 4: bank.identity.v1.ActivateRegistrationRequest
+	(*ActivatedAccount)(nil),               // 5: bank.identity.v1.ActivatedAccount
+	(*ActivateRegistrationResponse)(nil),   // 6: bank.identity.v1.ActivateRegistrationResponse
+	(*StartRegistrationRequest)(nil),       // 7: bank.identity.v1.StartRegistrationRequest
+	(*StartRegistrationResponse)(nil),      // 8: bank.identity.v1.StartRegistrationResponse
+	(*PresignedUpload)(nil),                // 9: bank.identity.v1.PresignedUpload
+	(*Header)(nil),                         // 10: bank.identity.v1.Header
+	(*ConfirmRegistrationKycRequest)(nil),  // 11: bank.identity.v1.ConfirmRegistrationKycRequest
+	(*UploadedObject)(nil),                 // 12: bank.identity.v1.UploadedObject
+	(*ConfirmRegistrationKycResponse)(nil), // 13: bank.identity.v1.ConfirmRegistrationKycResponse
+	(*KycObjectStatus)(nil),                // 14: bank.identity.v1.KycObjectStatus
+	(*StartOidcLoginRequest)(nil),          // 15: bank.identity.v1.StartOidcLoginRequest
+	(*StartOidcLoginResponse)(nil),         // 16: bank.identity.v1.StartOidcLoginResponse
+	(*CompleteOidcLoginRequest)(nil),       // 17: bank.identity.v1.CompleteOidcLoginRequest
+	(*CompleteOidcLoginResponse)(nil),      // 18: bank.identity.v1.CompleteOidcLoginResponse
+	(*OidcUser)(nil),                       // 19: bank.identity.v1.OidcUser
+	(*RefreshSessionRequest)(nil),          // 20: bank.identity.v1.RefreshSessionRequest
+	(*RefreshSessionResponse)(nil),         // 21: bank.identity.v1.RefreshSessionResponse
+	(*LogoutSessionRequest)(nil),           // 22: bank.identity.v1.LogoutSessionRequest
+	(*LogoutSessionResponse)(nil),          // 23: bank.identity.v1.LogoutSessionResponse
+	(*GetSessionInfoRequest)(nil),          // 24: bank.identity.v1.GetSessionInfoRequest
+	(*GetSessionInfoResponse)(nil),         // 25: bank.identity.v1.GetSessionInfoResponse
+	(*timestamppb.Timestamp)(nil),          // 26: google.protobuf.Timestamp
 }
 var file_bank_identity_v1_identity_proto_depIdxs = []int32{
-	0,  // 0: bank.identity.v1.StartRegistrationRequest.occupation_type:type_name -> bank.identity.v1.OccupationType
-	3,  // 1: bank.identity.v1.StartRegistrationResponse.state:type_name -> bank.identity.v1.RegistrationState
-	23, // 2: bank.identity.v1.StartRegistrationResponse.created_at:type_name -> google.protobuf.Timestamp
-	6,  // 3: bank.identity.v1.StartRegistrationResponse.uploads:type_name -> bank.identity.v1.PresignedUpload
-	1,  // 4: bank.identity.v1.PresignedUpload.doc_type:type_name -> bank.identity.v1.KycDocType
-	7,  // 5: bank.identity.v1.PresignedUpload.headers:type_name -> bank.identity.v1.Header
-	9,  // 6: bank.identity.v1.ConfirmRegistrationKycRequest.objects:type_name -> bank.identity.v1.UploadedObject
-	1,  // 7: bank.identity.v1.UploadedObject.doc_type:type_name -> bank.identity.v1.KycDocType
-	3,  // 8: bank.identity.v1.ConfirmRegistrationKycResponse.state:type_name -> bank.identity.v1.RegistrationState
-	11, // 9: bank.identity.v1.ConfirmRegistrationKycResponse.statuses:type_name -> bank.identity.v1.KycObjectStatus
-	23, // 10: bank.identity.v1.ConfirmRegistrationKycResponse.confirmed_at:type_name -> google.protobuf.Timestamp
-	1,  // 11: bank.identity.v1.KycObjectStatus.doc_type:type_name -> bank.identity.v1.KycDocType
-	2,  // 12: bank.identity.v1.KycObjectStatus.status:type_name -> bank.identity.v1.KycUploadStatus
-	16, // 13: bank.identity.v1.CompleteOidcLoginResponse.user:type_name -> bank.identity.v1.OidcUser
-	16, // 14: bank.identity.v1.GetSessionInfoResponse.user:type_name -> bank.identity.v1.OidcUser
-	4,  // 15: bank.identity.v1.OnboardingService.StartRegistration:input_type -> bank.identity.v1.StartRegistrationRequest
-	8,  // 16: bank.identity.v1.OnboardingService.ConfirmRegistrationKyc:input_type -> bank.identity.v1.ConfirmRegistrationKycRequest
-	12, // 17: bank.identity.v1.OidcAuthService.StartOidcLogin:input_type -> bank.identity.v1.StartOidcLoginRequest
-	14, // 18: bank.identity.v1.OidcAuthService.CompleteOidcLogin:input_type -> bank.identity.v1.CompleteOidcLoginRequest
-	17, // 19: bank.identity.v1.OidcAuthService.RefreshSession:input_type -> bank.identity.v1.RefreshSessionRequest
-	19, // 20: bank.identity.v1.OidcAuthService.LogoutSession:input_type -> bank.identity.v1.LogoutSessionRequest
-	21, // 21: bank.identity.v1.OidcAuthService.GetSessionInfo:input_type -> bank.identity.v1.GetSessionInfoRequest
-	5,  // 22: bank.identity.v1.OnboardingService.StartRegistration:output_type -> bank.identity.v1.StartRegistrationResponse
-	10, // 23: bank.identity.v1.OnboardingService.ConfirmRegistrationKyc:output_type -> bank.identity.v1.ConfirmRegistrationKycResponse
-	13, // 24: bank.identity.v1.OidcAuthService.StartOidcLogin:output_type -> bank.identity.v1.StartOidcLoginResponse
-	15, // 25: bank.identity.v1.OidcAuthService.CompleteOidcLogin:output_type -> bank.identity.v1.CompleteOidcLoginResponse
-	18, // 26: bank.identity.v1.OidcAuthService.RefreshSession:output_type -> bank.identity.v1.RefreshSessionResponse
-	20, // 27: bank.identity.v1.OidcAuthService.LogoutSession:output_type -> bank.identity.v1.LogoutSessionResponse
-	22, // 28: bank.identity.v1.OidcAuthService.GetSessionInfo:output_type -> bank.identity.v1.GetSessionInfoResponse
-	22, // [22:29] is the sub-list for method output_type
-	15, // [15:22] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	3,  // 0: bank.identity.v1.ActivateRegistrationResponse.state:type_name -> bank.identity.v1.RegistrationState
+	5,  // 1: bank.identity.v1.ActivateRegistrationResponse.accounts:type_name -> bank.identity.v1.ActivatedAccount
+	0,  // 2: bank.identity.v1.StartRegistrationRequest.occupation_type:type_name -> bank.identity.v1.OccupationType
+	3,  // 3: bank.identity.v1.StartRegistrationResponse.state:type_name -> bank.identity.v1.RegistrationState
+	26, // 4: bank.identity.v1.StartRegistrationResponse.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 5: bank.identity.v1.StartRegistrationResponse.uploads:type_name -> bank.identity.v1.PresignedUpload
+	1,  // 6: bank.identity.v1.PresignedUpload.doc_type:type_name -> bank.identity.v1.KycDocType
+	10, // 7: bank.identity.v1.PresignedUpload.headers:type_name -> bank.identity.v1.Header
+	12, // 8: bank.identity.v1.ConfirmRegistrationKycRequest.objects:type_name -> bank.identity.v1.UploadedObject
+	1,  // 9: bank.identity.v1.UploadedObject.doc_type:type_name -> bank.identity.v1.KycDocType
+	3,  // 10: bank.identity.v1.ConfirmRegistrationKycResponse.state:type_name -> bank.identity.v1.RegistrationState
+	14, // 11: bank.identity.v1.ConfirmRegistrationKycResponse.statuses:type_name -> bank.identity.v1.KycObjectStatus
+	26, // 12: bank.identity.v1.ConfirmRegistrationKycResponse.confirmed_at:type_name -> google.protobuf.Timestamp
+	1,  // 13: bank.identity.v1.KycObjectStatus.doc_type:type_name -> bank.identity.v1.KycDocType
+	2,  // 14: bank.identity.v1.KycObjectStatus.status:type_name -> bank.identity.v1.KycUploadStatus
+	19, // 15: bank.identity.v1.CompleteOidcLoginResponse.user:type_name -> bank.identity.v1.OidcUser
+	19, // 16: bank.identity.v1.GetSessionInfoResponse.user:type_name -> bank.identity.v1.OidcUser
+	7,  // 17: bank.identity.v1.OnboardingService.StartRegistration:input_type -> bank.identity.v1.StartRegistrationRequest
+	11, // 18: bank.identity.v1.OnboardingService.ConfirmRegistrationKyc:input_type -> bank.identity.v1.ConfirmRegistrationKycRequest
+	4,  // 19: bank.identity.v1.OnboardingService.ActivateRegistration:input_type -> bank.identity.v1.ActivateRegistrationRequest
+	15, // 20: bank.identity.v1.OidcAuthService.StartOidcLogin:input_type -> bank.identity.v1.StartOidcLoginRequest
+	17, // 21: bank.identity.v1.OidcAuthService.CompleteOidcLogin:input_type -> bank.identity.v1.CompleteOidcLoginRequest
+	20, // 22: bank.identity.v1.OidcAuthService.RefreshSession:input_type -> bank.identity.v1.RefreshSessionRequest
+	22, // 23: bank.identity.v1.OidcAuthService.LogoutSession:input_type -> bank.identity.v1.LogoutSessionRequest
+	24, // 24: bank.identity.v1.OidcAuthService.GetSessionInfo:input_type -> bank.identity.v1.GetSessionInfoRequest
+	8,  // 25: bank.identity.v1.OnboardingService.StartRegistration:output_type -> bank.identity.v1.StartRegistrationResponse
+	13, // 26: bank.identity.v1.OnboardingService.ConfirmRegistrationKyc:output_type -> bank.identity.v1.ConfirmRegistrationKycResponse
+	6,  // 27: bank.identity.v1.OnboardingService.ActivateRegistration:output_type -> bank.identity.v1.ActivateRegistrationResponse
+	16, // 28: bank.identity.v1.OidcAuthService.StartOidcLogin:output_type -> bank.identity.v1.StartOidcLoginResponse
+	18, // 29: bank.identity.v1.OidcAuthService.CompleteOidcLogin:output_type -> bank.identity.v1.CompleteOidcLoginResponse
+	21, // 30: bank.identity.v1.OidcAuthService.RefreshSession:output_type -> bank.identity.v1.RefreshSessionResponse
+	23, // 31: bank.identity.v1.OidcAuthService.LogoutSession:output_type -> bank.identity.v1.LogoutSessionResponse
+	25, // 32: bank.identity.v1.OidcAuthService.GetSessionInfo:output_type -> bank.identity.v1.GetSessionInfoResponse
+	25, // [25:33] is the sub-list for method output_type
+	17, // [17:25] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_bank_identity_v1_identity_proto_init() }
@@ -1841,7 +2147,7 @@ func file_bank_identity_v1_identity_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_identity_v1_identity_proto_rawDesc), len(file_bank_identity_v1_identity_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   19,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

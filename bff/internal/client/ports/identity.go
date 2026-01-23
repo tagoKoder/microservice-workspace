@@ -141,6 +141,35 @@ type ConfirmRegistrationKycOutput struct {
 	ConfirmedAtRFC3339 string
 }
 
+type ActivateRegistrationInput struct {
+	RegistrationID string
+	Channel        string
+	FullName       string
+	Tin            string
+	BirthDate      string
+	Country        string
+	Email          string
+	Phone          string
+	AcceptedTerms  *bool
+}
+
+type ActivatedAccount struct {
+	AccountID   string
+	Currency    string
+	ProductType string
+}
+
+type ActivateRegistrationOutput struct {
+	RegistrationId   string
+	State            string
+	CustomerId       string
+	PrimaryAccountId string
+	ActivationRef    string
+	Accounts         []ActivatedAccount
+	BonusJournalId   string
+	CorrelationID    string
+}
+
 type IdentityPort interface {
 	StartOidcLogin(ctx context.Context, in StartOidcLoginInput) (StartOidcLoginOutput, error)
 	CompleteOidcLogin(ctx context.Context, in CompleteOidcLoginInput) (CompleteOidcLoginOutput, error)
@@ -151,4 +180,5 @@ type IdentityPort interface {
 	// Onboarding presigned
 	StartRegistration(ctx context.Context, in StartRegistrationInput) (StartRegistrationOutput, error)
 	ConfirmRegistrationKyc(ctx context.Context, in ConfirmRegistrationKycInput) (ConfirmRegistrationKycOutput, error)
+	ActivateRegistration(ctx context.Context, in ActivateRegistrationInput) (ActivateRegistrationOutput, error)
 }

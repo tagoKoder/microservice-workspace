@@ -386,6 +386,8 @@ type CreditAccountRequest struct {
 	Amount         string                 `protobuf:"bytes,4,opt,name=amount,proto3" json:"amount,omitempty"` // decimal string
 	InitiatedBy    string                 `protobuf:"bytes,5,opt,name=initiated_by,json=initiatedBy,proto3" json:"initiated_by,omitempty"`
 	ExternalRef    string                 `protobuf:"bytes,6,opt,name=external_ref,json=externalRef,proto3" json:"external_ref,omitempty"` // opcional
+	Reason         string                 `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`                              // ej: "registration_bonus"
+	CustomerId     string                 `protobuf:"bytes,8,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`    // contrapartida (no PII), ej: customerId
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -458,6 +460,20 @@ func (x *CreditAccountRequest) GetInitiatedBy() string {
 func (x *CreditAccountRequest) GetExternalRef() string {
 	if x != nil {
 		return x.ExternalRef
+	}
+	return ""
+}
+
+func (x *CreditAccountRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *CreditAccountRequest) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
 	}
 	return ""
 }
@@ -802,134 +818,6 @@ func (x *ListAccountJournalEntriesResponse) GetSize() int32 {
 	return 0
 }
 
-type CreateManualJournalEntryRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ExternalRef   string                 `protobuf:"bytes,1,opt,name=external_ref,json=externalRef,proto3" json:"external_ref,omitempty"`
-	Currency      string                 `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency,omitempty"`
-	BookedAt      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=booked_at,json=bookedAt,proto3" json:"booked_at,omitempty"`
-	CreatedBy     string                 `protobuf:"bytes,4,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
-	Lines         []*JournalLine         `protobuf:"bytes,5,rep,name=lines,proto3" json:"lines,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateManualJournalEntryRequest) Reset() {
-	*x = CreateManualJournalEntryRequest{}
-	mi := &file_bank_ledgerpayments_v1_ledgerpayments_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateManualJournalEntryRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateManualJournalEntryRequest) ProtoMessage() {}
-
-func (x *CreateManualJournalEntryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_ledgerpayments_v1_ledgerpayments_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateManualJournalEntryRequest.ProtoReflect.Descriptor instead.
-func (*CreateManualJournalEntryRequest) Descriptor() ([]byte, []int) {
-	return file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *CreateManualJournalEntryRequest) GetExternalRef() string {
-	if x != nil {
-		return x.ExternalRef
-	}
-	return ""
-}
-
-func (x *CreateManualJournalEntryRequest) GetCurrency() string {
-	if x != nil {
-		return x.Currency
-	}
-	return ""
-}
-
-func (x *CreateManualJournalEntryRequest) GetBookedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.BookedAt
-	}
-	return nil
-}
-
-func (x *CreateManualJournalEntryRequest) GetCreatedBy() string {
-	if x != nil {
-		return x.CreatedBy
-	}
-	return ""
-}
-
-func (x *CreateManualJournalEntryRequest) GetLines() []*JournalLine {
-	if x != nil {
-		return x.Lines
-	}
-	return nil
-}
-
-type CreateManualJournalEntryResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JournalId     string                 `protobuf:"bytes,1,opt,name=journal_id,json=journalId,proto3" json:"journal_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"` // posted
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateManualJournalEntryResponse) Reset() {
-	*x = CreateManualJournalEntryResponse{}
-	mi := &file_bank_ledgerpayments_v1_ledgerpayments_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateManualJournalEntryResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateManualJournalEntryResponse) ProtoMessage() {}
-
-func (x *CreateManualJournalEntryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_ledgerpayments_v1_ledgerpayments_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateManualJournalEntryResponse.ProtoReflect.Descriptor instead.
-func (*CreateManualJournalEntryResponse) Descriptor() ([]byte, []int) {
-	return file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *CreateManualJournalEntryResponse) GetJournalId() string {
-	if x != nil {
-		return x.JournalId
-	}
-	return ""
-}
-
-func (x *CreateManualJournalEntryResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
 var File_bank_ledgerpayments_v1_ledgerpayments_proto protoreflect.FileDescriptor
 
 const file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDesc = "" +
@@ -965,7 +853,7 @@ const file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDesc = "" +
 	"\x06amount\x18\a \x01(\tR\x06amount\x129\n" +
 	"\x05steps\x18\b \x03(\v2#.bank.ledgerpayments.v1.PaymentStepR\x05steps\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xd8\x01\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x91\x02\n" +
 	"\x14CreditAccountRequest\x12'\n" +
 	"\x0fidempotency_key\x18\x01 \x01(\tR\x0eidempotencyKey\x12\x1d\n" +
 	"\n" +
@@ -973,7 +861,10 @@ const file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDesc = "" +
 	"\bcurrency\x18\x03 \x01(\tR\bcurrency\x12\x16\n" +
 	"\x06amount\x18\x04 \x01(\tR\x06amount\x12!\n" +
 	"\finitiated_by\x18\x05 \x01(\tR\vinitiatedBy\x12!\n" +
-	"\fexternal_ref\x18\x06 \x01(\tR\vexternalRef\"N\n" +
+	"\fexternal_ref\x18\x06 \x01(\tR\vexternalRef\x12\x16\n" +
+	"\x06reason\x18\a \x01(\tR\x06reason\x12\x1f\n" +
+	"\vcustomer_id\x18\b \x01(\tR\n" +
+	"customerId\"N\n" +
 	"\x15CreditAccountResponse\x12\x1d\n" +
 	"\n" +
 	"journal_id\x18\x01 \x01(\tR\tjournalId\x12\x16\n" +
@@ -1001,26 +892,14 @@ const file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDesc = "" +
 	"!ListAccountJournalEntriesResponse\x12B\n" +
 	"\aentries\x18\x01 \x03(\v2(.bank.ledgerpayments.v1.JournalEntryViewR\aentries\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x12\n" +
-	"\x04size\x18\x03 \x01(\x05R\x04size\"\xf3\x01\n" +
-	"\x1fCreateManualJournalEntryRequest\x12!\n" +
-	"\fexternal_ref\x18\x01 \x01(\tR\vexternalRef\x12\x1a\n" +
-	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x127\n" +
-	"\tbooked_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bbookedAt\x12\x1d\n" +
-	"\n" +
-	"created_by\x18\x04 \x01(\tR\tcreatedBy\x129\n" +
-	"\x05lines\x18\x05 \x03(\v2#.bank.ledgerpayments.v1.JournalLineR\x05lines\"Y\n" +
-	" CreateManualJournalEntryResponse\x12\x1d\n" +
-	"\n" +
-	"journal_id\x18\x01 \x01(\tR\tjournalId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status2\xde\x01\n" +
+	"\x04size\x18\x03 \x01(\x05R\x04size2\xde\x01\n" +
 	"\x0fPaymentsService\x12f\n" +
 	"\vPostPayment\x12*.bank.ledgerpayments.v1.PostPaymentRequest\x1a+.bank.ledgerpayments.v1.PostPaymentResponse\x12c\n" +
 	"\n" +
-	"GetPayment\x12).bank.ledgerpayments.v1.GetPaymentRequest\x1a*.bank.ledgerpayments.v1.GetPaymentResponse2\xa0\x03\n" +
+	"GetPayment\x12).bank.ledgerpayments.v1.GetPaymentRequest\x1a*.bank.ledgerpayments.v1.GetPaymentResponse2\x90\x02\n" +
 	"\rLedgerService\x12l\n" +
 	"\rCreditAccount\x12,.bank.ledgerpayments.v1.CreditAccountRequest\x1a-.bank.ledgerpayments.v1.CreditAccountResponse\x12\x90\x01\n" +
-	"\x19ListAccountJournalEntries\x128.bank.ledgerpayments.v1.ListAccountJournalEntriesRequest\x1a9.bank.ledgerpayments.v1.ListAccountJournalEntriesResponse\x12\x8d\x01\n" +
-	"\x18CreateManualJournalEntry\x127.bank.ledgerpayments.v1.CreateManualJournalEntryRequest\x1a8.bank.ledgerpayments.v1.CreateManualJournalEntryResponseB\x86\x02\n" +
+	"\x19ListAccountJournalEntries\x128.bank.ledgerpayments.v1.ListAccountJournalEntriesRequest\x1a9.bank.ledgerpayments.v1.ListAccountJournalEntriesResponseB\x86\x02\n" +
 	"\x1acom.bank.ledgerpayments.v1B\x13LedgerpaymentsProtoP\x01ZYgithub.com/imaginarybank/banking-contracts/gen/go/bank/ledgerpayments/v1;ledgerpaymentsv1\xa2\x02\x03BLX\xaa\x02\x16Bank.Ledgerpayments.V1\xca\x02\x16Bank\\Ledgerpayments\\V1\xe2\x02\"Bank\\Ledgerpayments\\V1\\GPBMetadata\xea\x02\x18Bank::Ledgerpayments::V1b\x06proto3"
 
 var (
@@ -1035,7 +914,7 @@ func file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDescGZIP() []byte {
 	return file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDescData
 }
 
-var file_bank_ledgerpayments_v1_ledgerpayments_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_bank_ledgerpayments_v1_ledgerpayments_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_bank_ledgerpayments_v1_ledgerpayments_proto_goTypes = []any{
 	(*PostPaymentRequest)(nil),                // 0: bank.ledgerpayments.v1.PostPaymentRequest
 	(*PostPaymentResponse)(nil),               // 1: bank.ledgerpayments.v1.PostPaymentResponse
@@ -1048,36 +927,30 @@ var file_bank_ledgerpayments_v1_ledgerpayments_proto_goTypes = []any{
 	(*JournalLine)(nil),                       // 8: bank.ledgerpayments.v1.JournalLine
 	(*JournalEntryView)(nil),                  // 9: bank.ledgerpayments.v1.JournalEntryView
 	(*ListAccountJournalEntriesResponse)(nil), // 10: bank.ledgerpayments.v1.ListAccountJournalEntriesResponse
-	(*CreateManualJournalEntryRequest)(nil),   // 11: bank.ledgerpayments.v1.CreateManualJournalEntryRequest
-	(*CreateManualJournalEntryResponse)(nil),  // 12: bank.ledgerpayments.v1.CreateManualJournalEntryResponse
-	(*timestamppb.Timestamp)(nil),             // 13: google.protobuf.Timestamp
+	(*timestamppb.Timestamp)(nil),             // 11: google.protobuf.Timestamp
 }
 var file_bank_ledgerpayments_v1_ledgerpayments_proto_depIdxs = []int32{
-	13, // 0: bank.ledgerpayments.v1.PaymentStep.attempted_at:type_name -> google.protobuf.Timestamp
+	11, // 0: bank.ledgerpayments.v1.PaymentStep.attempted_at:type_name -> google.protobuf.Timestamp
 	3,  // 1: bank.ledgerpayments.v1.GetPaymentResponse.steps:type_name -> bank.ledgerpayments.v1.PaymentStep
-	13, // 2: bank.ledgerpayments.v1.GetPaymentResponse.created_at:type_name -> google.protobuf.Timestamp
-	13, // 3: bank.ledgerpayments.v1.ListAccountJournalEntriesRequest.from:type_name -> google.protobuf.Timestamp
-	13, // 4: bank.ledgerpayments.v1.ListAccountJournalEntriesRequest.to:type_name -> google.protobuf.Timestamp
-	13, // 5: bank.ledgerpayments.v1.JournalEntryView.booked_at:type_name -> google.protobuf.Timestamp
+	11, // 2: bank.ledgerpayments.v1.GetPaymentResponse.created_at:type_name -> google.protobuf.Timestamp
+	11, // 3: bank.ledgerpayments.v1.ListAccountJournalEntriesRequest.from:type_name -> google.protobuf.Timestamp
+	11, // 4: bank.ledgerpayments.v1.ListAccountJournalEntriesRequest.to:type_name -> google.protobuf.Timestamp
+	11, // 5: bank.ledgerpayments.v1.JournalEntryView.booked_at:type_name -> google.protobuf.Timestamp
 	8,  // 6: bank.ledgerpayments.v1.JournalEntryView.lines:type_name -> bank.ledgerpayments.v1.JournalLine
 	9,  // 7: bank.ledgerpayments.v1.ListAccountJournalEntriesResponse.entries:type_name -> bank.ledgerpayments.v1.JournalEntryView
-	13, // 8: bank.ledgerpayments.v1.CreateManualJournalEntryRequest.booked_at:type_name -> google.protobuf.Timestamp
-	8,  // 9: bank.ledgerpayments.v1.CreateManualJournalEntryRequest.lines:type_name -> bank.ledgerpayments.v1.JournalLine
-	0,  // 10: bank.ledgerpayments.v1.PaymentsService.PostPayment:input_type -> bank.ledgerpayments.v1.PostPaymentRequest
-	2,  // 11: bank.ledgerpayments.v1.PaymentsService.GetPayment:input_type -> bank.ledgerpayments.v1.GetPaymentRequest
-	5,  // 12: bank.ledgerpayments.v1.LedgerService.CreditAccount:input_type -> bank.ledgerpayments.v1.CreditAccountRequest
-	7,  // 13: bank.ledgerpayments.v1.LedgerService.ListAccountJournalEntries:input_type -> bank.ledgerpayments.v1.ListAccountJournalEntriesRequest
-	11, // 14: bank.ledgerpayments.v1.LedgerService.CreateManualJournalEntry:input_type -> bank.ledgerpayments.v1.CreateManualJournalEntryRequest
-	1,  // 15: bank.ledgerpayments.v1.PaymentsService.PostPayment:output_type -> bank.ledgerpayments.v1.PostPaymentResponse
-	4,  // 16: bank.ledgerpayments.v1.PaymentsService.GetPayment:output_type -> bank.ledgerpayments.v1.GetPaymentResponse
-	6,  // 17: bank.ledgerpayments.v1.LedgerService.CreditAccount:output_type -> bank.ledgerpayments.v1.CreditAccountResponse
-	10, // 18: bank.ledgerpayments.v1.LedgerService.ListAccountJournalEntries:output_type -> bank.ledgerpayments.v1.ListAccountJournalEntriesResponse
-	12, // 19: bank.ledgerpayments.v1.LedgerService.CreateManualJournalEntry:output_type -> bank.ledgerpayments.v1.CreateManualJournalEntryResponse
-	15, // [15:20] is the sub-list for method output_type
-	10, // [10:15] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	0,  // 8: bank.ledgerpayments.v1.PaymentsService.PostPayment:input_type -> bank.ledgerpayments.v1.PostPaymentRequest
+	2,  // 9: bank.ledgerpayments.v1.PaymentsService.GetPayment:input_type -> bank.ledgerpayments.v1.GetPaymentRequest
+	5,  // 10: bank.ledgerpayments.v1.LedgerService.CreditAccount:input_type -> bank.ledgerpayments.v1.CreditAccountRequest
+	7,  // 11: bank.ledgerpayments.v1.LedgerService.ListAccountJournalEntries:input_type -> bank.ledgerpayments.v1.ListAccountJournalEntriesRequest
+	1,  // 12: bank.ledgerpayments.v1.PaymentsService.PostPayment:output_type -> bank.ledgerpayments.v1.PostPaymentResponse
+	4,  // 13: bank.ledgerpayments.v1.PaymentsService.GetPayment:output_type -> bank.ledgerpayments.v1.GetPaymentResponse
+	6,  // 14: bank.ledgerpayments.v1.LedgerService.CreditAccount:output_type -> bank.ledgerpayments.v1.CreditAccountResponse
+	10, // 15: bank.ledgerpayments.v1.LedgerService.ListAccountJournalEntries:output_type -> bank.ledgerpayments.v1.ListAccountJournalEntriesResponse
+	12, // [12:16] is the sub-list for method output_type
+	8,  // [8:12] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_bank_ledgerpayments_v1_ledgerpayments_proto_init() }
@@ -1091,7 +964,7 @@ func file_bank_ledgerpayments_v1_ledgerpayments_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDesc), len(file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

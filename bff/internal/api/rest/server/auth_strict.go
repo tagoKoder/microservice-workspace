@@ -8,6 +8,7 @@ import (
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
 	"github.com/tagoKoder/bff/internal/api/rest/middleware"
 	"github.com/tagoKoder/bff/internal/client/ports"
+	"github.com/tagoKoder/bff/internal/security"
 )
 
 // GET /bff/login/start?redirect=/home
@@ -105,12 +106,14 @@ func (s *Server) LogoutWebSession(
 	ctx context.Context,
 	_ openapi.LogoutWebSessionRequestObject,
 ) (openapi.LogoutWebSessionResponseObject, error) {
+	corrId := security.CorrelationID(ctx)
 
 	r, ok := middleware.GetHTTPRequest(ctx)
 	if !ok || r == nil {
 		return openapi.LogoutWebSession502JSONResponse(openapi.ErrorResponse{
 			Code:    "INTERNAL",
 			Message: "missing http request context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 	w, ok := middleware.GetHTTPResponseWriter(ctx)
@@ -118,6 +121,7 @@ func (s *Server) LogoutWebSession(
 		return openapi.LogoutWebSession502JSONResponse(openapi.ErrorResponse{
 			Code:    "INTERNAL",
 			Message: "missing http response context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -129,7 +133,11 @@ func (s *Server) LogoutWebSession(
 	s.deps.Cookies.Clear(w)
 	s.deps.CSRF.Clear(w)
 
-	return openapi.LogoutWebSession204Response{}, nil
+	return openapi.LogoutWebSession204Response{
+		Headers: openapi.LogoutWebSession204ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
 
 // GET /api/v1/session/csrf
@@ -137,12 +145,14 @@ func (s *Server) GetWebCsrfToken(
 	ctx context.Context,
 	_ openapi.GetWebCsrfTokenRequestObject,
 ) (openapi.GetWebCsrfTokenResponseObject, error) {
+	corrId := security.CorrelationID(ctx)
 
 	r, ok := middleware.GetHTTPRequest(ctx)
 	if !ok || r == nil {
 		return openapi.GetWebCsrfToken403JSONResponse(openapi.ErrorResponse{
 			Code:    "INTERNAL",
 			Message: "missing http request context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 	w, ok := middleware.GetHTTPResponseWriter(ctx)
@@ -150,6 +160,7 @@ func (s *Server) GetWebCsrfToken(
 		return openapi.GetWebCsrfToken403JSONResponse(openapi.ErrorResponse{
 			Code:    "INTERNAL",
 			Message: "missing http response context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -158,6 +169,7 @@ func (s *Server) GetWebCsrfToken(
 		return openapi.GetWebCsrfToken502JSONResponse(openapi.ErrorResponse{
 			Code:    "INTERNAL",
 			Message: "cannot issue csrf token",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -167,17 +179,19 @@ func (s *Server) GetWebCsrfToken(
 		return openapi.GetWebCsrfToken502JSONResponse(openapi.ErrorResponse{
 			Code:    "INTERNAL",
 			Message: "csrf token missing after issuance",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
-	return openapi.GetWebCsrfToken200JSONResponse(openapi.CsrfTokenResponse{
-		CsrfToken: tok,
-	}), nil
+	return openapi.GetWebCsrfToken200JSONResponse{
+		Body: openapi.CsrfTokenResponse{
+			CsrfToken: tok,
+		},
+		Headers: openapi.GetWebCsrfToken200ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
-
-// ===============================
-// === STRICT HANDLERS FOR WEBAUTHN ======
-// ===============================
 
 func ipOnly(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -193,12 +207,13 @@ func (s *Server) RefreshWebSession(
 	req openapi.RefreshWebSessionRequestObject,
 ) (openapi.RefreshWebSessionResponseObject, error) {
 	_ = req.Params.XCSRFToken // validado por middleware CSRF/OpenAPI
-
+	corrId := security.CorrelationID(ctx)
 	r, ok := middleware.GetHTTPRequest(ctx)
 	if !ok || r == nil {
 		return openapi.RefreshWebSession502JSONResponse(openapi.ErrorResponse{
 			Code:    "INTERNAL",
 			Message: "missing http request context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 	w, ok := middleware.GetHTTPResponseWriter(ctx)
@@ -206,6 +221,7 @@ func (s *Server) RefreshWebSession(
 		return openapi.RefreshWebSession502JSONResponse(openapi.ErrorResponse{
 			Code:    "INTERNAL",
 			Message: "missing http response context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -214,6 +230,7 @@ func (s *Server) RefreshWebSession(
 		return openapi.RefreshWebSession401JSONResponse(openapi.ErrorResponse{
 			Code:    "UNAUTHORIZED",
 			Message: "missing session",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -230,6 +247,7 @@ func (s *Server) RefreshWebSession(
 		return openapi.RefreshWebSession401JSONResponse(openapi.ErrorResponse{
 			Code:    "UNAUTHORIZED",
 			Message: "session refresh rejected",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -238,7 +256,12 @@ func (s *Server) RefreshWebSession(
 	_ = s.deps.CSRF.EnsureToken(w, r)
 	w.Header().Set("Cache-Control", "no-store")
 
-	return openapi.RefreshWebSession200JSONResponse(openapi.RefreshSessionResponse{
-		SessionExpiresIn: out.SessionExpiresIn,
-	}), nil
+	return openapi.RefreshWebSession200JSONResponse{
+		Body: openapi.RefreshSessionResponse{
+			SessionExpiresIn: out.SessionExpiresIn,
+		},
+		Headers: openapi.RefreshWebSession200ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }

@@ -10,19 +10,19 @@ func (s *Server) StartOnboarding(
 	ctx context.Context,
 	req openapi.StartOnboardingRequestObject,
 ) (openapi.StartOnboardingResponseObject, error) {
-	return s.onboarding.StartOnboardingStrict(ctx, *req.Body)
+	return s.onboarding.StartOnboardingStrict(ctx, req.Params.IdempotencyKey, *req.Body)
 }
 
 func (s *Server) ConfirmOnboardingKyc(
 	ctx context.Context,
 	req openapi.ConfirmOnboardingKycRequestObject,
 ) (openapi.ConfirmOnboardingKycResponseObject, error) {
-	return s.onboarding.ConfirmOnboardingKycStrict(ctx, *req.Body)
+	return s.onboarding.ConfirmOnboardingKycStrict(ctx, req.Params.IdempotencyKey, *req.Body)
 }
 
 func (s *Server) ActivateOnboarding(
 	ctx context.Context,
 	req openapi.ActivateOnboardingRequestObject,
 ) (openapi.ActivateOnboardingResponseObject, error) {
-	return s.onboarding.ActivateOnboardingStrict(ctx, *req.Body)
+	return s.onboarding.ActivateOnboardingStrict(ctx, req.Params.IdempotencyKey, *req.Body)
 }

@@ -87,23 +87,34 @@ type AccountActivityResponse struct {
 	Items []AccountActivityItem `json:"items"`
 	Page  int                   `json:"page"`
 	Size  int                   `json:"size"`
-	Total int                   `json:"total"`
+
+	// Total Opcional; si no hay fuente upstream para total, puede omitirse o null.
+	Total *int `json:"total"`
 }
 
 // AccountBalances defines model for AccountBalances.
 type AccountBalances struct {
+	// Available Decimal string
 	Available string `json:"available"`
-	Hold      string `json:"hold"`
-	Ledger    string `json:"ledger"`
+
+	// Hold Decimal string
+	Hold string `json:"hold"`
+
+	// Ledger Decimal string
+	Ledger string `json:"ledger"`
 }
 
 // AccountItem defines model for AccountItem.
 type AccountItem struct {
-	Balances    AccountBalances `json:"balances"`
-	Currency    string          `json:"currency"`
-	Id          string          `json:"id"`
-	ProductType string          `json:"product_type"`
-	Status      string          `json:"status"`
+	Balances AccountBalances `json:"balances"`
+
+	// Currency ISO-4217
+	Currency string `json:"currency"`
+	Id       string `json:"id"`
+
+	// ProductType Ej: CHECKING | SAVINGS
+	ProductType string `json:"product_type"`
+	Status      string `json:"status"`
 }
 
 // AccountsOverviewResponse defines model for AccountsOverviewResponse.
@@ -113,20 +124,23 @@ type AccountsOverviewResponse struct {
 
 // ActivateRequest defines model for ActivateRequest.
 type ActivateRequest struct {
-	BirthDate      string `json:"birth_date"`
-	Country        string `json:"country"`
-	Email          string `json:"email"`
-	FullName       string `json:"full_name"`
-	Phone          string `json:"phone"`
-	RegistrationId string `json:"registration_id"`
-	Tin            string `json:"tin"`
+	// AcceptedTerms Recomendado si tu UI exige aceptación.
+	AcceptedTerms  *bool               `json:"accepted_terms"`
+	BirthDate      string              `json:"birth_date"`
+	Country        string              `json:"country"`
+	Email          openapi_types.Email `json:"email"`
+	FullName       string              `json:"full_name"`
+	Phone          string              `json:"phone"`
+	RegistrationId string              `json:"registration_id"`
+	Tin            string              `json:"tin"`
 }
 
 // ActivateResponse defines model for ActivateResponse.
 type ActivateResponse struct {
-	AccountId     string `json:"account_id"`
-	ActivationRef string `json:"activation_ref"`
-	CustomerId    string `json:"customer_id"`
+	AccountId     string  `json:"account_id"`
+	ActivationRef string  `json:"activation_ref"`
+	CorrelationId *string `json:"correlation_id"`
+	CustomerId    string  `json:"customer_id"`
 }
 
 // ConfirmKycRequest defines model for ConfirmKycRequest.
@@ -140,6 +154,7 @@ type ConfirmKycRequest struct {
 // ConfirmKycResponse defines model for ConfirmKycResponse.
 type ConfirmKycResponse struct {
 	ConfirmedAt    *time.Time        `json:"confirmed_at"`
+	CorrelationId  *string           `json:"correlation_id"`
 	RegistrationId string            `json:"registration_id"`
 	State          RegistrationState `json:"state"`
 	Statuses       []KycObjectStatus `json:"statuses"`
@@ -158,6 +173,7 @@ type CreateBeneficiaryResponse struct {
 
 // CreatePaymentRequest defines model for CreatePaymentRequest.
 type CreatePaymentRequest struct {
+	// Amount Decimal string
 	Amount             string  `json:"amount"`
 	Currency           string  `json:"currency"`
 	DestinationAccount string  `json:"destination_account"`
@@ -235,13 +251,28 @@ type OnboardingIntentRequest struct {
 
 // OnboardingIntentResponse defines model for OnboardingIntentResponse.
 type OnboardingIntentResponse struct {
-	CreatedAt *time.Time `json:"created_at"`
-
-	// OtpChannelHint Legacy/compat. Puede omitirse.
-	OtpChannelHint *string           `json:"otp_channel_hint"`
+	CorrelationId  *string           `json:"correlation_id"`
+	CreatedAt      *time.Time        `json:"created_at"`
 	RegistrationId string            `json:"registration_id"`
 	State          RegistrationState `json:"state"`
 	Uploads        []PresignedUpload `json:"uploads"`
+}
+
+// PatchAccountLimitsHttpRequest Actualiza límites diarios de entrada/salida.
+// Campos omitidos o null => no se modifican.
+type PatchAccountLimitsHttpRequest struct {
+	// DailyIn Decimal string (>=0). Ej: '1000.00'
+	DailyIn *string `json:"daily_in"`
+
+	// DailyOut Decimal string (>=0). Ej: '500.00'
+	DailyOut *string `json:"daily_out"`
+}
+
+// PatchAccountLimitsHttpResponse defines model for PatchAccountLimitsHttpResponse.
+type PatchAccountLimitsHttpResponse struct {
+	AccountId string `json:"account_id"`
+	DailyIn   string `json:"daily_in"`
+	DailyOut  string `json:"daily_out"`
 }
 
 // PatchProfileRequest defines model for PatchProfileRequest.
@@ -298,20 +329,6 @@ type RefreshSessionResponse struct {
 // RegistrationState defines model for RegistrationState.
 type RegistrationState string
 
-// SandboxTopupRequest defines model for SandboxTopupRequest.
-type SandboxTopupRequest struct {
-	AccountId string  `json:"account_id"`
-	Amount    string  `json:"amount"`
-	Currency  string  `json:"currency"`
-	Memo      *string `json:"memo"`
-}
-
-// SandboxTopupResponse defines model for SandboxTopupResponse.
-type SandboxTopupResponse struct {
-	JournalId string `json:"journal_id"`
-	Status    string `json:"status"`
-}
-
 // UploadedObject defines model for UploadedObject.
 type UploadedObject struct {
 	Bucket      string     `json:"bucket"`
@@ -330,16 +347,31 @@ type WhoamiResponse struct {
 	UserStatus    string   `json:"user_status"`
 }
 
+// IdempotencyKeyOptional defines model for IdempotencyKeyOptional.
+type IdempotencyKeyOptional = string
+
+// IdempotencyKeyRequired defines model for IdempotencyKeyRequired.
+type IdempotencyKeyRequired = string
+
+// PageParam defines model for PageParam.
+type PageParam = int
+
+// SizeParam defines model for SizeParam.
+type SizeParam = int
+
+// XCsrfToken defines model for XCsrfToken.
+type XCsrfToken = string
+
 // GetAccountActivityParams defines parameters for GetAccountActivity.
 type GetAccountActivityParams struct {
-	Page *int `form:"page,omitempty" json:"page,omitempty"`
-	Size *int `form:"size,omitempty" json:"size,omitempty"`
+	Page *PageParam `form:"page,omitempty" json:"page,omitempty"`
+	Size *SizeParam `form:"size,omitempty" json:"size,omitempty"`
 }
 
-// SandboxTopupParams defines parameters for SandboxTopup.
-type SandboxTopupParams struct {
-	IdempotencyKey string `json:"Idempotency-Key"`
-	XCSRFToken     string `json:"X-CSRF-Token"`
+// PatchAccountLimitsParams defines parameters for PatchAccountLimits.
+type PatchAccountLimitsParams struct {
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+	XCSRFToken     XCsrfToken             `json:"X-CSRF-Token"`
 }
 
 // CompleteWebLoginParams defines parameters for CompleteWebLogin.
@@ -356,32 +388,49 @@ type StartWebLoginParams struct {
 
 // CreateBeneficiaryParams defines parameters for CreateBeneficiary.
 type CreateBeneficiaryParams struct {
-	XCSRFToken string `json:"X-CSRF-Token"`
+	XCSRFToken     XCsrfToken             `json:"X-CSRF-Token"`
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ActivateOnboardingParams defines parameters for ActivateOnboarding.
+type ActivateOnboardingParams struct {
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// StartOnboardingParams defines parameters for StartOnboarding.
+type StartOnboardingParams struct {
+	IdempotencyKey *IdempotencyKeyOptional `json:"Idempotency-Key,omitempty"`
+}
+
+// ConfirmOnboardingKycParams defines parameters for ConfirmOnboardingKyc.
+type ConfirmOnboardingKycParams struct {
+	IdempotencyKey *IdempotencyKeyOptional `json:"Idempotency-Key,omitempty"`
 }
 
 // ExecutePaymentParams defines parameters for ExecutePayment.
 type ExecutePaymentParams struct {
-	IdempotencyKey string `json:"Idempotency-Key"`
-	XCSRFToken     string `json:"X-CSRF-Token"`
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+	XCSRFToken     XCsrfToken             `json:"X-CSRF-Token"`
 }
 
 // UpdateProfileParams defines parameters for UpdateProfile.
 type UpdateProfileParams struct {
-	XCSRFToken string `json:"X-CSRF-Token"`
+	XCSRFToken     XCsrfToken              `json:"X-CSRF-Token"`
+	IdempotencyKey *IdempotencyKeyOptional `json:"Idempotency-Key,omitempty"`
 }
 
 // LogoutWebSessionParams defines parameters for LogoutWebSession.
 type LogoutWebSessionParams struct {
-	XCSRFToken string `json:"X-CSRF-Token"`
+	XCSRFToken XCsrfToken `json:"X-CSRF-Token"`
 }
 
 // RefreshWebSessionParams defines parameters for RefreshWebSession.
 type RefreshWebSessionParams struct {
-	XCSRFToken string `json:"X-CSRF-Token"`
+	XCSRFToken XCsrfToken `json:"X-CSRF-Token"`
 }
 
-// SandboxTopupJSONRequestBody defines body for SandboxTopup for application/json ContentType.
-type SandboxTopupJSONRequestBody = SandboxTopupRequest
+// PatchAccountLimitsJSONRequestBody defines body for PatchAccountLimits for application/json ContentType.
+type PatchAccountLimitsJSONRequestBody = PatchAccountLimitsHttpRequest
 
 // CreateBeneficiaryJSONRequestBody defines body for CreateBeneficiary for application/json ContentType.
 type CreateBeneficiaryJSONRequestBody = CreateBeneficiaryRequest
@@ -409,9 +458,9 @@ type ServerInterface interface {
 	// Actividad (journal entries) de una cuenta
 	// (GET /api/v1/accounts/{id}/activity)
 	GetAccountActivity(w http.ResponseWriter, r *http.Request, id string, params GetAccountActivityParams)
-	// Top-up admin (sandbox)
-	// (POST /api/v1/admin/sandbox/topups)
-	SandboxTopup(w http.ResponseWriter, r *http.Request, params SandboxTopupParams)
+	// Actualiza límites diarios de la cuenta
+	// (PATCH /api/v1/accounts/{id}/limits)
+	PatchAccountLimits(w http.ResponseWriter, r *http.Request, id string, params PatchAccountLimitsParams)
 	// Callback OIDC; crea cookie de sesión y redirige al destino final
 	// (GET /api/v1/auth/oidc/callback)
 	CompleteWebLogin(w http.ResponseWriter, r *http.Request, params CompleteWebLoginParams)
@@ -423,13 +472,13 @@ type ServerInterface interface {
 	CreateBeneficiary(w http.ResponseWriter, r *http.Request, params CreateBeneficiaryParams)
 	// Activa onboarding (crea customer + account)
 	// (POST /api/v1/onboarding/activate)
-	ActivateOnboarding(w http.ResponseWriter, r *http.Request)
+	ActivateOnboarding(w http.ResponseWriter, r *http.Request, params ActivateOnboardingParams)
 	// Inicia onboarding (registro/KYC) — presigned S3
 	// (POST /api/v1/onboarding/intents)
-	StartOnboarding(w http.ResponseWriter, r *http.Request)
+	StartOnboarding(w http.ResponseWriter, r *http.Request, params StartOnboardingParams)
 	// Confirma KYC (verifica objetos subidos a S3)
 	// (POST /api/v1/onboarding/kyc/confirm)
-	ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request)
+	ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request, params ConfirmOnboardingKycParams)
 	// Ejecuta un pago
 	// (POST /api/v1/payments)
 	ExecutePayment(w http.ResponseWriter, r *http.Request, params ExecutePaymentParams)
@@ -445,7 +494,7 @@ type ServerInterface interface {
 	// Devuelve el CSRF token actual (o lo crea si no existe)
 	// (GET /api/v1/session/csrf)
 	GetWebCsrfToken(w http.ResponseWriter, r *http.Request)
-	// Cierra sesión (invalida upstream si aplica) y limpia cookies
+	// Cierra sesión y limpia cookies
 	// (POST /api/v1/session/logout)
 	LogoutWebSession(w http.ResponseWriter, r *http.Request, params LogoutWebSessionParams)
 	// Rota/renueva sesión server-side y actualiza cookie
@@ -469,9 +518,9 @@ func (_ Unimplemented) GetAccountActivity(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Top-up admin (sandbox)
-// (POST /api/v1/admin/sandbox/topups)
-func (_ Unimplemented) SandboxTopup(w http.ResponseWriter, r *http.Request, params SandboxTopupParams) {
+// Actualiza límites diarios de la cuenta
+// (PATCH /api/v1/accounts/{id}/limits)
+func (_ Unimplemented) PatchAccountLimits(w http.ResponseWriter, r *http.Request, id string, params PatchAccountLimitsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -495,19 +544,19 @@ func (_ Unimplemented) CreateBeneficiary(w http.ResponseWriter, r *http.Request,
 
 // Activa onboarding (crea customer + account)
 // (POST /api/v1/onboarding/activate)
-func (_ Unimplemented) ActivateOnboarding(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ActivateOnboarding(w http.ResponseWriter, r *http.Request, params ActivateOnboardingParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Inicia onboarding (registro/KYC) — presigned S3
 // (POST /api/v1/onboarding/intents)
-func (_ Unimplemented) StartOnboarding(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) StartOnboarding(w http.ResponseWriter, r *http.Request, params StartOnboardingParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Confirma KYC (verifica objetos subidos a S3)
 // (POST /api/v1/onboarding/kyc/confirm)
-func (_ Unimplemented) ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request, params ConfirmOnboardingKycParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -541,7 +590,7 @@ func (_ Unimplemented) GetWebCsrfToken(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Cierra sesión (invalida upstream si aplica) y limpia cookies
+// Cierra sesión y limpia cookies
 // (POST /api/v1/session/logout)
 func (_ Unimplemented) LogoutWebSession(w http.ResponseWriter, r *http.Request, params LogoutWebSessionParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -632,10 +681,19 @@ func (siw *ServerInterfaceWrapper) GetAccountActivity(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
-// SandboxTopup operation middleware
-func (siw *ServerInterfaceWrapper) SandboxTopup(w http.ResponseWriter, r *http.Request) {
+// PatchAccountLimits operation middleware
+func (siw *ServerInterfaceWrapper) PatchAccountLimits(w http.ResponseWriter, r *http.Request) {
 
 	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
 
 	ctx := r.Context()
 
@@ -646,13 +704,13 @@ func (siw *ServerInterfaceWrapper) SandboxTopup(w http.ResponseWriter, r *http.R
 	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params SandboxTopupParams
+	var params PatchAccountLimitsParams
 
 	headers := r.Header
 
 	// ------------- Required header parameter "Idempotency-Key" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey string
+		var IdempotencyKey IdempotencyKeyRequired
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
@@ -675,7 +733,7 @@ func (siw *ServerInterfaceWrapper) SandboxTopup(w http.ResponseWriter, r *http.R
 
 	// ------------- Required header parameter "X-CSRF-Token" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
+		var XCSRFToken XCsrfToken
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
@@ -697,7 +755,7 @@ func (siw *ServerInterfaceWrapper) SandboxTopup(w http.ResponseWriter, r *http.R
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SandboxTopup(w, r, params)
+		siw.Handler.PatchAccountLimits(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -803,7 +861,7 @@ func (siw *ServerInterfaceWrapper) CreateBeneficiary(w http.ResponseWriter, r *h
 
 	// ------------- Required header parameter "X-CSRF-Token" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
+		var XCSRFToken XCsrfToken
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
@@ -824,6 +882,29 @@ func (siw *ServerInterfaceWrapper) CreateBeneficiary(w http.ResponseWriter, r *h
 		return
 	}
 
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKeyRequired
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateBeneficiary(w, r, params)
 	}))
@@ -838,8 +919,38 @@ func (siw *ServerInterfaceWrapper) CreateBeneficiary(w http.ResponseWriter, r *h
 // ActivateOnboarding operation middleware
 func (siw *ServerInterfaceWrapper) ActivateOnboarding(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ActivateOnboardingParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKeyRequired
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ActivateOnboarding(w, r)
+		siw.Handler.ActivateOnboarding(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -852,8 +963,34 @@ func (siw *ServerInterfaceWrapper) ActivateOnboarding(w http.ResponseWriter, r *
 // StartOnboarding operation middleware
 func (siw *ServerInterfaceWrapper) StartOnboarding(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StartOnboardingParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKeyOptional
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = &IdempotencyKey
+
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.StartOnboarding(w, r)
+		siw.Handler.StartOnboarding(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -866,8 +1003,34 @@ func (siw *ServerInterfaceWrapper) StartOnboarding(w http.ResponseWriter, r *htt
 // ConfirmOnboardingKyc operation middleware
 func (siw *ServerInterfaceWrapper) ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ConfirmOnboardingKycParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKeyOptional
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = &IdempotencyKey
+
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ConfirmOnboardingKyc(w, r)
+		siw.Handler.ConfirmOnboardingKyc(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -897,7 +1060,7 @@ func (siw *ServerInterfaceWrapper) ExecutePayment(w http.ResponseWriter, r *http
 
 	// ------------- Required header parameter "Idempotency-Key" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey string
+		var IdempotencyKey IdempotencyKeyRequired
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
@@ -920,7 +1083,7 @@ func (siw *ServerInterfaceWrapper) ExecutePayment(w http.ResponseWriter, r *http
 
 	// ------------- Required header parameter "X-CSRF-Token" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
+		var XCSRFToken XCsrfToken
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
@@ -1003,7 +1166,7 @@ func (siw *ServerInterfaceWrapper) UpdateProfile(w http.ResponseWriter, r *http.
 
 	// ------------- Required header parameter "X-CSRF-Token" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
+		var XCSRFToken XCsrfToken
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
@@ -1022,6 +1185,25 @@ func (siw *ServerInterfaceWrapper) UpdateProfile(w http.ResponseWriter, r *http.
 		err := fmt.Errorf("Header parameter X-CSRF-Token is required, but not found")
 		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-CSRF-Token", Err: err})
 		return
+	}
+
+	// ------------- Optional header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKeyOptional
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = &IdempotencyKey
+
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1095,7 +1277,7 @@ func (siw *ServerInterfaceWrapper) LogoutWebSession(w http.ResponseWriter, r *ht
 
 	// ------------- Required header parameter "X-CSRF-Token" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
+		var XCSRFToken XCsrfToken
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
@@ -1147,7 +1329,7 @@ func (siw *ServerInterfaceWrapper) RefreshWebSession(w http.ResponseWriter, r *h
 
 	// ------------- Required header parameter "X-CSRF-Token" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("X-CSRF-Token")]; found {
-		var XCSRFToken string
+		var XCSRFToken XCsrfToken
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-CSRF-Token", Count: n})
@@ -1299,7 +1481,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v1/accounts/{id}/activity", wrapper.GetAccountActivity)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1/admin/sandbox/topups", wrapper.SandboxTopup)
+		r.Patch(options.BaseURL+"/api/v1/accounts/{id}/limits", wrapper.PatchAccountLimits)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/auth/oidc/callback", wrapper.CompleteWebLogin)
@@ -1351,13 +1533,21 @@ type GetAccountsOverviewResponseObject interface {
 	VisitGetAccountsOverviewResponse(w http.ResponseWriter) error
 }
 
-type GetAccountsOverview200JSONResponse AccountsOverviewResponse
+type GetAccountsOverview200ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type GetAccountsOverview200JSONResponse struct {
+	Body    AccountsOverviewResponse
+	Headers GetAccountsOverview200ResponseHeaders
+}
 
 func (response GetAccountsOverview200JSONResponse) VisitGetAccountsOverviewResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type GetAccountsOverview401JSONResponse ErrorResponse
@@ -1396,13 +1586,21 @@ type GetAccountActivityResponseObject interface {
 	VisitGetAccountActivityResponse(w http.ResponseWriter) error
 }
 
-type GetAccountActivity200JSONResponse AccountActivityResponse
+type GetAccountActivity200ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type GetAccountActivity200JSONResponse struct {
+	Body    AccountActivityResponse
+	Headers GetAccountActivity200ResponseHeaders
+}
 
 func (response GetAccountActivity200JSONResponse) VisitGetAccountActivityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type GetAccountActivity401JSONResponse ErrorResponse
@@ -1432,63 +1630,72 @@ func (response GetAccountActivity502JSONResponse) VisitGetAccountActivityRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type SandboxTopupRequestObject struct {
-	Params SandboxTopupParams
-	Body   *SandboxTopupJSONRequestBody
+type PatchAccountLimitsRequestObject struct {
+	Id     string `json:"id"`
+	Params PatchAccountLimitsParams
+	Body   *PatchAccountLimitsJSONRequestBody
 }
 
-type SandboxTopupResponseObject interface {
-	VisitSandboxTopupResponse(w http.ResponseWriter) error
+type PatchAccountLimitsResponseObject interface {
+	VisitPatchAccountLimitsResponse(w http.ResponseWriter) error
 }
 
-type SandboxTopup201JSONResponse SandboxTopupResponse
+type PatchAccountLimits200ResponseHeaders struct {
+	XCorrelationId string
+}
 
-func (response SandboxTopup201JSONResponse) VisitSandboxTopupResponse(w http.ResponseWriter) error {
+type PatchAccountLimits200JSONResponse struct {
+	Body    PatchAccountLimitsHttpResponse
+	Headers PatchAccountLimits200ResponseHeaders
+}
+
+func (response PatchAccountLimits200JSONResponse) VisitPatchAccountLimitsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
+	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type SandboxTopup400JSONResponse ErrorResponse
+type PatchAccountLimits400JSONResponse ErrorResponse
 
-func (response SandboxTopup400JSONResponse) VisitSandboxTopupResponse(w http.ResponseWriter) error {
+func (response PatchAccountLimits400JSONResponse) VisitPatchAccountLimitsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type SandboxTopup401JSONResponse ErrorResponse
+type PatchAccountLimits401JSONResponse ErrorResponse
 
-func (response SandboxTopup401JSONResponse) VisitSandboxTopupResponse(w http.ResponseWriter) error {
+func (response PatchAccountLimits401JSONResponse) VisitPatchAccountLimitsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type SandboxTopup403JSONResponse ErrorResponse
+type PatchAccountLimits403JSONResponse ErrorResponse
 
-func (response SandboxTopup403JSONResponse) VisitSandboxTopupResponse(w http.ResponseWriter) error {
+func (response PatchAccountLimits403JSONResponse) VisitPatchAccountLimitsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(403)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type SandboxTopup422JSONResponse ErrorResponse
+type PatchAccountLimits409JSONResponse ErrorResponse
 
-func (response SandboxTopup422JSONResponse) VisitSandboxTopupResponse(w http.ResponseWriter) error {
+func (response PatchAccountLimits409JSONResponse) VisitPatchAccountLimitsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(422)
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type SandboxTopup502JSONResponse ErrorResponse
+type PatchAccountLimits502JSONResponse ErrorResponse
 
-func (response SandboxTopup502JSONResponse) VisitSandboxTopupResponse(w http.ResponseWriter) error {
+func (response PatchAccountLimits502JSONResponse) VisitPatchAccountLimitsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(502)
 
@@ -1504,7 +1711,8 @@ type CompleteWebLoginResponseObject interface {
 }
 
 type CompleteWebLogin302ResponseHeaders struct {
-	Location string
+	Location       string
+	XCorrelationId string
 }
 
 type CompleteWebLogin302Response struct {
@@ -1513,6 +1721,7 @@ type CompleteWebLogin302Response struct {
 
 func (response CompleteWebLogin302Response) VisitCompleteWebLoginResponse(w http.ResponseWriter) error {
 	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(302)
 	return nil
 }
@@ -1553,7 +1762,8 @@ type StartWebLoginResponseObject interface {
 }
 
 type StartWebLogin302ResponseHeaders struct {
-	Location string
+	Location       string
+	XCorrelationId string
 }
 
 type StartWebLogin302Response struct {
@@ -1562,6 +1772,7 @@ type StartWebLogin302Response struct {
 
 func (response StartWebLogin302Response) VisitStartWebLoginResponse(w http.ResponseWriter) error {
 	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(302)
 	return nil
 }
@@ -1593,13 +1804,21 @@ type CreateBeneficiaryResponseObject interface {
 	VisitCreateBeneficiaryResponse(w http.ResponseWriter) error
 }
 
-type CreateBeneficiary201JSONResponse CreateBeneficiaryResponse
+type CreateBeneficiary201ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type CreateBeneficiary201JSONResponse struct {
+	Body    CreateBeneficiaryResponse
+	Headers CreateBeneficiary201ResponseHeaders
+}
 
 func (response CreateBeneficiary201JSONResponse) VisitCreateBeneficiaryResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(201)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type CreateBeneficiary400JSONResponse ErrorResponse
@@ -1648,20 +1867,29 @@ func (response CreateBeneficiary502JSONResponse) VisitCreateBeneficiaryResponse(
 }
 
 type ActivateOnboardingRequestObject struct {
-	Body *ActivateOnboardingJSONRequestBody
+	Params ActivateOnboardingParams
+	Body   *ActivateOnboardingJSONRequestBody
 }
 
 type ActivateOnboardingResponseObject interface {
 	VisitActivateOnboardingResponse(w http.ResponseWriter) error
 }
 
-type ActivateOnboarding201JSONResponse ActivateResponse
+type ActivateOnboarding201ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type ActivateOnboarding201JSONResponse struct {
+	Body    ActivateResponse
+	Headers ActivateOnboarding201ResponseHeaders
+}
 
 func (response ActivateOnboarding201JSONResponse) VisitActivateOnboardingResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(201)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type ActivateOnboarding400JSONResponse ErrorResponse
@@ -1692,20 +1920,29 @@ func (response ActivateOnboarding502JSONResponse) VisitActivateOnboardingRespons
 }
 
 type StartOnboardingRequestObject struct {
-	Body *StartOnboardingJSONRequestBody
+	Params StartOnboardingParams
+	Body   *StartOnboardingJSONRequestBody
 }
 
 type StartOnboardingResponseObject interface {
 	VisitStartOnboardingResponse(w http.ResponseWriter) error
 }
 
-type StartOnboarding201JSONResponse OnboardingIntentResponse
+type StartOnboarding201ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type StartOnboarding201JSONResponse struct {
+	Body    OnboardingIntentResponse
+	Headers StartOnboarding201ResponseHeaders
+}
 
 func (response StartOnboarding201JSONResponse) VisitStartOnboardingResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(201)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type StartOnboarding400JSONResponse ErrorResponse
@@ -1736,20 +1973,29 @@ func (response StartOnboarding502JSONResponse) VisitStartOnboardingResponse(w ht
 }
 
 type ConfirmOnboardingKycRequestObject struct {
-	Body *ConfirmOnboardingKycJSONRequestBody
+	Params ConfirmOnboardingKycParams
+	Body   *ConfirmOnboardingKycJSONRequestBody
 }
 
 type ConfirmOnboardingKycResponseObject interface {
 	VisitConfirmOnboardingKycResponse(w http.ResponseWriter) error
 }
 
-type ConfirmOnboardingKyc200JSONResponse ConfirmKycResponse
+type ConfirmOnboardingKyc200ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type ConfirmOnboardingKyc200JSONResponse struct {
+	Body    ConfirmKycResponse
+	Headers ConfirmOnboardingKyc200ResponseHeaders
+}
 
 func (response ConfirmOnboardingKyc200JSONResponse) VisitConfirmOnboardingKycResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type ConfirmOnboardingKyc400JSONResponse ErrorResponse
@@ -1788,13 +2034,21 @@ type ExecutePaymentResponseObject interface {
 	VisitExecutePaymentResponse(w http.ResponseWriter) error
 }
 
-type ExecutePayment201JSONResponse CreatePaymentResponse
+type ExecutePayment201ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type ExecutePayment201JSONResponse struct {
+	Body    CreatePaymentResponse
+	Headers ExecutePayment201ResponseHeaders
+}
 
 func (response ExecutePayment201JSONResponse) VisitExecutePaymentResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(201)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type ExecutePayment400JSONResponse ErrorResponse
@@ -1850,13 +2104,21 @@ type GetPaymentStatusResponseObject interface {
 	VisitGetPaymentStatusResponse(w http.ResponseWriter) error
 }
 
-type GetPaymentStatus200JSONResponse GetPaymentResponse
+type GetPaymentStatus200ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type GetPaymentStatus200JSONResponse struct {
+	Body    GetPaymentResponse
+	Headers GetPaymentStatus200ResponseHeaders
+}
 
 func (response GetPaymentStatus200JSONResponse) VisitGetPaymentStatusResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type GetPaymentStatus401JSONResponse ErrorResponse
@@ -1895,13 +2157,21 @@ type UpdateProfileResponseObject interface {
 	VisitUpdateProfileResponse(w http.ResponseWriter) error
 }
 
-type UpdateProfile200JSONResponse PatchProfileResponse
+type UpdateProfile200ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type UpdateProfile200JSONResponse struct {
+	Body    PatchProfileResponse
+	Headers UpdateProfile200ResponseHeaders
+}
 
 func (response UpdateProfile200JSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type UpdateProfile400JSONResponse ErrorResponse
@@ -1956,13 +2226,21 @@ type GetCurrentSessionResponseObject interface {
 	VisitGetCurrentSessionResponse(w http.ResponseWriter) error
 }
 
-type GetCurrentSession200JSONResponse WhoamiResponse
+type GetCurrentSession200ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type GetCurrentSession200JSONResponse struct {
+	Body    WhoamiResponse
+	Headers GetCurrentSession200ResponseHeaders
+}
 
 func (response GetCurrentSession200JSONResponse) VisitGetCurrentSessionResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type GetCurrentSession401JSONResponse ErrorResponse
@@ -1990,13 +2268,21 @@ type GetWebCsrfTokenResponseObject interface {
 	VisitGetWebCsrfTokenResponse(w http.ResponseWriter) error
 }
 
-type GetWebCsrfToken200JSONResponse CsrfTokenResponse
+type GetWebCsrfToken200ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type GetWebCsrfToken200JSONResponse struct {
+	Body    CsrfTokenResponse
+	Headers GetWebCsrfToken200ResponseHeaders
+}
 
 func (response GetWebCsrfToken200JSONResponse) VisitGetWebCsrfTokenResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type GetWebCsrfToken401JSONResponse ErrorResponse
@@ -2034,10 +2320,16 @@ type LogoutWebSessionResponseObject interface {
 	VisitLogoutWebSessionResponse(w http.ResponseWriter) error
 }
 
+type LogoutWebSession204ResponseHeaders struct {
+	XCorrelationId string
+}
+
 type LogoutWebSession204Response struct {
+	Headers LogoutWebSession204ResponseHeaders
 }
 
 func (response LogoutWebSession204Response) VisitLogoutWebSessionResponse(w http.ResponseWriter) error {
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(204)
 	return nil
 }
@@ -2077,13 +2369,21 @@ type RefreshWebSessionResponseObject interface {
 	VisitRefreshWebSessionResponse(w http.ResponseWriter) error
 }
 
-type RefreshWebSession200JSONResponse RefreshSessionResponse
+type RefreshWebSession200ResponseHeaders struct {
+	XCorrelationId string
+}
+
+type RefreshWebSession200JSONResponse struct {
+	Body    RefreshSessionResponse
+	Headers RefreshWebSession200ResponseHeaders
+}
 
 func (response RefreshWebSession200JSONResponse) VisitRefreshWebSessionResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Correlation-Id", fmt.Sprint(response.Headers.XCorrelationId))
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type RefreshWebSession401JSONResponse ErrorResponse
@@ -2121,9 +2421,9 @@ type StrictServerInterface interface {
 	// Actividad (journal entries) de una cuenta
 	// (GET /api/v1/accounts/{id}/activity)
 	GetAccountActivity(ctx context.Context, request GetAccountActivityRequestObject) (GetAccountActivityResponseObject, error)
-	// Top-up admin (sandbox)
-	// (POST /api/v1/admin/sandbox/topups)
-	SandboxTopup(ctx context.Context, request SandboxTopupRequestObject) (SandboxTopupResponseObject, error)
+	// Actualiza límites diarios de la cuenta
+	// (PATCH /api/v1/accounts/{id}/limits)
+	PatchAccountLimits(ctx context.Context, request PatchAccountLimitsRequestObject) (PatchAccountLimitsResponseObject, error)
 	// Callback OIDC; crea cookie de sesión y redirige al destino final
 	// (GET /api/v1/auth/oidc/callback)
 	CompleteWebLogin(ctx context.Context, request CompleteWebLoginRequestObject) (CompleteWebLoginResponseObject, error)
@@ -2157,7 +2457,7 @@ type StrictServerInterface interface {
 	// Devuelve el CSRF token actual (o lo crea si no existe)
 	// (GET /api/v1/session/csrf)
 	GetWebCsrfToken(ctx context.Context, request GetWebCsrfTokenRequestObject) (GetWebCsrfTokenResponseObject, error)
-	// Cierra sesión (invalida upstream si aplica) y limpia cookies
+	// Cierra sesión y limpia cookies
 	// (POST /api/v1/session/logout)
 	LogoutWebSession(ctx context.Context, request LogoutWebSessionRequestObject) (LogoutWebSessionResponseObject, error)
 	// Rota/renueva sesión server-side y actualiza cookie
@@ -2245,13 +2545,14 @@ func (sh *strictHandler) GetAccountActivity(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// SandboxTopup operation middleware
-func (sh *strictHandler) SandboxTopup(w http.ResponseWriter, r *http.Request, params SandboxTopupParams) {
-	var request SandboxTopupRequestObject
+// PatchAccountLimits operation middleware
+func (sh *strictHandler) PatchAccountLimits(w http.ResponseWriter, r *http.Request, id string, params PatchAccountLimitsParams) {
+	var request PatchAccountLimitsRequestObject
 
+	request.Id = id
 	request.Params = params
 
-	var body SandboxTopupJSONRequestBody
+	var body PatchAccountLimitsJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -2259,18 +2560,18 @@ func (sh *strictHandler) SandboxTopup(w http.ResponseWriter, r *http.Request, pa
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.SandboxTopup(ctx, request.(SandboxTopupRequestObject))
+		return sh.ssi.PatchAccountLimits(ctx, request.(PatchAccountLimitsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SandboxTopup")
+		handler = middleware(handler, "PatchAccountLimits")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(SandboxTopupResponseObject); ok {
-		if err := validResponse.VisitSandboxTopupResponse(w); err != nil {
+	} else if validResponse, ok := response.(PatchAccountLimitsResponseObject); ok {
+		if err := validResponse.VisitPatchAccountLimitsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2364,8 +2665,10 @@ func (sh *strictHandler) CreateBeneficiary(w http.ResponseWriter, r *http.Reques
 }
 
 // ActivateOnboarding operation middleware
-func (sh *strictHandler) ActivateOnboarding(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) ActivateOnboarding(w http.ResponseWriter, r *http.Request, params ActivateOnboardingParams) {
 	var request ActivateOnboardingRequestObject
+
+	request.Params = params
 
 	var body ActivateOnboardingJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2395,8 +2698,10 @@ func (sh *strictHandler) ActivateOnboarding(w http.ResponseWriter, r *http.Reque
 }
 
 // StartOnboarding operation middleware
-func (sh *strictHandler) StartOnboarding(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) StartOnboarding(w http.ResponseWriter, r *http.Request, params StartOnboardingParams) {
 	var request StartOnboardingRequestObject
+
+	request.Params = params
 
 	var body StartOnboardingJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2426,8 +2731,10 @@ func (sh *strictHandler) StartOnboarding(w http.ResponseWriter, r *http.Request)
 }
 
 // ConfirmOnboardingKyc operation middleware
-func (sh *strictHandler) ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) ConfirmOnboardingKyc(w http.ResponseWriter, r *http.Request, params ConfirmOnboardingKycParams) {
 	var request ConfirmOnboardingKycRequestObject
+
+	request.Params = params
 
 	var body ConfirmOnboardingKycJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2651,62 +2958,100 @@ func (sh *strictHandler) RefreshWebSession(w http.ResponseWriter, r *http.Reques
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"H4sIAAAAAAAC/+xdb3Ibt5K/Cmp2qx5VoUhK9ttNlMoHW7ZjrZxnreQ4LxWnWCCmScKeAeYBGFlMVlV7",
+	"iL3AO0A+5Qi+yZ5kC//mHzEcDi3JyVrfKHIGaADdv193owH9GhGeZpwBUzI6+jVaAo5BmI9/3z/mQkCC",
+	"FeVs/yTW38UgiaCZ/iY6iiq/o5MnKBM8wwsccwRXSkDKES4+DR4/e4b23+STyQNAKSWCy71RNIwkWUKK",
+	"ddNqlUF0FEklKFtE19fXwyjDAqegnDwnMaQZV8DI6hRWL40QONG/UC2MlTwaRgynuqHK4/unsKr1leKr",
+	"F8AWahkdHRx+OYxSyvzfXw7XJBk2uj6Hf+RUQNyja1G8okQOHyPKGV7AmZ6Xovd/5CBWZecZXkBtsDHM",
+	"cZ6o6OjAtE7TPDWfXduUKViAMI1f0F82Ny7pLy2NH06Geiy29cPJpLOvvx9LMX/F3wFrnce/7x9fnD/b",
+	"tw9tmsSA7tgfjeI8IoTnTD0iil5StTpRYMan1RWEomAemnH+DuIpVvqPORep/hTFWMG+oqkedKOTYfSW",
+	"54LhZErjgAzDKIWU6x9YniR4loAXe31Ny4H9VG10WBHq5+I9PnsLROkOGuM6B5lxJmF9bFRBWv/wrwLm",
+	"0VH0L+PS+sduxsah6bouusdC4FVkjHMBlXEXSzu0ShL8RXFlLbaOIy8zYmz5ayQpYhwt8QrNc2AKUJ5J",
+	"JQCnSGMBMu8PUZZDDIinVFEhAXGkp1ijSctUV9WuOtd2OoaFyWi5N0z0Y5xgRuyU1icYX2LqOm6O7QkQ",
+	"muIEueUOqNGSJ/Eu7yUQ60H1frMxCa6ZYWUQTqYNU9FiQ5UJ2kLDivm8HkYkF0Lj5fpwTi5e7j88PPj3",
+	"0BS0WF4meJwTNbU/NBt8+vYIHT9/enx68rdv0X+hi0evT/727UWoeamwys1o4AqnWWL0X5sFdM6qMd+a",
+	"HJUxFi0PyynbMNny5SWISwrv2y0cuyf7GnnYuBtjKRoPy6joJVagSRGkCooGmYJ4qkBYuerLcQ6Ep8Bi",
+	"7TdIilSOvj9BcEUXgLB+ExP64Xe2wbpnnCeAmRZmRoVaTjVo1xft4Kuvvto/ONx/cBBaZjM6sWqw8WGN",
+	"iw8D70GKaVKjC/tN4NF5niRTy2ohfV1yFv5FwIJKJYyL1cYzirIQB9bXsNlQVSTbRG32ykkZFoOyUm7W",
+	"gQ79bBsCtg1o2YzO/hpapMLXdK108Kq2N6l4CiLca2OCqg8Pq/KuSReagWPO5lSkpyvSagdkiRmDJIxH",
+	"72HWruDliGyH21v591nCcQzxy0LQJot3K1inInmhuualTTeIfWaz89W92P31Yxvj0kANXdN8XmnowrxQ",
+	"kAdsv1inK2LX6cKSQxcsr6+EFbbSdXBJBGAFj4HBnBKKxaoduRNqHejOmYxBKsqsJM50ujUp9NKWArep",
+	"0qx8aCtlbjzf3vsZXqXAVPtUpX7Mfb24quNTYZ8HNfZ5sPOcbx2GDCPJc0Fg+/VrPB+WqOb1uFnaYprb",
+	"FjizD2yyVuewMR15/hRlwGI78xmXCmITRupOzcc5pglU171lqJVui06Co/Ah7Qa0k2I+VT7sLV2Uh/ND",
+	"coBHo5F+YDQadXqYlYZCojwVgotNoBs3fKTHj55Mz5/+5/dPL15FQXVTmCZW2eOY2uTLWaVNq1UtWlbK",
+	"lYKULnIs+z5hlzihMRLOvjrHrqUv2wqN/1tQndpUWu26WRp97JcPqJryzuZKy9zR9B2E2+qygi5DrhpK",
+	"4CfItictN8cXCrJOwgpZ0fqAh7sDixe+tnwh5ThdkSecvHLhoccKGk/ngtt2IJlTCACDebdG0+sklJN3",
+	"EJ72mJMiKO1wBbx8Os5QeLEVgrfpS7naHZ1af9H7H02+9sJXw1c7Vtt1y0zXGg1Cc+EBRsMoZzIDQuc0",
+	"iMvD6CUheWZUobl8UuUxmNWDNEv4CsAt5NT9bZuv/CFAmcEF+2EzjoUW8ISpTdR/E359n0iSsgWITFCm",
+	"ph7EAyBiNXlKuBG+ULoScmmKFzB+m8FiGwETTrDNbnU+mnKmlslqSpmO6yvisTyd2TSgNeX2zGnl9ymV",
+	"ModASH84OZzsTw5aQnpeaMlW9tZQqo0huYWGG5rZhonVQ+36RLVOS0An1lZhfUZCxrqu8+3uQ/9ovJtR",
+	"P3HElhug6sF9AiRdMIgtwn1EwOZ7Di3KGVZk6dJ1L2hKlXyuVFaBozrqPCIqxwn9BaPkw28pVSBRTLGg",
+	"XKIYEDAlcIzHUrtbePSGHeM049Lm0mP9weTS0Tdup45xJAGlPKZzSjAbvWE2rVlRhRhTo2ddwQ8a2Da/",
+	"meyNkMbGvxxMJpPRZPKXbVbe9sJz1b+bv27by3WP2d8x0VWdrM1j3AwUtfxU+V6lg1ZVOhN8TpP2fG3B",
+	"RZ1rUktqdj5dIGr3kwLmoF27RvKklXe9B+DhU9pdnVwug9TOM1VfgiKD3AwzXBfFK6FJbRlOCQEdy9Cm",
+	"SXmmoTHeQkz/ZHjJS/98XVmVgjTrG+a4SHD6VnK2XWLBI3Iw1tgi0aCfKsGyJnVwzB6Xn9v95LVxtybi",
+	"L3GSQ7dALmtun94ogWOGPjFC07G4qSDiKqMC5JSyqQTCmeW5YsUpU//2MBoG9mwrFSH9WNHNfiDp3Ban",
+	"pPhqOlsp2FY0S5vTXNR951zQzgxCJZipxTC1RsvBV2VrLFFwakNKcQ5zAXJ5AVJSviFDJO0D07LZdc57",
+	"9eqFpvMEIwmSfvidoYGERc5iLvdG6JjzdxSQ4EpzPVwpHWnFeKRdxa5ZbdreujDhsTX9qVpghoXNt+mJ",
+	"w0RNL0HYCM98JYHZn91GSzNL1xUSNnY5PsbYuv2QTxTB019gg2n0rHtoU/7Qyv6w5DilGyKB+iZbtwvP",
+	"kwatr29oNuBC5kYaHfZwGpPgO7kEMW3NajWVutGgl6rezPpsmOiP5IKq1YVeZx8LaWt7lKtlIAfA0PNX",
+	"r84uECTo8bNnrnJFggIs0HT6nEu1702Mxl8jYMiE2mP9FsqlsW/36wg9TRBJqKmLiWEGSACwS4qFxgEr",
+	"BYIrTBROzTOEp1z/JIDQGVjf3dRZ2WcrVV1FHyUg4Iyegpl+IsXcj26bMq1GA3rWKJvzQKhydoJiPzFY",
+	"YEQwwwl6DzM0cMNxkqEvkO5ib/SGlTGqmZ55kr/lKPOcgy4eoIENWmQ+A4aMzSBsOtGvv2HHnF0CI5Qz",
+	"kEdv2D76jjPF5ZGPH2IXTryJCGacUYKTNxEaSMoQ464aARG9Ch9+00GRCzPeRAeT0V8nbyLdZFkASPER",
+	"svOFGlWBeq2BxRmnTEmU5grHXIBEhDMkgBpc4nKkm6vUWR4VmmSLLVE9EkfYFVeiFUo4iuEyh+TSqYKV",
+	"w+qBospm/Z89Qz/ADD06O9EeDQhp1+ZgNBlNrLMMDGc0OooejCajB6ZaSi2N4o9xRseXB+Nq8ckCAhHa",
+	"S2FiDTt3Zs51twKkE66EEBSDbPDaSQxMUbUafQvKcecJm3PEEcFkCdZe9sw8DXwh2R6qky2SVM8bJgSk",
+	"tJsmVuNi/p65AjPDcB9+Nw35wpvRCyqV/2NQkXPPzqIGQjP1J3F0FH0LqlmxY4jMQqeZnsPJxG156+U1",
+	"PniWJZSYRsbeoy4LG7co4VmvDjIm11iB02jYVdsb6su9Ml573vTxcHJwY6Op71cFhvA9w7lackF/AZNq",
+	"eTh5cHedP+NiRuMYTJXRXyeHdzhsXwAJ+skaB0VHP9XZ56efr3/WdJmmWKxMaZXMU2DaUyQ5MIWlwVuv",
+	"xwjnegCU4JhrSMALqdnxUaXc62of5zG1YyROIm/uo4SarToiqG4jiY7mOJGgyTRXMNVBWmI8wXWguNYt",
+	"z+bzfS7IErzjaCYVJ4k0A2PceDvRBfWQxzhSFFgdMIBZHNDOrciI1nUaEz0fF9osCDRww+wJmB+0g+Sw",
+	"JRpG75dgqZH5zc3oeliTwhWm1kDk8sM/ExpzCyZJglMsSvBolagOTjtKdA6KC4aRXgVsWMPXEpYde1F8",
+	"x1U4q3WLyy9dtzh5j1cyuv7ZrNXCtPdrlIJaco11rS3NMHs3KlTk8mDUkMHqeFMjxr/S+HqMXclxTyKx",
+	"0QTBWp81PjiO1jwCROUCI8lnwrCKNQOD8S9M3Wt1Sv7Dll4/ZUpQkIMyxzZEc8HTseJDlOEFjLU33sEA",
+	"vno6qp9i+Mm5UJpDSweKxr2q24dhSCn7GZeHBLZ4uCz61+hx23S1Vq1+z1b3bGXYympGjGM0cIcgzHYF",
+	"BbmnbTln3nx34SoPLbuTVgOielJYJ3mUnugt88YTHxO4ydWQRhmOcYU3LDYGWKMOkTUJinMEvQlkQ6OG",
+	"TWzLrnrEcEpNvk2MkpgtG1s5pshya0Yx22OIv2cg5JJm4yazmFjCsQMaZFygjCeUrMaPXp+h1ZgXnGRf",
+	"8Gq6V48u1jeXBppsiv0c/5Ey/WItqNTtmC0coTWoGVoajSqDSCRhkQsTTK5R1roMn4ayWo7YbfFm5SCZ",
+	"JTCzoo95vLox3Nu8B3tdzy/pubi+RSLt2JK8Qz6d3B2xPMZldeDny+UPJ1/dXc/HnM0TShQaVEr0UEpl",
+	"qhVw7w/uW1TzlgFPY0ONRPIxfoYlnJFlm6qbYRFySy/D0daf1se4ACSA8JQCi7FPVa5nQE1WMgWFY6yw",
+	"oU2C04yjRkloezwbJK+PiGo72usZ2+ZqOeY0JmO9WjNM3vWMa00+AWFUZECPeZoloECv2Qu+oGxAeAxD",
+	"szE+HI1G1r3Qr5odBlRPomtXZYVSrEBQq/3HF+fPfKp97HPRaOyeH2sDKpsUEFNhTuXZj0DUFM8ViGmi",
+	"RQn5Fl7eH2BmxG3xLBpnzF0FWy/nInhW3dULbN9QM/x9YOGteV7RDh6ZwSMzeDSQoGSxW+HmHbPYTrH9",
+	"e69Owi84Kcy5x1j/jOT9HZWSssWYujL/ihJ8Si5HAy+QVrmx0RfE/ZL6DehPTXTlDsie5byCxo4drKCX",
+	"J0+Ov0ZElCZvNhntBsqqYrkJsqX0HM2pxuwKwWmibCO3XC1HGshGxBl0L2Zbh8E+vHasR+XHoqEYxL6k",
+	"MZhx2QxoBd++KLCpneHWULSD5Do4Y3NzhjJ8m5oyGtK0UYapmfhIvrCkz2cKmE32G723W4W5SCrIrnUx",
+	"BvRgcog8LIXw/EIL1Q7mdRnPsFoW6pZxqfYdVMLbIzRe8tQAYgi4/RJGN4fVSsfIZ/U5KHZfP1tcbgRV",
+	"f0iQO2GUUGwgzgFzHdBO4rPeMGaNq1cSsGGYfRCsSLitWSBaIUM67VhlLO6GgGpDW/1Qqjw1609lcltI",
+	"3PD+mud21xGjR2Zn9wzSLeWEWs9Rb5UOOrhNOTbE9PYQxn066P9HOujwDgHbVLxhlxo3/OlOT/9580DG",
+	"t6ygGUeD716f7VX4xJXPt+Z9ik2Jyk0CI3vSqY+PXEfUPuTy3euzI4STFBNgOKXAFB/bJbI7D8CMi8dt",
+	"WRia5yoX3JTIxTCnjMZcP5IJrrhE2OTFwN7MZwmJ2YNoFaqYz0OMU+UHXpTojX1Fb5UlNriy5prAvfYE",
+	"SHnRTFluPHrDGm34x4eIMgWCcdvia7upox+MudnDaRzIQoPTH4+RO4yKYz5EoIhNgGhNGfNZvfxEz5zP",
+	"AKEBXOm+cDIVMEffNNsum3HJxYHcq79fJL0UoIwLVG1vrbwNG+tCM85yqZtxxQx9Nom+dkVxvqLUbxfh",
+	"oS0ujeGSJ5dgiktN0hfV78EJBQh+fcoizd6cf8cs3ry+6o7Je+3mpM+Is+/JSzRiHasNqMRPNLBJHQ84",
+	"X/ht5ypHVYythaXKBkcFIPdgpxCe9+GoIh/BHU4XqDe2uOVw2patV4Khol8fDoXw/+OCos4W10OjplRR",
+	"G/lZPJVbct+RKxy3HZlgrSqUTe81GatMgpUl8O4wcZgMyrv2mpsxgxY6MGSkaAo8twUM4bTQjUF+cbHv",
+	"bUF+280Odwz9rYft7yngM6YAl+6qUoCzeT4+/fF4D/3vf/9P7bjLrkRgrXuHWCUAcH3I4LwNr76uoo/M",
+	"tQdqcrccYXTxYBMrrGHlDeTJboMP3q3I2EUXO3GCu0yxKtrpihTFarO3oIO4yw+/YfQcsDsOOX76Ci/M",
+	"vq8guAhu7J2qPRkCGgeTAvu9pvVyRk5X5I/OBus3d95xOVfgiszPo4TrHvyb4O9UAaPTH4/RoDjW4C1b",
+	"5jNzR4vGw50DgHcrMvIgtBvqV2GsD/K/9uOxZ47H72A1BmXAqdjJNSdvjccZc7IJ88NY+LE7uZ1t9kV/",
+	"nx/sg/eVAmRnLmhgT3zzIfKX3g2RvfPOZYaOOYtpy9lHswtcKwqr1IHpt32Sc3TGpb800RwoahCA5gub",
+	"UEMD/04tteYPma3KurpBkeCyr/qjmuegJxWjJU/i1oe0PICROw0w5rma8asQ8Ty9ApIX14feWM7pD1F7",
+	"HLyA9pPsMTXv07zfX7rfX7rfX9qwv/T0rYYljHINwgu+y75S//isoJybqx6+5WrhM3eVwdoGBWVUUXNp",
+	"4Gz1jbu0o5TFz2FRDFyyV02QYkK2rgJuaajlMFJDjrADYOq6K/Vca+dGi4u63M2qN34E5zbPdgYuW74/",
+	"1nl/rNOA4Eu3a2r3XccxKJwkYE907gyLC+hXv1U3w52qtzIsub0/4T0X7+YJf98ORaU9fBwStbSzExDZ",
+	"+wZ7H4XccEuLq8qtn2k8do/Vz2j4b01Y8V7gLNMG7S+L6puIatmpCEUG35u7Ed1li3dagHbrmavQbZ6f",
+	"4ihi8ybL+wOI9xHBfUTQdfIwAzGnyTb38XjwauNE+3P/I4eeEfqw4Vn1REGVEew/bgSpPvzzrq7k+Q5n",
+	"gFEABZH71pOO+7oUZzNH3cARwmBTa6cHm2LUCdudatkUMxybZKAqo69bA/rGLZD3zv1twmwf79puDsY4",
+	"RquysrF6f56t6azAideWFjhxajei1jC3d7G9vu7kXJv7N9EXNUgZSIpW2GFKQhc45ns3BCnehusXfNVS",
+	"H+46QLRCEgzxUxBwyyeo26OAtqH1O7hRPdi7CVd+gFnp+N7m1ufav8u6B5bbAxY0MIeRx/685B/uYOu2",
+	"mFfeYJTY89XWYi3SoQFHCbfVcs4puaJSwV5/CDT/ia1vpqFmY70OupYjkYAWIA0q+AJ+f0pfAhGg9iws",
+	"Fde74iIa/rjKfS98whfu31CEj3a9ML//ALMS5HYPrNcTkw/XkxN/4+jY6eg9GnzmaLDxSA8FIXDl8HtC",
+	"04z6c/GyPwg4U+gRVzWMqFelNHMb/4ED7+0Oh7XG7fyNrlvZWpvazdMQ1hdqRxLnLN0alNycs9Ly7xvu",
+	"PZZ7jOqJUedc4bEAlsNl29UWuMgTFXf198Qtb3k7AJd/tVdZL1dV1C09kw1Xrt9QCNUBaRva2gbTru0L",
+	"4TsuXnBiYmvzH2iipVLZ0XhsLqRfcqmOvpx8OTGg5NbO/+che02BiT7t3xdF7Fx8VSnqq3z7qLxBu/ju",
+	"rNzwL78rcnvlq3FKNURe/18AAAD//2m4RoHziQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

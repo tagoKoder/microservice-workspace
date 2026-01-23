@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	OnboardingService_StartRegistration_FullMethodName      = "/bank.identity.v1.OnboardingService/StartRegistration"
 	OnboardingService_ConfirmRegistrationKyc_FullMethodName = "/bank.identity.v1.OnboardingService/ConfirmRegistrationKyc"
+	OnboardingService_ActivateRegistration_FullMethodName   = "/bank.identity.v1.OnboardingService/ActivateRegistration"
 )
 
 // OnboardingServiceClient is the client API for OnboardingService service.
@@ -31,6 +32,8 @@ type OnboardingServiceClient interface {
 	StartRegistration(ctx context.Context, in *StartRegistrationRequest, opts ...grpc.CallOption) (*StartRegistrationResponse, error)
 	// Confirm uploaded KYC objects — v1
 	ConfirmRegistrationKyc(ctx context.Context, in *ConfirmRegistrationKycRequest, opts ...grpc.CallOption) (*ConfirmRegistrationKycResponse, error)
+	// NEW: Paso D — Activación (orquesta Accounts + Ledger)
+	ActivateRegistration(ctx context.Context, in *ActivateRegistrationRequest, opts ...grpc.CallOption) (*ActivateRegistrationResponse, error)
 }
 
 type onboardingServiceClient struct {
@@ -61,6 +64,16 @@ func (c *onboardingServiceClient) ConfirmRegistrationKyc(ctx context.Context, in
 	return out, nil
 }
 
+func (c *onboardingServiceClient) ActivateRegistration(ctx context.Context, in *ActivateRegistrationRequest, opts ...grpc.CallOption) (*ActivateRegistrationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActivateRegistrationResponse)
+	err := c.cc.Invoke(ctx, OnboardingService_ActivateRegistration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OnboardingServiceServer is the server API for OnboardingService service.
 // All implementations must embed UnimplementedOnboardingServiceServer
 // for forward compatibility.
@@ -69,6 +82,8 @@ type OnboardingServiceServer interface {
 	StartRegistration(context.Context, *StartRegistrationRequest) (*StartRegistrationResponse, error)
 	// Confirm uploaded KYC objects — v1
 	ConfirmRegistrationKyc(context.Context, *ConfirmRegistrationKycRequest) (*ConfirmRegistrationKycResponse, error)
+	// NEW: Paso D — Activación (orquesta Accounts + Ledger)
+	ActivateRegistration(context.Context, *ActivateRegistrationRequest) (*ActivateRegistrationResponse, error)
 	mustEmbedUnimplementedOnboardingServiceServer()
 }
 
@@ -84,6 +99,9 @@ func (UnimplementedOnboardingServiceServer) StartRegistration(context.Context, *
 }
 func (UnimplementedOnboardingServiceServer) ConfirmRegistrationKyc(context.Context, *ConfirmRegistrationKycRequest) (*ConfirmRegistrationKycResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConfirmRegistrationKyc not implemented")
+}
+func (UnimplementedOnboardingServiceServer) ActivateRegistration(context.Context, *ActivateRegistrationRequest) (*ActivateRegistrationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActivateRegistration not implemented")
 }
 func (UnimplementedOnboardingServiceServer) mustEmbedUnimplementedOnboardingServiceServer() {}
 func (UnimplementedOnboardingServiceServer) testEmbeddedByValue()                           {}
@@ -142,6 +160,24 @@ func _OnboardingService_ConfirmRegistrationKyc_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OnboardingService_ActivateRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActivateRegistrationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OnboardingServiceServer).ActivateRegistration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OnboardingService_ActivateRegistration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OnboardingServiceServer).ActivateRegistration(ctx, req.(*ActivateRegistrationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OnboardingService_ServiceDesc is the grpc.ServiceDesc for OnboardingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -156,6 +192,10 @@ var OnboardingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConfirmRegistrationKyc",
 			Handler:    _OnboardingService_ConfirmRegistrationKyc_Handler,
+		},
+		{
+			MethodName: "ActivateRegistration",
+			Handler:    _OnboardingService_ActivateRegistration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

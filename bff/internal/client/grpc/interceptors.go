@@ -53,3 +53,31 @@ func OutgoingHeadersStreamInterceptor() grpc.StreamClientInterceptor {
 		return streamer(ctx, desc, cc, method, opts...)
 	}
 }
+
+func ClientMetadataInterceptor() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+
+		md := metadata.New(nil)
+
+		if cid := security.CorrelationID(ctx); cid != "" {
+			md.Set("x-correlation-id", cid)
+		}
+		if at := security.AccessToken(ctx); at != "" {
+			md.Set("authorization", "Bearer "+at)
+		}
+
+		ctx = metadata.NewOutgoingContext(ctx, metadata.Join(metadataFromContext(ctx), md))
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
+
+func metadataFromContext(ctx context.Context) metadata.MD {
+	if ctx == nil {
+		return metadata.MD{}
+	}
+	if md, ok := metadata.FromOutgoingContext(ctx); ok && md != nil {
+		return md.Copy()
+	}
+	return metadata.MD{}
+}

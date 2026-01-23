@@ -9,6 +9,7 @@ import (
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
 	"github.com/tagoKoder/bff/internal/api/rest/middleware"
 	"github.com/tagoKoder/bff/internal/client/ports"
+	"github.com/tagoKoder/bff/internal/security"
 )
 
 func (h *Handler) CreateBeneficiaryStrict(
@@ -17,6 +18,7 @@ func (h *Handler) CreateBeneficiaryStrict(
 	body openapi.CreateBeneficiaryRequest,
 ) (openapi.CreateBeneficiaryResponseObject, error) {
 	_ = params.XCSRFToken // ya validado por strict + CSRF middleware
+	corrId := security.CorrelationID(ctx)
 
 	// MVP “beneficiary”: sin puerto específico en tu ports (no hay BeneficiariesPort).
 	// Al menos validamos que el usuario tenga customer en contexto y que el destino sea una cuenta visible.
@@ -25,6 +27,7 @@ func (h *Handler) CreateBeneficiaryStrict(
 		return openapi.CreateBeneficiary403JSONResponse(openapi.ErrorResponse{
 			Code:    "FORBIDDEN",
 			Message: "missing customer context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -33,6 +36,7 @@ func (h *Handler) CreateBeneficiaryStrict(
 		return openapi.CreateBeneficiary502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "accounts service unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -47,11 +51,17 @@ func (h *Handler) CreateBeneficiaryStrict(
 		return openapi.CreateBeneficiary400JSONResponse(openapi.ErrorResponse{
 			Code:    "BAD_REQUEST",
 			Message: "destination_account not allowed for this customer",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
 	resp := openapi.CreateBeneficiaryResponse{BeneficiaryId: body.DestinationAccount}
-	return openapi.CreateBeneficiary201JSONResponse(resp), nil
+	return openapi.CreateBeneficiary201JSONResponse{
+		Body: resp,
+		Headers: openapi.CreateBeneficiary201ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
 
 func (h *Handler) CreatePaymentStrict(
@@ -59,11 +69,13 @@ func (h *Handler) CreatePaymentStrict(
 	params openapi.ExecutePaymentParams,
 	body openapi.CreatePaymentRequest,
 ) (openapi.ExecutePaymentResponseObject, error) {
+	corrId := security.CorrelationID(ctx)
 	customerID, _ := ctx.Value(middleware.CtxCustomer).(string)
 	if customerID == "" {
 		return openapi.ExecutePayment403JSONResponse(openapi.ErrorResponse{
 			Code:    "FORBIDDEN",
 			Message: "missing customer context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -72,6 +84,7 @@ func (h *Handler) CreatePaymentStrict(
 		return openapi.ExecutePayment401JSONResponse(openapi.ErrorResponse{
 			Code:    "UNAUTHORIZED",
 			Message: "missing subject context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -80,6 +93,7 @@ func (h *Handler) CreatePaymentStrict(
 		return openapi.ExecutePayment400JSONResponse(openapi.ErrorResponse{
 			Code:    "BAD_REQUEST",
 			Message: "invalid amount",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -94,11 +108,13 @@ func (h *Handler) CreatePaymentStrict(
 		return openapi.ExecutePayment502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "accounts validation unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 	if !val.OK {
 		details := map[string]any{}
 		if val.Reason != nil {
+			details["correlation_id"] = corrId
 			details["reason"] = *val.Reason
 		}
 		return openapi.ExecutePayment400JSONResponse(openapi.ErrorResponse{
@@ -121,6 +137,7 @@ func (h *Handler) CreatePaymentStrict(
 		return openapi.ExecutePayment502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "ledgerpayments service unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -128,7 +145,12 @@ func (h *Handler) CreatePaymentStrict(
 		PaymentId: out.PaymentID,
 		Status:    mapPaymentStatus(out.Status),
 	}
-	return openapi.ExecutePayment201JSONResponse(resp), nil
+	return openapi.ExecutePayment201JSONResponse{
+		Body: resp,
+		Headers: openapi.ExecutePayment201ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
 
 func (h *Handler) GetPaymentStrict(
@@ -136,10 +158,12 @@ func (h *Handler) GetPaymentStrict(
 	id string,
 ) (openapi.GetPaymentStatusResponseObject, error) {
 	customerID, _ := ctx.Value(middleware.CtxCustomer).(string)
+	corrId := security.CorrelationID(ctx)
 	if customerID == "" {
 		return openapi.GetPaymentStatus403JSONResponse(openapi.ErrorResponse{
 			Code:    "FORBIDDEN",
 			Message: "missing customer context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -148,6 +172,7 @@ func (h *Handler) GetPaymentStrict(
 		return openapi.GetPaymentStatus502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "ledgerpayments service unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -156,6 +181,7 @@ func (h *Handler) GetPaymentStrict(
 		return openapi.GetPaymentStatus502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "invalid created_at from upstream",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -166,6 +192,7 @@ func (h *Handler) GetPaymentStrict(
 			return openapi.GetPaymentStatus502JSONResponse(openapi.ErrorResponse{
 				Code:    "UPSTREAM_ERROR",
 				Message: "invalid attempted_at from upstream",
+				Details: &map[string]interface{}{"correlation_id": corrId},
 			}), nil
 		}
 		var details *string
@@ -193,7 +220,12 @@ func (h *Handler) GetPaymentStrict(
 		CreatedAt:          createdAt,
 	}
 
-	return openapi.GetPaymentStatus200JSONResponse(resp), nil
+	return openapi.GetPaymentStatus200JSONResponse{
+		Body: resp,
+		Headers: openapi.GetPaymentStatus200ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
 
 func mapPaymentStatus(s string) openapi.CreatePaymentResponseStatus {

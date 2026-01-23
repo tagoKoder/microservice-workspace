@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/tagoKoder/bff/internal/security"
 )
 
 type statusWriter struct {
@@ -21,8 +23,16 @@ func AccessLog() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sw := &statusWriter{ResponseWriter: w, status: 200}
 			start := time.Now()
+
 			next.ServeHTTP(sw, r)
-			log.Printf("%s %s -> %d (%s)", r.Method, r.URL.Path, sw.status, time.Since(start))
+
+			rt := GetRouteTemplate(r.Context())
+			if rt == "" {
+				rt = r.URL.Path // fallback
+			}
+			cid := security.CorrelationID(r.Context())
+
+			log.Printf("cid=%s %s %s -> %d (%s)", cid, r.Method, rt, sw.status, time.Since(start))
 		})
 	}
 }

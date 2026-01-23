@@ -8,7 +8,6 @@ import (
 	onboardingH "github.com/tagoKoder/bff/internal/api/rest/v1/web/feature/onboarding"
 	paymentsH "github.com/tagoKoder/bff/internal/api/rest/v1/web/feature/payments"
 	profileH "github.com/tagoKoder/bff/internal/api/rest/v1/web/feature/profile"
-	sandboxH "github.com/tagoKoder/bff/internal/api/rest/v1/web/feature/sandbox"
 	sessionH "github.com/tagoKoder/bff/internal/api/rest/v1/web/feature/session"
 
 	"github.com/tagoKoder/bff/internal/client/ports"
@@ -34,7 +33,6 @@ type Server struct {
 	accounts   *accountsH.Handler
 	payments   *paymentsH.Handler
 	profile    *profileH.Handler
-	sandbox    *sandboxH.Handler
 }
 
 func New(deps Dependencies) *Server {
@@ -46,7 +44,6 @@ func New(deps Dependencies) *Server {
 		accounts:   accountsH.New(deps.Config, deps.Clients),
 		payments:   paymentsH.New(deps.Config, deps.Clients),
 		profile:    profileH.New(deps.Config, deps.Clients),
-		sandbox:    sandboxH.New(deps.Config, deps.Clients),
 	}
 }
 

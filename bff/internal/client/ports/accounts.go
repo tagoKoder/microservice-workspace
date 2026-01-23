@@ -42,13 +42,15 @@ type CustomerAddressCreate struct {
 }
 
 type CreateCustomerInput struct {
-	FullName    string
-	BirthDate   string
-	TIN         string
-	RiskSegment RiskSegment
-	Email       string
-	Phone       string
-	Address     *CustomerAddressCreate
+	IdempotencyKey string
+	FullName       string
+	BirthDate      string
+	TIN            string
+	RiskSegment    RiskSegment
+	Email          string
+	Phone          string
+	Address        *CustomerAddressCreate
+	ExternalRef    *string
 }
 type CreateCustomerOutput struct {
 	CustomerID string
@@ -75,9 +77,11 @@ type PatchCustomerOutput struct {
 }
 
 type CreateAccountInput struct {
-	CustomerID  string
-	ProductType ProductType
-	Currency    string
+	CustomerID     string
+	ProductType    ProductType
+	Currency       string
+	IdempotencyKey string
+	ExternalRef    *string
 }
 type CreateAccountOutput struct {
 	AccountID string
@@ -144,8 +148,9 @@ type HoldRequest struct {
 }
 
 type ReserveHoldInput struct {
-	AccountID string
-	Hold      HoldRequest
+	AccountID      string
+	Hold           HoldRequest
+	IdempotencyKey string
 }
 type ReserveHoldOutput struct {
 	OK      bool
@@ -153,8 +158,9 @@ type ReserveHoldOutput struct {
 }
 
 type ReleaseHoldInput struct {
-	AccountID string
-	Hold      HoldRequest
+	AccountID      string
+	Hold           HoldRequest
+	IdempotencyKey string
 }
 type ReleaseHoldOutput struct {
 	OK      bool

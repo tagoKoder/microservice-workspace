@@ -8,14 +8,17 @@ import (
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
 	"github.com/tagoKoder/bff/internal/api/rest/middleware"
 	"github.com/tagoKoder/bff/internal/client/ports"
+	"github.com/tagoKoder/bff/internal/security"
 )
 
 func (h *Handler) OverviewStrict(ctx context.Context) (openapi.GetAccountsOverviewResponseObject, error) {
+	corrId := security.CorrelationID(ctx)
 	customerID, _ := ctx.Value(middleware.CtxCustomer).(string)
 	if customerID == "" {
 		return openapi.GetAccountsOverview403JSONResponse(openapi.ErrorResponse{
 			Code:    "FORBIDDEN",
 			Message: "missing customer context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -24,6 +27,7 @@ func (h *Handler) OverviewStrict(ctx context.Context) (openapi.GetAccountsOvervi
 		return openapi.GetAccountsOverview502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "accounts service unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -46,7 +50,12 @@ func (h *Handler) OverviewStrict(ctx context.Context) (openapi.GetAccountsOvervi
 		})
 	}
 
-	return openapi.GetAccountsOverview200JSONResponse(resp), nil
+	return openapi.GetAccountsOverview200JSONResponse{
+		Body: resp,
+		Headers: openapi.GetAccountsOverview200ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
 
 func (h *Handler) ActivityStrict(
@@ -54,11 +63,13 @@ func (h *Handler) ActivityStrict(
 	accountID string,
 	params openapi.GetAccountActivityParams,
 ) (openapi.GetAccountActivityResponseObject, error) {
+	corrId := security.CorrelationID(ctx)
 	customerID, _ := ctx.Value(middleware.CtxCustomer).(string)
 	if customerID == "" {
 		return openapi.GetAccountActivity403JSONResponse(openapi.ErrorResponse{
 			Code:    "FORBIDDEN",
 			Message: "missing customer context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -85,6 +96,7 @@ func (h *Handler) ActivityStrict(
 		return openapi.GetAccountActivity502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "ledger service unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -95,6 +107,7 @@ func (h *Handler) ActivityStrict(
 			return openapi.GetAccountActivity502JSONResponse(openapi.ErrorResponse{
 				Code:    "UPSTREAM_ERROR",
 				Message: "invalid booked_at from upstream",
+				Details: &map[string]interface{}{"correlation_id": corrId},
 			}), nil
 		}
 		items = append(items, openapi.AccountActivityItem{
@@ -103,15 +116,84 @@ func (h *Handler) ActivityStrict(
 			Memo:      nil,
 		})
 	}
-
+	total := len(items)
 	resp := openapi.AccountActivityResponse{
 		Items: items,
 		Page:  int(page),
 		Size:  int(size),
-		Total: len(items),
+		Total: &total,
 	}
 
-	return openapi.GetAccountActivity200JSONResponse(resp), nil
+	return openapi.GetAccountActivity200JSONResponse{
+		Body: resp,
+		Headers: openapi.GetAccountActivity200ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
+}
+
+func (h *Handler) PatchLimitsStrict(
+	ctx context.Context,
+	accountID string,
+	params openapi.PatchAccountLimitsParams,
+	body openapi.PatchAccountLimitsHttpRequest,
+) (openapi.PatchAccountLimitsResponseObject, error) {
+
+	_ = params.XCSRFToken
+	//idem := params.IdempotencyKey
+	corrId := security.CorrelationID(ctx)
+
+	// parse opcionales (string decimal) a float64 si tu proto usa float
+	var dailyOut *float64
+	if body.DailyOut != nil {
+		v, err := strconv.ParseFloat(*body.DailyOut, 64)
+		if err != nil || v < 0 {
+			return openapi.PatchAccountLimits400JSONResponse(openapi.ErrorResponse{
+				Code:    "BAD_REQUEST",
+				Message: "invalid daily_out value",
+				Details: &map[string]interface{}{"correlation_id": corrId},
+			}), nil
+		}
+		dailyOut = &v
+	}
+
+	var dailyIn *float64
+	if body.DailyIn != nil {
+		v, err := strconv.ParseFloat(*body.DailyIn, 64)
+		if err != nil || v < 0 {
+			return openapi.PatchAccountLimits400JSONResponse(openapi.ErrorResponse{
+				Code:    "BAD_REQUEST",
+				Message: "invalid daily_in value",
+				Details: &map[string]interface{}{"correlation_id": corrId},
+			}), nil
+		}
+		dailyIn = &v
+	}
+
+	out, err := h.clients.Accounts.PatchAccountLimits(ctx, ports.PatchAccountLimitsInput{
+		//IdempotencyKey: idem, // añade este campo en ports si aún no existe
+		ID:       accountID,
+		DailyOut: dailyOut,
+		DailyIn:  dailyIn,
+	})
+	if err != nil {
+		// si tu micro devuelve “idempotency mismatch” mapear a 409
+		return openapi.PatchAccountLimits502JSONResponse(openapi.ErrorResponse{
+			Code: "UPSTREAM_ERROR", Message: "accounts service unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
+		}), nil
+	}
+
+	return openapi.PatchAccountLimits200JSONResponse{
+		Body: openapi.PatchAccountLimitsHttpResponse{
+			AccountId: out.AccountID,
+			DailyOut:  formatMoney(out.DailyOut),
+			DailyIn:   formatMoney(out.DailyIn),
+		},
+		Headers: openapi.PatchAccountLimits200ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
 
 func formatMoney(v float64) string {

@@ -230,14 +230,16 @@ type CreateCustomerRequest struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	FullName string                 `protobuf:"bytes,1,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
 	// OpenAPI: format date (YYYY-MM-DD). Se deja como string para evitar dependencia google.type.Date.
-	BirthDate     string                 `protobuf:"bytes,2,opt,name=birth_date,json=birthDate,proto3" json:"birth_date,omitempty"`
-	Tin           string                 `protobuf:"bytes,3,opt,name=tin,proto3" json:"tin,omitempty"`
-	RiskSegment   RiskSegment            `protobuf:"varint,4,opt,name=risk_segment,json=riskSegment,proto3,enum=bank.accounts.v1.RiskSegment" json:"risk_segment,omitempty"` // si no envían, el server puede default a LOW
-	Email         string                 `protobuf:"bytes,5,opt,name=email,proto3" json:"email,omitempty"`
-	Phone         string                 `protobuf:"bytes,6,opt,name=phone,proto3" json:"phone,omitempty"`
-	Address       *CustomerAddressCreate `protobuf:"bytes,7,opt,name=address,proto3" json:"address,omitempty"` // opcional
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	BirthDate      string                 `protobuf:"bytes,2,opt,name=birth_date,json=birthDate,proto3" json:"birth_date,omitempty"`
+	Tin            string                 `protobuf:"bytes,3,opt,name=tin,proto3" json:"tin,omitempty"`
+	RiskSegment    RiskSegment            `protobuf:"varint,4,opt,name=risk_segment,json=riskSegment,proto3,enum=bank.accounts.v1.RiskSegment" json:"risk_segment,omitempty"` // si no envían, el server puede default a LOW
+	Email          string                 `protobuf:"bytes,5,opt,name=email,proto3" json:"email,omitempty"`
+	Phone          string                 `protobuf:"bytes,6,opt,name=phone,proto3" json:"phone,omitempty"`
+	Address        *CustomerAddressCreate `protobuf:"bytes,7,opt,name=address,proto3" json:"address,omitempty"`                                     // opcional
+	IdempotencyKey string                 `protobuf:"bytes,8,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"` // recomendado
+	ExternalRef    string                 `protobuf:"bytes,9,opt,name=external_ref,json=externalRef,proto3" json:"external_ref,omitempty"`          // ej: registration_id
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateCustomerRequest) Reset() {
@@ -317,6 +319,20 @@ func (x *CreateCustomerRequest) GetAddress() *CustomerAddressCreate {
 		return x.Address
 	}
 	return nil
+}
+
+func (x *CreateCustomerRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *CreateCustomerRequest) GetExternalRef() string {
+	if x != nil {
+		return x.ExternalRef
+	}
+	return ""
 }
 
 type CustomerAddressCreate struct {
@@ -820,9 +836,11 @@ type CreateAccountRequest struct {
 	CustomerId  string                 `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"` // uuid
 	ProductType ProductType            `protobuf:"varint,2,opt,name=product_type,json=productType,proto3,enum=bank.accounts.v1.ProductType" json:"product_type,omitempty"`
 	// OpenAPI: currency minLength=3 maxLength=3 (ISO-4217)
-	Currency      string `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Currency       string `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
+	IdempotencyKey string `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	ExternalRef    string `protobuf:"bytes,5,opt,name=external_ref,json=externalRef,proto3" json:"external_ref,omitempty"` // ej: registration_id + product_type
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateAccountRequest) Reset() {
@@ -872,6 +890,20 @@ func (x *CreateAccountRequest) GetProductType() ProductType {
 func (x *CreateAccountRequest) GetCurrency() string {
 	if x != nil {
 		return x.Currency
+	}
+	return ""
+}
+
+func (x *CreateAccountRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *CreateAccountRequest) GetExternalRef() string {
+	if x != nil {
+		return x.ExternalRef
 	}
 	return ""
 }
@@ -1778,7 +1810,7 @@ var File_bank_accounts_v1_accounts_proto protoreflect.FileDescriptor
 
 const file_bank_accounts_v1_accounts_proto_rawDesc = "" +
 	"\n" +
-	"\x1fbank/accounts/v1/accounts.proto\x12\x10bank.accounts.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x96\x02\n" +
+	"\x1fbank/accounts/v1/accounts.proto\x12\x10bank.accounts.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xe2\x02\n" +
 	"\x15CreateCustomerRequest\x12\x1b\n" +
 	"\tfull_name\x18\x01 \x01(\tR\bfullName\x12\x1d\n" +
 	"\n" +
@@ -1787,7 +1819,9 @@ const file_bank_accounts_v1_accounts_proto_rawDesc = "" +
 	"\frisk_segment\x18\x04 \x01(\x0e2\x1d.bank.accounts.v1.RiskSegmentR\vriskSegment\x12\x14\n" +
 	"\x05email\x18\x05 \x01(\tR\x05email\x12\x14\n" +
 	"\x05phone\x18\x06 \x01(\tR\x05phone\x12A\n" +
-	"\aaddress\x18\a \x01(\v2'.bank.accounts.v1.CustomerAddressCreateR\aaddress\"\xae\x01\n" +
+	"\aaddress\x18\a \x01(\v2'.bank.accounts.v1.CustomerAddressCreateR\aaddress\x12'\n" +
+	"\x0fidempotency_key\x18\b \x01(\tR\x0eidempotencyKey\x12!\n" +
+	"\fexternal_ref\x18\t \x01(\tR\vexternalRef\"\xae\x01\n" +
 	"\x15CustomerAddressCreate\x12\x18\n" +
 	"\acountry\x18\x01 \x01(\tR\acountry\x12\x14\n" +
 	"\x05line1\x18\x02 \x01(\tR\x05line1\x12\x14\n" +
@@ -1820,12 +1854,14 @@ const file_bank_accounts_v1_accounts_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\x0e2#.bank.accounts.v1.PreferenceChannelR\x05value\"8\n" +
 	"\x15PatchCustomerResponse\x12\x1f\n" +
 	"\vcustomer_id\x18\x01 \x01(\tR\n" +
-	"customerId\"\x95\x01\n" +
+	"customerId\"\xe1\x01\n" +
 	"\x14CreateAccountRequest\x12\x1f\n" +
 	"\vcustomer_id\x18\x01 \x01(\tR\n" +
 	"customerId\x12@\n" +
 	"\fproduct_type\x18\x02 \x01(\x0e2\x1d.bank.accounts.v1.ProductTypeR\vproductType\x12\x1a\n" +
-	"\bcurrency\x18\x03 \x01(\tR\bcurrency\"6\n" +
+	"\bcurrency\x18\x03 \x01(\tR\bcurrency\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\x12!\n" +
+	"\fexternal_ref\x18\x05 \x01(\tR\vexternalRef\"6\n" +
 	"\x15CreateAccountResponse\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\"6\n" +

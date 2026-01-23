@@ -238,6 +238,32 @@ func (c *IdentityClient) ConfirmRegistrationKyc(ctx context.Context, in ports.Co
 	}, nil
 }
 
+func (c *IdentityClient) ActivateRegistration(ctx context.Context, in ports.ActivateRegistrationInput) (ports.ActivateRegistrationOutput, error) {
+	ctx2, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
+	res, err := c.onboarding.ActivateRegistration(ctx2, &identityv1.ActivateRegistrationRequest{
+		RegistrationId: in.RegistrationID,
+		Channel:        in.Channel,
+		FullName:       in.FullName,
+		Tin:            in.Tin,
+		BirthDate:      in.BirthDate,
+		Country:        in.Country,
+		Email:          in.Email,
+		Phone:          in.Phone,
+		AcceptedTerms:  *in.AcceptedTerms,
+	})
+	if err != nil {
+		return ports.ActivateRegistrationOutput{}, err
+	}
+	return ports.ActivateRegistrationOutput{
+		RegistrationId:   res.RegistrationId,
+		CustomerId:       res.CustomerId,
+		State:            mapRegStateOut(res.State),
+		PrimaryAccountId: res.PrimaryAccountId,
+		ActivationRef:    res.ActivationRef,
+	}, nil
+}
+
 func mapOccupation(s string) identityv1.OccupationType {
 	s = strings.ToLower(strings.TrimSpace(s))
 	switch s {

@@ -7,7 +7,6 @@ import (
 	ledgerpaymentsv1 "github.com/tagoKoder/bff/internal/client/gen/protobuf/bank/ledgerpayments/v1"
 	"github.com/tagoKoder/bff/internal/client/ports"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ ports.LedgerPaymentsPort = (*LedgerPaymentsClient)(nil)
@@ -144,30 +143,4 @@ func (c *LedgerPaymentsClient) ListAccountJournalEntries(ctx context.Context, in
 		out.Entries = append(out.Entries, ev)
 	}
 	return out, nil
-}
-
-func (c *LedgerPaymentsClient) CreateManualJournalEntry(ctx context.Context, in ports.CreateManualJournalEntryInput) (ports.CreateManualJournalEntryOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-
-	req := &ledgerpaymentsv1.CreateManualJournalEntryRequest{
-		ExternalRef: in.ExternalRef,
-		Currency:    in.Currency,
-		BookedAt:    timestamppb.Now(),
-		CreatedBy:   in.CreatedBy,
-		Lines:       make([]*ledgerpaymentsv1.JournalLine, 0, len(in.Lines)),
-	}
-	for _, l := range in.Lines {
-		req.Lines = append(req.Lines, &ledgerpaymentsv1.JournalLine{
-			GlAccountCode:   l.GLAccountCode,
-			CounterpartyRef: l.CounterpartyRef,
-			Debit:           l.Debit,
-			Credit:          l.Credit,
-		})
-	}
-	res, err := c.ledger.CreateManualJournalEntry(ctx2, req)
-	if err != nil {
-		return ports.CreateManualJournalEntryOutput{}, err
-	}
-	return ports.CreateManualJournalEntryOutput{JournalID: res.JournalId, Status: res.Status}, nil
 }

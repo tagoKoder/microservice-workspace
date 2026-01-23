@@ -24,6 +24,7 @@ type PaymentStep struct {
 	DetailsJSON        string
 	AttemptedAtRFC3339 string
 }
+
 type GetPaymentOutput struct {
 	PaymentID            string
 	Status               string
@@ -76,23 +77,10 @@ type ListAccountJournalEntriesOutput struct {
 	Size    int32
 }
 
-type CreateManualJournalEntryInput struct {
-	ExternalRef     string
-	Currency        string
-	BookedAtRFC3339 string
-	CreatedBy       string
-	Lines           []JournalLine
-}
-type CreateManualJournalEntryOutput struct {
-	JournalID string
-	Status    string
-}
-
 type LedgerPaymentsPort interface {
 	PostPayment(ctx context.Context, in PostPaymentInput) (PostPaymentOutput, error)
 	GetPayment(ctx context.Context, in GetPaymentInput) (GetPaymentOutput, error)
 
 	CreditAccount(ctx context.Context, in CreditAccountInput) (CreditAccountOutput, error)
 	ListAccountJournalEntries(ctx context.Context, in ListAccountJournalEntriesInput) (ListAccountJournalEntriesOutput, error)
-	CreateManualJournalEntry(ctx context.Context, in CreateManualJournalEntryInput) (CreateManualJournalEntryOutput, error)
 }

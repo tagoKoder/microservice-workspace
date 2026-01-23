@@ -5,14 +5,17 @@ import (
 
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
 	"github.com/tagoKoder/bff/internal/api/rest/middleware"
+	"github.com/tagoKoder/bff/internal/security"
 )
 
 func (h *Handler) WhoamiStrict(ctx context.Context) (openapi.GetCurrentSessionResponseObject, error) {
 	sub, _ := ctx.Value(middleware.CtxSubject).(string)
+	corrId := security.CorrelationID(ctx)
 	if sub == "" {
 		return openapi.GetCurrentSession401JSONResponse(openapi.ErrorResponse{
 			Code:    "UNAUTHORIZED",
 			Message: "missing subject context",
+			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}
 
@@ -32,5 +35,10 @@ func (h *Handler) WhoamiStrict(ctx context.Context) (openapi.GetCurrentSessionRe
 		Roles:         append([]string{}, roles...),
 	}
 
-	return openapi.GetCurrentSession200JSONResponse(resp), nil
+	return openapi.GetCurrentSession200JSONResponse{
+		Body: resp,
+		Headers: openapi.GetCurrentSession200ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }

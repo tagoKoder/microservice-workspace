@@ -19,3 +19,10 @@ func (s *Server) GetAccountActivity(
 ) (openapi.GetAccountActivityResponseObject, error) {
 	return s.accounts.ActivityStrict(ctx, req.Id, req.Params)
 }
+
+func (s *Server) PatchAccountLimits(
+	ctx context.Context,
+	req openapi.PatchAccountLimitsRequestObject,
+) (openapi.PatchAccountLimitsResponseObject, error) {
+	return s.accounts.PatchLimitsStrict(ctx, req.Id, req.Params, *req.Body)
+}

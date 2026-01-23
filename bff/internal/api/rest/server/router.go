@@ -34,6 +34,7 @@ func NewRouter(deps RouterDeps, swagger *openapi3.T, swaggerValidator func(http.
 	// 3) baseline/hardening
 	r.Use(chimw.RealIP)
 	r.Use(middleware.Recover())
+	r.Use(middleware.RouteTemplate(oas))
 	r.Use(middleware.AccessLog())
 	r.Use(middleware.SecurityHeaders(deps.HSTS))
 

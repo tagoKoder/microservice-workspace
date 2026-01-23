@@ -35,7 +35,6 @@ func NewClients(cfg config.Config) (*ports.Clients, error) {
 		Identity:       NewIdentityClient(idConn),
 		Accounts:       NewAccountsClient(accConn),
 		LedgerPayments: NewLedgerPaymentsClient(lpConn),
-		Ops:            NewOpsClient(opsConn),
 		Close: func() error {
 			_ = idConn.Close()
 			_ = accConn.Close()

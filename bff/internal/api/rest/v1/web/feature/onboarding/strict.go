@@ -6,12 +6,15 @@ import (
 
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
 	"github.com/tagoKoder/bff/internal/client/ports"
+	"github.com/tagoKoder/bff/internal/security"
 )
 
 func (h *Handler) StartOnboardingStrict(
 	ctx context.Context,
+	idemKey *string, // si lo hiciste optional en OpenAPI
 	body openapi.OnboardingIntentRequest,
 ) (openapi.StartOnboardingResponseObject, error) {
+	cid := security.CorrelationID(ctx)
 
 	channel := "web"
 	if body.Channel != nil && *body.Channel != "" {
@@ -28,6 +31,7 @@ func (h *Handler) StartOnboardingStrict(
 	}
 
 	out, err := h.clients.Identity.StartRegistration(ctx, ports.StartRegistrationInput{
+		//IdempotencyKey:     idemKey,
 		Channel:             channel,
 		Email:               string(body.Email),
 		Phone:               body.Phone,
@@ -43,6 +47,7 @@ func (h *Handler) StartOnboardingStrict(
 		return openapi.StartOnboarding502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "identity service unavailable",
+			Details: &map[string]interface{}{"correlation_id": cid},
 		}), nil
 	}
 
@@ -101,13 +106,26 @@ func (h *Handler) StartOnboardingStrict(
 		// otp_channel_hint queda opcional/legacy
 	}
 
-	return openapi.StartOnboarding201JSONResponse(resp), nil
+	// opcional: si también quieres exponerlo en el body (legacy)
+	if cid != "" {
+		resp.CorrelationId = &cid
+	}
+
+	return openapi.StartOnboarding201JSONResponse{
+		Body: resp,
+		Headers: openapi.StartOnboarding201ResponseHeaders{
+			XCorrelationId: cid,
+		},
+	}, nil
 }
 
 func (h *Handler) ConfirmOnboardingKycStrict(
 	ctx context.Context,
+	idemKey *string,
 	body openapi.ConfirmKycRequest,
 ) (openapi.ConfirmOnboardingKycResponseObject, error) {
+
+	cid := security.CorrelationID(ctx)
 
 	channel := "web"
 	if body.Channel != nil && *body.Channel != "" {
@@ -140,6 +158,7 @@ func (h *Handler) ConfirmOnboardingKycStrict(
 	}
 
 	out, err := h.clients.Identity.ConfirmRegistrationKyc(ctx, ports.ConfirmRegistrationKycInput{
+		//IdempotencyKey: idemKey,
 		RegistrationID: body.RegistrationId,
 		Objects:        objects,
 		Channel:        channel,
@@ -148,6 +167,7 @@ func (h *Handler) ConfirmOnboardingKycStrict(
 		return openapi.ConfirmOnboardingKyc502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
 			Message: "identity service unavailable",
+			Details: &map[string]interface{}{"correlation_id": cid},
 		}), nil
 	}
 
@@ -203,23 +223,56 @@ func (h *Handler) ConfirmOnboardingKycStrict(
 		}
 	}
 
-	return openapi.ConfirmOnboardingKyc200JSONResponse(openapi.ConfirmKycResponse{
-		RegistrationId: out.RegistrationID,
-		State:          state,
-		Statuses:       statuses,
-		ConfirmedAt:    confirmedAtPtr,
-	}), nil
+	return openapi.ConfirmOnboardingKyc200JSONResponse{
+		Body: openapi.ConfirmKycResponse{
+			RegistrationId: out.RegistrationID,
+			State:          state,
+			Statuses:       statuses,
+			ConfirmedAt:    confirmedAtPtr,
+		},
+		Headers: openapi.ConfirmOnboardingKyc200ResponseHeaders{
+			XCorrelationId: cid},
+	}, nil
 }
 
 func (h *Handler) ActivateOnboardingStrict(
 	ctx context.Context,
+	idemKey string, // si REQUIRED
 	body openapi.ActivateRequest,
 ) (openapi.ActivateOnboardingResponseObject, error) {
+	corrId := security.CorrelationID(ctx)
 
-	// STUB: aún no hay RPC/servicio mostrado para activar (crear customer + account).
-	// Deja el contrato listo y evita romper el build.
-	return openapi.ActivateOnboarding502JSONResponse(openapi.ErrorResponse{
-		Code:    "NOT_IMPLEMENTED",
-		Message: "activate onboarding not implemented in BFF yet",
-	}), nil
+	out, err := h.clients.Identity.ActivateRegistration(ctx, ports.ActivateRegistrationInput{
+		//IdempotencyKey: idemKey,
+		RegistrationID: body.RegistrationId,
+		FullName:       body.FullName,
+		Tin:            body.Tin,
+		BirthDate:      body.BirthDate,
+		Country:        body.Country,
+		Email:          string(body.Email),
+		Phone:          body.Phone,
+		AcceptedTerms:  body.AcceptedTerms,
+		Channel:        "web",
+	})
+	if err != nil {
+		return openapi.ActivateOnboarding502JSONResponse(openapi.ErrorResponse{
+			Code: "UPSTREAM_ERROR", Message: "identity service unavailable",
+			Details: &map[string]interface{}{"correlation_id": corrId},
+		}), nil
+	}
+
+	resp := openapi.ActivateResponse{
+		CustomerId:    out.CustomerId,
+		AccountId:     out.PrimaryAccountId,
+		ActivationRef: out.ActivationRef,
+	}
+	if cid := security.CorrelationID(ctx); cid != "" {
+		resp.CorrelationId = &cid
+	}
+	return openapi.ActivateOnboarding201JSONResponse{
+		Body: resp,
+		Headers: openapi.ActivateOnboarding201ResponseHeaders{
+			XCorrelationId: corrId,
+		},
+	}, nil
 }
