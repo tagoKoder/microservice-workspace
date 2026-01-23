@@ -54,10 +54,3 @@ func (h *Handler) CSRFToken(w http.ResponseWriter, r *http.Request) {
 		"csrf_token": tok,
 	})
 }
-
-func nullable(s string) any {
-	if s == "" {
-		return nil
-	}
-	return s
-}
