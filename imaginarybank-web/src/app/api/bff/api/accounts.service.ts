@@ -22,6 +22,10 @@ import { AccountActivityResponseDto } from '../model/accountActivityResponse';
 import { AccountsOverviewResponseDto } from '../model/accountsOverviewResponse';
 // @ts-ignore
 import { ErrorResponseDto } from '../model/errorResponse';
+// @ts-ignore
+import { PatchAccountLimitsHttpRequestDto } from '../model/patchAccountLimitsHttpRequest';
+// @ts-ignore
+import { PatchAccountLimitsHttpResponseDto } from '../model/patchAccountLimitsHttpResponse';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -33,6 +37,13 @@ export interface GetAccountActivityRequestParams {
     id: string;
     page?: number;
     size?: number;
+}
+
+export interface PatchAccountLimitsRequestParams {
+    id: string;
+    idempotencyKey: string;
+    xCSRFToken: string;
+    patchAccountLimitsHttpRequestDto: PatchAccountLimitsHttpRequestDto;
 }
 
 
@@ -47,6 +58,7 @@ export class AccountsApi extends BaseService {
 
     /**
      * Actividad (journal entries) de una cuenta
+     * Orquestación: - BFF verifica autorización de lectura sobre la cuenta. - Ledger.ListAccountJournalEntries(account_id, from/to, page/size). 
      * @endpoint get /api/v1/accounts/{id}/activity
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -129,6 +141,7 @@ export class AccountsApi extends BaseService {
 
     /**
      * Resumen de cuentas del customer autenticado
+     * Orquestación: - BFF resuelve customer_id desde la sesión (Identity.GetSessionInfo o cache local). - (Opcional) RefreshSession si el access_token para downstream expiró. - Accounts.ListAccounts(customer_id). 
      * @endpoint get /api/v1/accounts
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -171,6 +184,97 @@ export class AccountsApi extends BaseService {
         return this.httpClient.request<AccountsOverviewResponseDto>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Actualiza límites diarios de la cuenta
+     * Orquestación: - BFF valida ownership/autorización del account_id (por policy/AVP y/o verificación Accounts). - Accounts.PatchAccountLimits(id, daily_out, daily_in). Idempotencia: - Requerido Idempotency-Key para reintentos seguros. 
+     * @endpoint patch /api/v1/accounts/{id}/limits
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public patchAccountLimits(requestParameters: PatchAccountLimitsRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PatchAccountLimitsHttpResponseDto>;
+    public patchAccountLimits(requestParameters: PatchAccountLimitsRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PatchAccountLimitsHttpResponseDto>>;
+    public patchAccountLimits(requestParameters: PatchAccountLimitsRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PatchAccountLimitsHttpResponseDto>>;
+    public patchAccountLimits(requestParameters: PatchAccountLimitsRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const id = requestParameters?.id;
+        if (id === null || id === undefined) {
+            throw new Error('Required parameter id was null or undefined when calling patchAccountLimits.');
+        }
+        const idempotencyKey = requestParameters?.idempotencyKey;
+        if (idempotencyKey === null || idempotencyKey === undefined) {
+            throw new Error('Required parameter idempotencyKey was null or undefined when calling patchAccountLimits.');
+        }
+        const xCSRFToken = requestParameters?.xCSRFToken;
+        if (xCSRFToken === null || xCSRFToken === undefined) {
+            throw new Error('Required parameter xCSRFToken was null or undefined when calling patchAccountLimits.');
+        }
+        const patchAccountLimitsHttpRequestDto = requestParameters?.patchAccountLimitsHttpRequestDto;
+        if (patchAccountLimitsHttpRequestDto === null || patchAccountLimitsHttpRequestDto === undefined) {
+            throw new Error('Required parameter patchAccountLimitsHttpRequestDto was null or undefined when calling patchAccountLimits.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+        if (idempotencyKey !== undefined && idempotencyKey !== null) {
+            localVarHeaders = localVarHeaders.set('Idempotency-Key', String(idempotencyKey));
+        }
+        if (xCSRFToken !== undefined && xCSRFToken !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-Token', String(xCSRFToken));
+        }
+
+        // authentication (cookieAuth) required
+
+        // authentication (csrfAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('csrfAuth', 'X-CSRF-Token', localVarHeaders);
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/accounts/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/limits`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<PatchAccountLimitsHttpResponseDto>('patch', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: patchAccountLimitsHttpRequestDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

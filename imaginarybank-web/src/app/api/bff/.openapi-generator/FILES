@@ -3,7 +3,6 @@ README.md
 api.base.service.ts
 api.module.ts
 api/accounts.service.ts
-api/admin.service.ts
 api/api.ts
 api/auth.service.ts
 api/onboarding.service.ts
@@ -37,6 +36,8 @@ model/models.ts
 model/occupationType.ts
 model/onboardingIntentRequest.ts
 model/onboardingIntentResponse.ts
+model/patchAccountLimitsHttpRequest.ts
+model/patchAccountLimitsHttpResponse.ts
 model/patchProfileRequest.ts
 model/patchProfileRequestPreferencesInner.ts
 model/patchProfileResponse.ts
@@ -45,8 +46,6 @@ model/presignedHeader.ts
 model/presignedUpload.ts
 model/refreshSessionResponse.ts
 model/registrationState.ts
-model/sandboxTopupRequest.ts
-model/sandboxTopupResponse.ts
 model/simpleStatusResponse.ts
 model/uploadedObject.ts
 model/whoamiResponse.ts

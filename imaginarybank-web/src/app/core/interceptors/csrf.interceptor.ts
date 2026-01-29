@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
-import { HttpInterceptorFn } from '@angular/common/http';
-import { switchMap } from 'rxjs';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { catchError, switchMap, throwError } from 'rxjs';
 import { CsrfService } from '../security/csrf.service';
 
 function parsed(url: string): URL | null {
@@ -9,7 +9,7 @@ function parsed(url: string): URL | null {
 
 function isSameOrigin(url: string): boolean {
   const u = parsed(url);
-  if (!u) return true; // url relativa
+  if (!u) return true;
   return u.origin === window.location.origin;
 }
 
@@ -19,7 +19,6 @@ function pathOf(url: string): string {
 }
 
 function isApiPath(path: string): boolean {
-  // Evita “listas por endpoint”; solo por prefijo de dominio interno
   return path.startsWith('/api/');
 }
 
@@ -28,19 +27,29 @@ function isMutating(method: string): boolean {
 }
 
 export const csrfInterceptor: HttpInterceptorFn = (req, next) => {
-  // No duplicar si ya viene el header
-  if (req.headers.has('X-CSRF-Token')) return next(req);
-
-  // Nunca adjuntar CSRF a dominios externos (ej: S3 presigned)
+  // Nunca adjuntar CSRF a dominios externos (S3 presigned, etc.)
   if (!isSameOrigin(req.url)) return next(req);
 
   const path = pathOf(req.url);
   if (!isApiPath(path)) return next(req);
-
   if (!isMutating(req.method)) return next(req);
 
-  const csrf = inject(CsrfService);
-  return csrf.getToken().pipe(
-    switchMap(token => next(req.clone({ setHeaders: { 'X-CSRF-Token': token } })))
+  // Si ya viene CSRF, no tocar.
+  if (req.headers.has('X-CSRF-Token')) return next(req);
+
+  // 1) Intentar sin CSRF
+  return next(req).pipe(
+    catchError((err: HttpErrorResponse) => {
+      // 2) Solo si el backend exige CSRF (403) reintentamos 1 vez con token
+      if (err.status !== 403) return throwError(() => err);
+
+      const csrf = inject(CsrfService);
+      return csrf.getToken().pipe(
+        switchMap(token =>
+          next(req.clone({ setHeaders: { 'X-CSRF-Token': token } }))
+        ),
+        catchError(e2 => throwError(() => e2))
+      );
+    })
   );
 };

@@ -10,8 +10,17 @@
 
 
 export interface AccountBalancesDto { 
+    /**
+     * Decimal string
+     */
     ledger: string;
+    /**
+     * Decimal string
+     */
     available: string;
+    /**
+     * Decimal string
+     */
     hold: string;
 }
 

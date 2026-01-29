@@ -13,6 +13,9 @@ export interface CreatePaymentRequestDto {
     source_account: string;
     destination_account: string;
     currency: string;
+    /**
+     * Decimal string
+     */
     amount: string;
     memo?: string | null;
 }

@@ -37,6 +37,7 @@ import { BaseService } from '../api.base.service';
 
 export interface CreateBeneficiaryRequestParams {
     xCSRFToken: string;
+    idempotencyKey: string;
     createBeneficiaryRequestDto: CreateBeneficiaryRequestDto;
 }
 
@@ -76,6 +77,10 @@ export class PaymentsApi extends BaseService {
         if (xCSRFToken === null || xCSRFToken === undefined) {
             throw new Error('Required parameter xCSRFToken was null or undefined when calling createBeneficiary.');
         }
+        const idempotencyKey = requestParameters?.idempotencyKey;
+        if (idempotencyKey === null || idempotencyKey === undefined) {
+            throw new Error('Required parameter idempotencyKey was null or undefined when calling createBeneficiary.');
+        }
         const createBeneficiaryRequestDto = requestParameters?.createBeneficiaryRequestDto;
         if (createBeneficiaryRequestDto === null || createBeneficiaryRequestDto === undefined) {
             throw new Error('Required parameter createBeneficiaryRequestDto was null or undefined when calling createBeneficiary.');
@@ -84,6 +89,9 @@ export class PaymentsApi extends BaseService {
         let localVarHeaders = this.defaultHeaders;
         if (xCSRFToken !== undefined && xCSRFToken !== null) {
             localVarHeaders = localVarHeaders.set('X-CSRF-Token', String(xCSRFToken));
+        }
+        if (idempotencyKey !== undefined && idempotencyKey !== null) {
+            localVarHeaders = localVarHeaders.set('Idempotency-Key', String(idempotencyKey));
         }
 
         // authentication (cookieAuth) required
@@ -141,6 +149,7 @@ export class PaymentsApi extends BaseService {
 
     /**
      * Ejecuta un pago
+     * Orquestación: - BFF valida request (formato, currency, amount). - (Condicional) RefreshSession para access_token downstream. - Payments.PostPayment con Idempotency-Key. Interno (Payments): - Valida cuentas y límites (Accounts Internal). - Reserva hold (Accounts Internal). - Postea journal/outbox. 
      * @endpoint post /api/v1/payments
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.

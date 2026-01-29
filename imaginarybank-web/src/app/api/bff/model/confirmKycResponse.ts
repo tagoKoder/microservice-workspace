@@ -16,6 +16,7 @@ export interface ConfirmKycResponseDto {
     state: RegistrationStateDto;
     statuses: Array<KycObjectStatusDto>;
     confirmed_at?: string | null;
+    correlation_id?: string | null;
 }
 export namespace ConfirmKycResponseDto {
 }

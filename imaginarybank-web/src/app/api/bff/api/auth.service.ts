@@ -47,6 +47,7 @@ export class AuthApi extends BaseService {
 
     /**
      * Callback OIDC; crea cookie de sesión y redirige al destino final
+     * Orquestación: - BFF llama a Identity.CompleteOidcLogin(code,state,...). - BFF setea cookie session_id y materializa CSRF (cookie/endpoint /session/csrf). - BFF redirige a redirect_after_login. 
      * @endpoint get /api/v1/auth/oidc/callback
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -129,6 +130,7 @@ export class AuthApi extends BaseService {
 
     /**
      * Inicia OIDC login y redirige al IdP
+     * Orquestación: - BFF llama a Identity para obtener authorization_url. - BFF responde 302 Location. 
      * @endpoint get /api/v1/auth/oidc/start
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.

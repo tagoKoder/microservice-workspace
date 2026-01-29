@@ -38,15 +38,18 @@ import { BaseService } from '../api.base.service';
 
 
 export interface ActivateOnboardingRequestParams {
+    idempotencyKey: string;
     activateRequestDto: ActivateRequestDto;
 }
 
 export interface ConfirmOnboardingKycRequestParams {
     confirmKycRequestDto: ConfirmKycRequestDto;
+    idempotencyKey?: string;
 }
 
 export interface StartOnboardingRequestParams {
     onboardingIntentRequestDto: OnboardingIntentRequestDto;
+    idempotencyKey?: string;
 }
 
 
@@ -61,6 +64,7 @@ export class OnboardingApi extends BaseService {
 
     /**
      * Activa onboarding (crea customer + account)
+     * Orquestación (BFF): - BFF llama a Identity.ActivateRegistration. Orquestación (Identity, interno): - Valida estado del registration_id (KYC confirmado, etc). - Crea/obtiene customer en Accounts (external_ref &#x3D; registration_id). - Crea cuenta(s) en Accounts (idempotente por external_ref). - (Opcional) aplica bonus en Ledger. Idempotencia: - Requerido Idempotency-Key; si el cliente reintenta, debe devolver la misma activation_ref. 
      * @endpoint post /api/v1/onboarding/activate
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -71,12 +75,19 @@ export class OnboardingApi extends BaseService {
     public activateOnboarding(requestParameters: ActivateOnboardingRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ActivateResponseDto>>;
     public activateOnboarding(requestParameters: ActivateOnboardingRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ActivateResponseDto>>;
     public activateOnboarding(requestParameters: ActivateOnboardingRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const idempotencyKey = requestParameters?.idempotencyKey;
+        if (idempotencyKey === null || idempotencyKey === undefined) {
+            throw new Error('Required parameter idempotencyKey was null or undefined when calling activateOnboarding.');
+        }
         const activateRequestDto = requestParameters?.activateRequestDto;
         if (activateRequestDto === null || activateRequestDto === undefined) {
             throw new Error('Required parameter activateRequestDto was null or undefined when calling activateOnboarding.');
         }
 
         let localVarHeaders = this.defaultHeaders;
+        if (idempotencyKey !== undefined && idempotencyKey !== null) {
+            localVarHeaders = localVarHeaders.set('Idempotency-Key', String(idempotencyKey));
+        }
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -128,6 +139,7 @@ export class OnboardingApi extends BaseService {
 
     /**
      * Confirma KYC (verifica objetos subidos a S3)
+     * Orquestación: - Identity.ConfirmRegistrationKyc valida objetos vía HeadObject/ETag y marca confirmación. Idempotencia: - Recomendado Idempotency-Key en reintentos. 
      * @endpoint post /api/v1/onboarding/kyc/confirm
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -142,8 +154,12 @@ export class OnboardingApi extends BaseService {
         if (confirmKycRequestDto === null || confirmKycRequestDto === undefined) {
             throw new Error('Required parameter confirmKycRequestDto was null or undefined when calling confirmOnboardingKyc.');
         }
+        const idempotencyKey = requestParameters?.idempotencyKey;
 
         let localVarHeaders = this.defaultHeaders;
+        if (idempotencyKey !== undefined && idempotencyKey !== null) {
+            localVarHeaders = localVarHeaders.set('Idempotency-Key', String(idempotencyKey));
+        }
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -195,6 +211,7 @@ export class OnboardingApi extends BaseService {
 
     /**
      * Inicia onboarding (registro/KYC) — presigned S3
+     * Orquestación: - Identity.StartRegistration crea registration_id y retorna presigned uploads. Idempotencia: - Recomendado Idempotency-Key (si el cliente reintenta por timeouts). 
      * @endpoint post /api/v1/onboarding/intents
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -209,8 +226,12 @@ export class OnboardingApi extends BaseService {
         if (onboardingIntentRequestDto === null || onboardingIntentRequestDto === undefined) {
             throw new Error('Required parameter onboardingIntentRequestDto was null or undefined when calling startOnboarding.');
         }
+        const idempotencyKey = requestParameters?.idempotencyKey;
 
         let localVarHeaders = this.defaultHeaders;
+        if (idempotencyKey !== undefined && idempotencyKey !== null) {
+            localVarHeaders = localVarHeaders.set('Idempotency-Key', String(idempotencyKey));
+        }
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'

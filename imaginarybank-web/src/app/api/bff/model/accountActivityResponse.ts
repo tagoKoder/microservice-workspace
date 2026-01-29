@@ -14,6 +14,9 @@ export interface AccountActivityResponseDto {
     items: Array<AccountActivityItemDto>;
     page: number;
     size: number;
-    total: number;
+    /**
+     * Opcional; si no hay fuente upstream para total, puede omitirse o null.
+     */
+    total?: number | null;
 }
 

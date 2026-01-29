@@ -12,7 +12,13 @@ import { AccountBalancesDto } from './accountBalances';
 
 export interface AccountItemDto { 
     id: string;
+    /**
+     * Ej: CHECKING | SAVINGS
+     */
     product_type: string;
+    /**
+     * ISO-4217
+     */
     currency: string;
     status: string;
     balances: AccountBalancesDto;

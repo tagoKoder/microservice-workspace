@@ -17,5 +17,9 @@ export interface ActivateRequestDto {
     country: string;
     email: string;
     phone: string;
+    /**
+     * Recomendado si tu UI exige aceptación.
+     */
+    accepted_terms?: boolean | null;
 }
 
