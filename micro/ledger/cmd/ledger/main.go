@@ -65,7 +65,7 @@ func main() {
 
 	// Kafka publisher (outbox events del dominio)
 	eb := eventbridge.NewFromConfig(awsCfg)
-	pub := messaging.NewEventBridgePublisher(eb, cfg.DomainEventBusName)
+	pub := messaging.NewEventBridgePublisher(eb, cfg.DomainEventBusName, "ledger-payments")
 
 	vp := verifiedpermissions.NewFromConfig(awsCfg)
 

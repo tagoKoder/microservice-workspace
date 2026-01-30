@@ -1,37 +1,31 @@
 # syntax=docker/dockerfile:1
 
 ########################################
-# Build stage
+# Build stage (con Maven incluido)
 ########################################
-FROM eclipse-temurin:25-jdk AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
-# 1) Cache friendly: primero pom
+# cache-friendly
 COPY pom.xml .
+RUN mvn -q -DskipTests dependency:go-offline
 
-# 2) Copia fuentes
 COPY src ./src
-
-# IMPORTANTE:
-# Si tu exec-maven-plugin (powershell sync-protos) se ejecuta en Docker, fallará.
-# Recomendación: deshabilitarlo por profile en Docker (ver sección D).
-# Aquí asumo que ya está deshabilitado o no corre.
-RUN mvn -q -DskipTests package
+# Desactiva plugins que dependan de PowerShell o SO si aplica
+RUN mvn -q -DskipTests -DskipProtos=true package
 
 ########################################
 # Runtime stage
 ########################################
-FROM eclipse-temurin:25-jre AS runtime
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 
+# Crea usuario no root (Ubuntu/UBI: usar 'useradd' requiere root)
 RUN useradd -r -u 10001 appuser
 USER 10001
 
-COPY --from=build /workspace/target/identity-0.0.1-SNAPSHOT.jar /app/app.jar
+COPY --from=build /workspace/target/*.jar /app/app.jar
 
-# Tu gRPC server típicamente 9090/9092/9091. Si usas 9090 por default, cámbialo.
 EXPOSE 9090
-
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -Djava.security.egd=file:/dev/./urandom"
-
 ENTRYPOINT ["java","-jar","/app/app.jar"]

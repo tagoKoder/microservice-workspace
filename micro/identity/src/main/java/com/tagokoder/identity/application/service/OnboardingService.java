@@ -131,8 +131,7 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
         c.birthDate(),
         c.tin(),
         c.email(),
-        c.phone(),
-        c.country()
+        c.phone()      
       );
       reg.setCustomerId(customerId);
       reg.setUpdatedAt(Instant.now());

@@ -253,26 +253,6 @@
         </configuration>
       </plugin>
 
-      <!-- (Opcional pero recomendado) sync-protos antes de compilar -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.3.0</version>
-        <executions>
-          <execution>
-            <id>sync-protos</id>
-            <phase>generate-sources</phase>
-            <goals><goal>exec</goal></goals>
-            <configuration>
-              <executable>powershell</executable>
-              <arguments>
-                <argument>-ExecutionPolicy</argument><argument>Bypass</argument>
-                <argument>-File</argument><argument>${project.basedir}\contracts\sync-protos.ps1</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
 
       <!-- Protobuf + gRPC codegen -->
       <plugin>
@@ -339,4 +319,47 @@
 
     </plugins>
   </build>
+  
+<profiles>
+  <profile>
+    <id>windows-protos</id>
+    <activation>
+      <os>
+        <family>Windows</family>
+      </os>
+    </activation>
+
+    <build>
+      <plugins>
+        <!-- sync-protos SOLO en Windows -->
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.3.0</version>
+          <executions>
+            <execution>
+              <id>sync-protos</id>
+              <phase>generate-sources</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <executable>powershell</executable>
+                <arguments>
+                  <argument>-ExecutionPolicy</argument>
+                  <argument>Bypass</argument>
+                  <argument>-File</argument>
+                  <!-- IMPORTANTE: path portable con / -->
+                  <argument>${project.basedir}/contracts/sync-protos.ps1</argument>
+                </arguments>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </build>
+  </profile>
+</profiles>
+
 </project>
+

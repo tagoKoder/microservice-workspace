@@ -1,24 +1,31 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.6
 
 ########################################
 # Build stage
 ########################################
-FROM golang:1.24.4 AS build
+FROM golang:1.24.4-alpine AS build
+
+# Por si algún módulo requiere git o certs
+RUN apk add --no-cache git ca-certificates
+
 WORKDIR /src
 
-# Cache de dependencias
+# Cache de dependencias (mejor con BuildKit cache)
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
 
 # Copia el resto del código
 COPY . .
 
-# Build (binario linux)
-# -trimpath: reduce paths
-# -ldflags "-s -w": reduce tamaño
-# CGO_ENABLED=0: binario sin libc (mejor para distroless)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-  go build -trimpath -ldflags="-s -w" -o /out/ledger ./cmd/ledger
+# Build (usa TARGETOS/TARGETARCH para cross-build limpio)
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags="-s -w" -o /out/ledger ./cmd/ledger
 
 ########################################
 # Runtime stage (distroless)
@@ -28,8 +35,5 @@ WORKDIR /app
 
 COPY --from=build /out/ledger /app/ledger
 
-# gRPC port típico: ajusta al que uses (ej: 9093)
 EXPOSE 9093
-
-# Distroless ya corre como nonroot
 ENTRYPOINT ["/app/ledger"]
