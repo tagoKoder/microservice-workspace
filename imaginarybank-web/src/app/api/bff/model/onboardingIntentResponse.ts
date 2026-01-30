@@ -16,10 +16,7 @@ export interface OnboardingIntentResponseDto {
     state: RegistrationStateDto;
     created_at?: string | null;
     uploads: Array<PresignedUploadDto>;
-    /**
-     * Legacy/compat. Puede omitirse.
-     */
-    otp_channel_hint?: string | null;
+    correlation_id?: string | null;
 }
 export namespace OnboardingIntentResponseDto {
 }

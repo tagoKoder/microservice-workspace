@@ -9,10 +9,9 @@
  */
 
 
-export interface ActivateResponseDto { 
-    customer_id: string;
+export interface PatchAccountLimitsHttpResponseDto { 
     account_id: string;
-    activation_ref: string;
-    correlation_id?: string | null;
+    daily_out: string;
+    daily_in: string;
 }
 

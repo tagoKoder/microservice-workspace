@@ -1,7 +1,5 @@
 export * from './accounts.service';
 import { AccountsApi } from './accounts.service';
-export * from './admin.service';
-import { AdminApi } from './admin.service';
 export * from './auth.service';
 import { AuthApi } from './auth.service';
 export * from './onboarding.service';
@@ -12,4 +10,4 @@ export * from './profile.service';
 import { ProfileApi } from './profile.service';
 export * from './session.service';
 import { SessionApi } from './session.service';
-export const APIS = [AccountsApi, AdminApi, AuthApi, OnboardingApi, PaymentsApi, ProfileApi, SessionApi];
+export const APIS = [AccountsApi, AuthApi, OnboardingApi, PaymentsApi, ProfileApi, SessionApi];

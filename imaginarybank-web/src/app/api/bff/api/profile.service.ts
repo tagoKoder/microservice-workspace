@@ -32,6 +32,7 @@ import { BaseService } from '../api.base.service';
 export interface UpdateProfileRequestParams {
     xCSRFToken: string;
     patchProfileRequestDto: PatchProfileRequestDto;
+    idempotencyKey?: string;
 }
 
 
@@ -46,6 +47,7 @@ export class ProfileApi extends BaseService {
 
     /**
      * Actualiza perfil del customer autenticado
+     * Orquestación: - BFF resuelve customer_id desde sesión. - Accounts.CustomersService.PatchCustomer con wrappers/nullable. Idempotencia: - Recomendado Idempotency-Key si el cliente reintenta. 
      * @endpoint patch /api/v1/profile
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -64,10 +66,14 @@ export class ProfileApi extends BaseService {
         if (patchProfileRequestDto === null || patchProfileRequestDto === undefined) {
             throw new Error('Required parameter patchProfileRequestDto was null or undefined when calling updateProfile.');
         }
+        const idempotencyKey = requestParameters?.idempotencyKey;
 
         let localVarHeaders = this.defaultHeaders;
         if (xCSRFToken !== undefined && xCSRFToken !== null) {
             localVarHeaders = localVarHeaders.set('X-CSRF-Token', String(xCSRFToken));
+        }
+        if (idempotencyKey !== undefined && idempotencyKey !== null) {
+            localVarHeaders = localVarHeaders.set('Idempotency-Key', String(idempotencyKey));
         }
 
         // authentication (cookieAuth) required

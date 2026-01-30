@@ -1,6 +1,6 @@
 # @
 
-API del BFF para canal web (cookie session + CSRF). Onboarding usa flujo presigned S3 (no se suben bytes al BFF). 
+API del BFF para canal web (cookie session + CSRF). Onboarding usa flujo presigned S3 (no se suben bytes al BFF).  Convenciones: - Montos: string decimal \"canonical\" (sin notación científica). Ej: \"10.50\" - Idempotencia: header Idempotency-Key en endpoints mutadores con reintentos. - Correlation: el BFF propaga correlation_id a micros y lo devuelve como header. 
 
 The version of the OpenAPI document: 1.0.0
 

@@ -20,6 +20,7 @@ import { Router } from '@angular/router';
 
 import { OnboardingApi } from '../../api/bff';
 import { PresignedUploadService } from '../../core/security/presigned-upload.service';
+import { IdempotencyKeyService } from '../../core/security/idempotency.service';
 
 type OccupationOption = { label: string; value: string };
 
@@ -71,11 +72,16 @@ export class Register {
   contactForm!: FormGroup;
   activateForm!: FormGroup;
 
+  private intentKey: string | null = null;
+  private confirmKycKey: string | null = null;
+  private activateKey: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private onboardingApi: OnboardingApi,
-    private presigned: PresignedUploadService
+    private presigned: PresignedUploadService,
+    private idempotency: IdempotencyKeyService
   ) {
     this.contactForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -141,10 +147,11 @@ export class Register {
     this.busy = true;
     try {
       const v = this.contactForm.value;
-
+      this.intentKey = this.intentKey ?? this.idempotency.newKey();
       // 1) Intent (JSON)
       const intent = await firstValueFrom(
         this.onboardingApi.startOnboarding({
+          idempotencyKey: this.intentKey,
           onboardingIntentRequestDto: {
             email: v.email,
             phone: v.phone,
@@ -182,10 +189,11 @@ export class Register {
         this.presigned.putFile(this.idFrontUpload.upload_url, this.idFile, this.idFrontUpload.headers || []),
         this.presigned.putFile(this.selfieUpload.upload_url, this.selfieFile, this.selfieUpload.headers || [])
       ]);
-
+      this.confirmKycKey = this.confirmKycKey ?? this.idempotency.newKey();
       // 4) Confirmar KYC en backend
       await firstValueFrom(
         this.onboardingApi.confirmOnboardingKyc({
+          idempotencyKey: this.confirmKycKey,
           confirmKycRequestDto: {
             registration_id: this.registrationId,
             channel: 'web',
@@ -227,8 +235,10 @@ export class Register {
       const v1 = this.contactForm.value;
       const v2 = this.activateForm.value;
 
+      this.activateKey = this.activateKey ?? this.idempotency.newKey();
       await firstValueFrom(
         this.onboardingApi.activateOnboarding({
+          idempotencyKey: this.activateKey,
           activateRequestDto: {
             registration_id: this.registrationId,
             full_name: v2.full_name,
@@ -236,14 +246,14 @@ export class Register {
             birth_date: this.toDateString(v2.birth_date),
             country: v2.country,
             email: v1.email,
-            phone: v1.phone
+            phone: v1.phone,
+            accepted_terms: !!v2.accepted
           }
         })
       );
 
       // Activado -> ir a login (Cognito)
-      await this.router.navigateByUrl('/login');
-
+      await this.router.navigateByUrl('/home');
     } finally {
       this.busy = false;
     }

@@ -158,7 +158,7 @@ export class SessionApi extends BaseService {
     }
 
     /**
-     * Cierra sesión (invalida upstream si aplica) y limpia cookies
+     * Cierra sesión y limpia cookies
      * @endpoint post /api/v1/session/logout
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
