@@ -20,7 +20,7 @@ Parameters:
 
   CostCenter:
     Type: String
-    Default: thesis
+    Default: costs-center-001
     MaxLength: 64
 
   DataClassification:
@@ -259,7 +259,7 @@ Resources:
     Condition: UseEndpoints
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub "${ProjectName}-${Env} VPC endpoint SG"
+      GroupDescription: !Sub "${ProjectName}-${Env} VPC endpoints SG"
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         - IpProtocol: tcp

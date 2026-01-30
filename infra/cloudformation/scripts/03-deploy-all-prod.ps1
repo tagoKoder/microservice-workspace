@@ -1,26 +1,20 @@
 param()
 
-. "$PSScriptRoot\helpers.ps1"
+$EnvName = "prod"
+$RepoRoot = Resolve-Path "$PSScriptRoot/../.."
+. "$PSScriptRoot/helpers.ps1"
 
-$env = "prod"
-$cfg = Load-EnvConfig -Env $env
+$config = Load-EnvConfig -RepoRoot $RepoRoot -Env $EnvName
 
-& "$PSScriptRoot\00-bootstrap-aws.ps1" -Env $env
+Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "00-foundation" -ParamsFile "infra/params/prod/00-foundation.json"
+Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "10-network"   -ParamsFile "infra/params/prod/10-network.json"
+Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "20-data"      -ParamsFile "infra/params/prod/20-data.json"
+Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "30-identity-cognito" -ParamsFile "infra/params/prod/30-identity-cognito.json"
 
-$stack00 = ("{0}-{1}-00-foundation" -f $cfg.ProjectName, $env)
-$stack10 = ("{0}-{1}-10-network" -f $cfg.ProjectName, $env)
+Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "70-authz-avp" -ParamsFile "infra/params/prod/70-authz-avp.json"
+& "$PSScriptRoot/70-apply-avp-schema-policies.ps1" -Env $EnvName -RepoRoot $RepoRoot
 
-& "$PSScriptRoot\01-deploy-stack.ps1" -Env $env `
-  -StackName $stack00 `
-  -TemplatePath "infra\cloudformation\00-foundation\template.yml" `
-  -ParamsPath  "infra\params\prod\00-foundation.json"
+Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "80-messaging" -ParamsFile "infra/params/prod/80-messaging.json"
 
-& "$PSScriptRoot\01-deploy-stack.ps1" -Env $env `
-  -StackName $stack10 `
-  -TemplatePath "infra\cloudformation\10-network\template.yml" `
-  -ParamsPath  "infra\params\prod\10-network.json"
-
-
-& "$PSScriptRoot/01-deploy-stack.ps1" -Env $Env -StackName "$ProjectName-$Env-80-messaging" `
-  -TemplatePath "$RepoRoot/infra/cloudformation/80-messaging/template.yml" `
-  -ParamsPath "$RepoRoot/infra/params/$Env/80-messaging.json"
+Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "50-compute-ecs" -ParamsFile "infra/params/prod/50-compute-ecs.json"
+Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "60-audit-observability" -ParamsFile "infra/params/prod/60-audit-observability.json"

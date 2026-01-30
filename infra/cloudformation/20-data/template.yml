@@ -4,43 +4,44 @@ Description: "20-data: RDS Postgres (private) + Secrets (DB_DSN per service) + K
 Parameters:
   ProjectName:
     Type: String
-    Default: bank
+    Default: imaginarybank
   Env:
     Type: String
     AllowedValues: [dev, prod]
 
-  NetworkStackName:
-    Type: String
-    Description: "Nombre del stack 10-network para ImportValue"
-
   DbEngineVersion:
     Type: String
     Default: "16.3"
+  # RDS sizing
   DbInstanceClass:
     Type: String
     Default: "db.t4g.micro"
   DbAllocatedStorageGb:
     Type: Number
     Default: 20
+# Multi-AZ deployment
   DbMultiAz:
     Type: String
     AllowedValues: ["true","false"]
     Default: "false"
+# Backup retention days
   DbBackupRetentionDays:
     Type: Number
     Default: 7
+# Database deletion protection
   DbDeletionProtection:
     Type: String
     AllowedValues: ["true","false"]
     Default: "false"
-
+# Database logical name
   DbName:
     Type: String
-    Default: "bank"
-
+    Default: imaginarybankdb
+  # If you want to keep it super-simple for demo, you can keep MasterUsername.
+  # For higher hygiene, you can switch to ManageMasterUserPassword (see note below).
   DbMasterUsername:
     Type: String
-    Default: "bankadmin"
+    Default: masteruser
   DbMasterPassword:
     Type: String
     NoEcho: true
@@ -51,6 +52,11 @@ Parameters:
     Type: String
     Default: ""
     Description: "Si vacío, se genera uno. Recomendado: bank-kyc-<env>-<account>"
+    
+# CORS for browser presigned PUT
+  KycCorsAllowedOrigins:
+    Type: CommaDelimitedList
+    Default: "http://localhost:4200"
 
 Conditions:
   UseFixedKycBucketName: !Not [!Equals [!Ref KycBucketName, ""]]
@@ -60,24 +66,21 @@ Resources:
   DbSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBSubnetGroupDescription: !Sub "${ProjectName}-${Env} private subnets"
-      SubnetIds: !Split [",", !ImportValue
-        Fn::Sub: "${NetworkStackName}-PrivateSubnetIds"
-      ]
+      DBSubnetGroupDescription: !Sub "${ProjectName}-${Env}-rds-subnet-group"
+      SubnetIds: !Split [",", !ImportValue !Sub "${ProjectName}-${Env}-PrivateSubnetIds" ]
 
   # --- DB SG: allow 5432 ONLY from Micros SG (from 10-network outputs) ---
   DbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub "${ProjectName}-${Env} postgres sg"
+      GroupDescription: !Sub "${ProjectName}-${Env}-rds-sg"
       VpcId: !ImportValue
-        Fn::Sub: "${NetworkStackName}-VpcId"
+        Fn::Sub: "${ProjectName}-${Env}-VpcId"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 5432
           ToPort: 5432
-          SourceSecurityGroupId: !ImportValue
-            Fn::Sub: "${NetworkStackName}-MicrosSecurityGroupId"
+          SourceSecurityGroupId: !ImportValue !Sub "${ProjectName}-${Env}-MicrosSecurityGroupId"
 
   PostgresDb:
     Type: AWS::RDS::DBInstance
@@ -128,7 +131,8 @@ Resources:
   KycBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !If [UseFixedKycBucketName, !Ref KycBucketName, !Ref "AWS::NoValue"]
+      BucketName: !Ref KycBucketName
+
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -141,6 +145,13 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: !Ref KycCorsAllowedOrigins
+            AllowedMethods: ["PUT", "GET", "HEAD"]
+            AllowedHeaders: ["*"]
+            ExposedHeaders: ["ETag"]
+            MaxAge: 3000
 
   KycBucketPolicy:
     Type: AWS::S3::BucketPolicy

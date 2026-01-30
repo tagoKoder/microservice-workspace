@@ -1,13 +1,13 @@
 [
-  { "ParameterKey": "ProjectName", "ParameterValue": "bank" },
+  { "ParameterKey": "ProjectName", "ParameterValue": "imaginarybank" },
   { "ParameterKey": "Env", "ParameterValue": "prod" },
 
-  { "ParameterKey": "LogsBucketName", "ParameterValue": "bank-logs-prod" },
+  { "ParameterKey": "LogsBucketName", "ParameterValue": "imaginarybank-logs-prod" },
 
   { "ParameterKey": "AuditBusName", "ParameterValue": "audit-bus-prod" },
   { "ParameterKey": "AuditArchiveRetentionDays", "ParameterValue": "180" },
 
-  { "ParameterKey": "CloudTrailName", "ParameterValue": "bank-trail-prod" },
+  { "ParameterKey": "CloudTrailName", "ParameterValue": "imaginarybank-trail-prod" },
   { "ParameterKey": "CloudTrailS3Prefix", "ParameterValue": "cloudtrail" },
   { "ParameterKey": "EnableLogFileValidation", "ParameterValue": "true" },
 

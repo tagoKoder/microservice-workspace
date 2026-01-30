@@ -1,5 +1,5 @@
 [
-  { "ParameterKey": "AppName", "ParameterValue": "imabank" },
+  { "ParameterKey": "AppName", "ParameterValue": "imaginarybank" },
   { "ParameterKey": "SystemName", "ParameterValue": "banking" },
   { "ParameterKey": "Env", "ParameterValue": "dev" },
   { "ParameterKey": "Owner", "ParameterValue": "thesis" },

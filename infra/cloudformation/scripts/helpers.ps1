@@ -6,21 +6,56 @@ function Resolve-RepoRoot {
 }
 
 function Load-EnvConfig {
-  param(
-    [Parameter(Mandatory=$true)][ValidateSet("dev","prod")] [string]$Env
-  )
-  $root = Resolve-RepoRoot
-  $cfgPath = Join-Path $root ("infra\config\{0}.psd1" -f $Env)
-  if (-not (Test-Path $cfgPath)) {
-    throw "No existe config: $cfgPath"
-  }
-  return Import-PowerShellDataFile -Path $cfgPath
+  param([string]$RepoRoot, [string]$Env)
+  $cfgPath = Join-Path $RepoRoot "infra/config/$Env.psd1"
+  if (!(Test-Path $cfgPath)) { throw "Missing config: $cfgPath" }
+  return Import-PowerShellDataFile $cfgPath
 }
 
 function Assert-Command {
   param([Parameter(Mandatory=$true)][string]$Name)
   $cmd = Get-Command $Name -ErrorAction SilentlyContinue
   if (-not $cmd) { throw "No se encontró el comando requerido: $Name" }
+}
+
+function Get-AwsProfileRegion {
+  param([hashtable]$Cfg)
+
+  $profile = $null
+  $region  = $null
+
+  foreach ($k in @("AwsProfile","AWSProfile","Profile")) {
+    if ($Cfg.ContainsKey($k) -and $Cfg[$k]) { $profile = $Cfg[$k]; break }
+  }
+  foreach ($k in @("AwsRegion","AWSRegion","Region")) {
+    if ($Cfg.ContainsKey($k) -and $Cfg[$k]) { $region = $Cfg[$k]; break }
+  }
+
+  # Fallbacks: si no hay en config, usa entorno/AWS config default
+  if (-not $profile) { $profile = "default" }
+  if (-not $region)  { $region  = $env:AWS_REGION }
+  if (-not $region)  { $region  = $env:AWS_DEFAULT_REGION }
+  if (-not $region)  { $region  = "us-east-1" } # último fallback
+
+  return @{ Profile = $profile; Region = $region }
+}
+
+function Invoke-Aws {
+  param(
+    [Parameter(Mandatory=$true)][string]$Profile,
+    [Parameter(Mandatory=$true)][string]$Region,
+    [Parameter(Mandatory=$true)][string[]]$Args,
+    [switch]$AllowFailure
+  )
+
+  $base = @("--profile", $Profile, "--region", $Region)
+  & aws @base @Args
+  $exit = $LASTEXITCODE
+
+  if (-not $AllowFailure -and $exit -ne 0) {
+    throw "AWS CLI falló (exit=$exit) -> aws $($Args -join ' ')"
+  }
+  return $exit
 }
 
 function Read-ParamsJsonAsOverrides {
@@ -30,75 +65,179 @@ function Read-ParamsJsonAsOverrides {
     throw "Params JSON no existe: $ParamsPath"
   }
 
-  $obj = Get-Content $ParamsPath -Raw | ConvertFrom-Json
-
+  $raw = Get-Content $ParamsPath -Raw | ConvertFrom-Json
   $pairs = @()
-  foreach ($p in $obj.PSObject.Properties) {
-    $name = $p.Name
-    $val = $p.Value
 
+  # Soporta 2 formatos:
+  # A) {"ParamA":"x","ParamB":123}
+  # B) [{"ParameterKey":"ParamA","ParameterValue":"x"}, ...]
+  if ($raw -is [System.Collections.IEnumerable] -and $raw.Count -gt 0 -and $raw[0].PSObject.Properties.Name -contains "ParameterKey") {
+    foreach ($p in $raw) {
+      if ($null -eq $p.ParameterValue) { continue }
+      $pairs += ("{0}={1}" -f $p.ParameterKey, $p.ParameterValue)
+    }
+    return $pairs
+  }
+
+  foreach ($p in $raw.PSObject.Properties) {
+    $name = $p.Name
+    $val  = $p.Value
     if ($null -eq $val) { continue }
 
-    # Convertir arrays a string separado por coma (si algún día lo necesitas)
     if ($val -is [System.Array]) {
       $val = ($val -join ",")
     }
-
     $pairs += ("{0}={1}" -f $name, $val)
   }
 
   return $pairs
 }
 
-function Invoke-Aws {
+function Get-StackStatus {
   param(
-    [Parameter(Mandatory=$true)][string]$Profile,
-    [Parameter(Mandatory=$true)][string]$Region,
-    [Parameter(Mandatory=$true)][string[]]$Args
+    [string]$Profile,
+    [string]$Region,
+    [string]$StackName
   )
-  $base = @("--profile", $Profile, "--region", $Region)
-  & aws @base @Args
-  if ($LASTEXITCODE -ne 0) {
-    throw "AWS CLI falló (exit=$LASTEXITCODE) -> aws $($Args -join ' ')"
+
+  $json = aws --profile $Profile --region $Region cloudformation describe-stacks --stack-name $StackName 2>$null
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { return $null }
+
+  $obj = $json | ConvertFrom-Json
+  return $obj.Stacks[0].StackStatus
+}
+
+function Print-StackFailureSummary {
+  param(
+    [string]$Profile,
+    [string]$Region,
+    [string]$StackName,
+    [int]$Max = 30
+  )
+
+  $status = Get-StackStatus -Profile $Profile -Region $Region -StackName $StackName
+  if ($status) {
+    Write-Host "StackStatus: $status" -ForegroundColor Yellow
+  } else {
+    Write-Host "StackStatus: (no disponible / stack no existe aún)" -ForegroundColor Yellow
+  }
+
+  $eventsJson = aws --profile $Profile --region $Region cloudformation describe-stack-events --stack-name $StackName --max-items 100 2>$null
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($eventsJson)) {
+    Write-Host "No pude leer stack-events para $StackName (puede no existir o no hay permisos)." -ForegroundColor Yellow
+    return
+  }
+
+  $events = ($eventsJson | ConvertFrom-Json).StackEvents
+
+  $interesting = $events |
+    Where-Object {
+      $_.ResourceStatus -match 'FAILED|ROLLBACK|DELETE_FAILED' -or
+      ($_.ResourceStatusReason -and $_.ResourceStatusReason.Trim().Length -gt 0)
+    } |
+    Select-Object -First $Max Timestamp, LogicalResourceId, ResourceType, ResourceStatus, ResourceStatusReason
+
+  Write-Host "=== Eventos relevantes (top $Max) ===" -ForegroundColor Cyan
+  $interesting | Format-Table -AutoSize | Out-String | Write-Host
+
+  # “Root cause” probable: primer evento FAILED con reason
+  $root = $events |
+    Where-Object { $_.ResourceStatus -match 'FAILED' -and $_.ResourceStatusReason } |
+    Select-Object -First 1 Timestamp, LogicalResourceId, ResourceType, ResourceStatusReason
+
+  if ($root) {
+    Write-Host "=== Causa probable (primer FAILED) ===" -ForegroundColor Magenta
+    $root | Format-List | Out-String | Write-Host
   }
 }
 
-function Deploy-CfnStack {
+function Remove-FailedCreateStackIfNeeded {
   param(
-    [Parameter(Mandatory=$true)][string]$Profile,
-    [Parameter(Mandatory=$true)][string]$Region,
-    [Parameter(Mandatory=$true)][string]$StackName,
-    [Parameter(Mandatory=$true)][string]$TemplatePath,
-    [Parameter(Mandatory=$true)][string]$ParamsPath,
-    [Parameter(Mandatory=$true)][string]$ProjectName,
-    [Parameter(Mandatory=$true)][ValidateSet("dev","prod")] [string]$Env
+    [string]$Profile,
+    [string]$Region,
+    [string]$StackName
   )
 
-  if (-not (Test-Path $TemplatePath)) { throw "Template no existe: $TemplatePath" }
+  $status = Get-StackStatus -Profile $Profile -Region $Region -StackName $StackName
+  if (-not $status) { return }
 
-  $overrides = Read-ParamsJsonAsOverrides -ParamsPath $ParamsPath
+  # Solo limpieza segura de CREATE fallido
+  if ($status -in @("ROLLBACK_COMPLETE","CREATE_FAILED")) {
+    Write-Host "🧹 Eliminando stack fallido ($status): $StackName" -ForegroundColor Yellow
+    Invoke-Aws -Profile $Profile -Region $Region -Args @("cloudformation","delete-stack","--stack-name",$StackName)
+    Invoke-Aws -Profile $Profile -Region $Region -Args @("cloudformation","wait","stack-delete-complete","--stack-name",$StackName)
+    Write-Host "🧹 Stack eliminado: $StackName" -ForegroundColor Green
+  }
+}
 
-  $tags = @(
-    ("project={0}" -f $ProjectName),
-    ("env={0}" -f $Env)
+function Preflight {
+  param([hashtable]$Cfg)
+
+  Assert-Command -Name "aws"
+
+  $ar = Get-AwsProfileRegion -Cfg $Cfg
+  $profile = $ar.Profile
+  $region  = $ar.Region
+
+  Write-Host "AWS Profile: $profile | Region: $region" -ForegroundColor Gray
+
+  $who = aws --profile $profile --region $region sts get-caller-identity 2>$null
+  if ($LASTEXITCODE -ne 0) { throw "No pude ejecutar sts get-caller-identity. Revisa credenciales/perfil." }
+
+  $whoObj = $who | ConvertFrom-Json
+  Write-Host "AWS Account: $($whoObj.Account) | Arn: $($whoObj.Arn)" -ForegroundColor Gray
+}
+
+function Deploy-Stack {
+  param(
+    [Parameter(Mandatory=$true)][string]$RepoRoot,
+    [Parameter(Mandatory=$true)][string]$Env,
+    [Parameter(Mandatory=$true)][string]$StackDir,
+    [Parameter(Mandatory=$true)][string]$ParamsFile,
+    [switch]$PreserveFailedStack,      # --disable-rollback (solo debug)
+    [switch]$AutoDeleteFailedCreate    # auto delete si ROLLBACK_COMPLETE/CREATE_FAILED
   )
+
+  $cfg = Load-EnvConfig -RepoRoot $RepoRoot -Env $Env
+  $ar  = Get-AwsProfileRegion -Cfg $cfg
+  $profile = $ar.Profile
+  $region  = $ar.Region
+
+  $stackName = "$($cfg.ProjectName)-$Env-$StackDir"
+  $template  = Join-Path $RepoRoot "infra/cloudformation/$StackDir/template.yml"
+  $params    = Join-Path $RepoRoot $ParamsFile
+
+  if (!(Test-Path $template)) { throw "Missing template: $template" }
+  if (!(Test-Path $params))   { throw "Missing params: $params" }
+
+  $overrides = Read-ParamsJsonAsOverrides -ParamsPath $params
+
+  Write-Host "`n--- Deploy stack: $stackName ---" -ForegroundColor Green
 
   $args = @(
-    "cloudformation", "deploy",
-    "--stack-name", $StackName,
-    "--template-file", $TemplatePath,
-    "--capabilities", "CAPABILITY_NAMED_IAM",
-    "--no-fail-on-empty-changeset"
-  )
+    "cloudformation","deploy",
+    "--stack-name",$stackName,
+    "--template-file",$template,
+    "--capabilities","CAPABILITY_NAMED_IAM","CAPABILITY_AUTO_EXPAND",
+    "--parameter-overrides"
+  ) + $overrides + @("--no-fail-on-empty-changeset")
 
-  # Parameter overrides
-  $args += "--parameter-overrides"
-  $args += $overrides
+  if ($PreserveFailedStack) {
+    $args += @("--disable-rollback")
+  }
 
-  # Stack tags (complementario)
-  $args += "--tags"
-  $args += $tags
+  # Ejecuta y captura exit code
+  $exit = Invoke-Aws -Profile $profile -Region $region -Args $args -AllowFailure
+  if ($exit -ne 0) {
+    Write-Host "❌ Falló deploy: $stackName (exit=$exit)" -ForegroundColor Red
+    Print-StackFailureSummary -Profile $profile -Region $region -StackName $stackName -Max 25
 
-  Write-Host "Desplegando stack: $StackName"
-  Invoke-Aws -Profile $Profile -Region $Region -Args $args
+    if ($AutoDeleteFailedCreate) {
+      Remove-FailedCreateStackIfNeeded -Profile $profile -Region $region -StackName $stackName
+    }
+
+    throw "Deploy failed: $stackName"
+  }
+
+  Write-Host "✅ OK: $stackName" -ForegroundColor Green
 }

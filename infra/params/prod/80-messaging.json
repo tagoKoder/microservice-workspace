@@ -1,7 +1,7 @@
 {
-  "ProjectName": "bank",
+  "ProjectName": "imaginarybank",
   "Env": "prod",
-  "LedgerEventSource": "bank.ledger",
+  "LedgerEventSource": "imaginarybank.ledger",
   "LedgerEventDetailType": "ledger.journal.posted",
   "QueueVisibilityTimeoutSeconds": 60,
   "QueueMessageRetentionSeconds": 345600,

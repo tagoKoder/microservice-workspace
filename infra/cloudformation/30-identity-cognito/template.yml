@@ -17,19 +17,15 @@ Parameters:
     AllowedPattern: '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$'
 
   # Exact callback for Authorization Code
-  CallbackUrl:
-    Type: String
+  CallbackUrls:
+    Type: CommaDelimitedList
     Description: "Example: https://api.tudominio.com/api/v1/auth/oidc/callback"
 
   # Exact post-logout redirect
-  LogoutUrl:
-    Type: String
+  LogoutUrls:
+    Type: CommaDelimitedList
     Description: "Example: https://app.tudominio.com/"
 
-  # Optional: second logout url (api root)
-  LogoutUrl2:
-    Type: String
-    Default: ""
 
   # MFA configuration (Cognito-managed)
   MfaConfiguration:
@@ -95,15 +91,9 @@ Resources:
 
       SupportedIdentityProviders: [COGNITO]
 
-      CallbackURLs:
-        - !Ref CallbackUrl
+      CallbackURLs: !Ref CallbackUrls
 
-      LogoutURLs:
-        - !Ref LogoutUrl
-        - !If
-          - HasLogout2
-          - !Ref LogoutUrl2
-          - !Ref "AWS::NoValue"
+      LogoutURLs: !Ref LogoutUrls
 
       TokenValidityUnits:
         AccessToken: minutes
@@ -119,8 +109,6 @@ Resources:
       UserPoolId: !Ref UserPool
       Domain: !Ref CognitoDomainPrefix
 
-Conditions:
-  HasLogout2: !Not [!Equals [!Ref LogoutUrl2, ""]]
 
 
 

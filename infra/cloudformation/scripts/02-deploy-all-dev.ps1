@@ -1,28 +1,40 @@
-param()
+param(
+  [switch]$PreserveFailedStack,
+  [switch]$AutoDeleteFailedCreate
+)
 
-. "$PSScriptRoot\helpers.ps1"
+$ErrorActionPreference = "Stop"
 
-$env = "dev"
-$cfg = Load-EnvConfig -Env $env
+$EnvName = "dev"
+. "$PSScriptRoot/helpers.ps1"
 
-& "$PSScriptRoot\00-bootstrap-aws.ps1" -Env $env
+$RepoRoot = Resolve-RepoRoot
+$config = Load-EnvConfig -RepoRoot $RepoRoot -Env $EnvName
 
-$root = Resolve-RepoRoot
+try {
+  Preflight -Cfg $config
 
-$stack00 = ("{0}-{1}-00-foundation" -f $cfg.ProjectName, $env)
-$stack10 = ("{0}-{1}-10-network" -f $cfg.ProjectName, $env)
+  # Orden “en piedra”
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "00-foundation" -ParamsFile "infra/params/dev/00-foundation.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "10-network"   -ParamsFile "infra/params/dev/10-network.json"   -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "20-data"      -ParamsFile "infra/params/dev/20-data.json"      -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "30-identity-cognito" -ParamsFile "infra/params/dev/30-identity-cognito.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
 
-& "$PSScriptRoot\01-deploy-stack.ps1" -Env $env `
-  -StackName $stack00 `
-  -TemplatePath "infra\cloudformation\00-foundation\template.yml" `
-  -ParamsPath  "infra\params\dev\00-foundation.json"
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "70-authz-avp" -ParamsFile "infra/params/dev/70-authz-avp.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
 
-& "$PSScriptRoot\01-deploy-stack.ps1" -Env $env `
-  -StackName $stack10 `
-  -TemplatePath "infra\cloudformation\10-network\template.yml" `
-  -ParamsPath  "infra\params\dev\10-network.json"
+  # Post-step AVP: si falla, corta aquí
+  & "$PSScriptRoot/70-apply-avp-schema-policies.ps1" -Env $EnvName -RepoRoot $RepoRoot
+  if ($LASTEXITCODE -ne 0) { throw "AVP apply schema/policies failed (exit=$LASTEXITCODE)" }
 
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "80-messaging" -ParamsFile "infra/params/dev/80-messaging.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
 
-& "$PSScriptRoot/01-deploy-stack.ps1" -Env $Env -StackName "$ProjectName-$Env-80-messaging" `
-  -TemplatePath "$RepoRoot/infra/cloudformation/80-messaging/template.yml" `
-  -ParamsPath "$RepoRoot/infra/params/$Env/80-messaging.json"
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "50-compute-ecs" -ParamsFile "infra/params/dev/50-compute-ecs.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "60-audit-observability" -ParamsFile "infra/params/dev/60-audit-observability.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
+
+  Write-Host "`n🎉 Deploy DEV completo OK" -ForegroundColor Green
+}
+catch {
+  Write-Host "`n🛑 Deploy DEV detenido por error:" -ForegroundColor Red
+  Write-Host "   $($_.Exception.Message)" -ForegroundColor Red
+  exit 1
+}
