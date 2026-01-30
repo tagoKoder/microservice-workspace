@@ -1,19 +1,216 @@
-version: '3.9'
+version: "3.9"
+
+name: microservice-workspace
+
+networks:
+  banknet:
+    driver: bridge
+
+volumes:
+  pgdata:
+  localstack-data:
+
 services:
-  bff:
-    build: ../bff
-    restart: unless-stopped
+  # ---------------------------
+  # Postgres (local)
+  # ---------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: bank-postgres
     environment:
-      BFF_PORT: 8080
-      BFF_BASE_URL: "https://bff.bank.local"
-      AUTHENTIK_ISSUER: "https://idp.bank.local"
-      AUTHENTIK_AUTH_URL: "https://idp.bank.local/application/o/authorize/"
-      AUTHENTIK_TOKEN_URL: "https://idp.bank.local/application/o/token/"
-      AUTHENTIK_USERINFO_URL: "https://idp.bank.local/application/o/userinfo/"
-      AUTHENTIK_CLIENT_ID: "banking-bff"
-      AUTHENTIK_CLIENT_SECRET: "super-secret"
-      BFF_REDIS_ADDR: "redis:6379"
-      BFF_COOKIE_DOMAIN: ".bank.local"
+      POSTGRES_USER: bank
+      POSTGRES_PASSWORD: bank
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/local/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [banknet]
+
+  # ---------------------------
+  # LocalStack (EventBridge, SQS, SNS, S3)
+  # ---------------------------
+  localstack:
+    image: localstack/localstack:3.5
+    container_name: bank-localstack
+    environment:
+      # Servicios AWS emulados
+      SERVICES: s3,sqs,sns,eventbridge,iam,sts,logs
+      AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      DEBUG: ${LOCALSTACK_DEBUG:-0}
+      # Persistencia opcional
+      PERSISTENCE: "1"
+      # Vars usadas por el bootstrap
+      EVENTBUS_NAME: ${EVENTBUS_NAME:-imaginarybank-audit}
+      AUDIT_QUEUE_NAME: ${AUDIT_QUEUE_NAME:-imaginarybank-audit-queue}
+      AUDIT_DLQ_NAME: ${AUDIT_DLQ_NAME:-imaginarybank-audit-dlq}
+      NOTIFICATIONS_TOPIC: ${NOTIFICATIONS_TOPIC:-imaginarybank-notifications}
+      KYC_BUCKET: ${KYC_BUCKET:-imaginarybank-kyc-local}
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+      # scripts que se ejecutan cuando LocalStack está listo
+      - ./infra/local/localstack/init:/etc/localstack/init/ready.d:ro
+    networks: [banknet]
+
+  # ---------------------------
+  # Identity (Spring Boot)
+  # ---------------------------
+  identity:
+    build:
+      context: ./micro/identity
+      dockerfile: Dockerfile
+    container_name: bank-identity
+    environment:
+      # DB (ajusta nombres si tu app usa otras keys)
+      DB_DSN: postgresql://bank:bank@postgres:5432/identity?sslmode=disable
+
+      # AWS local emulado para mensajería / s3 local
+      USE_LOCALSTACK: ${USE_LOCALSTACK:-true}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_LOCALSTACK_ENDPOINT: http://localstack:4566
+      EVENTBUS_NAME: ${EVENTBUS_NAME:-imaginarybank-audit}
+
+      # Seguridad (modo)
+      AUTHN_MODE: ${AUTHN_MODE:-none}   # none | cognito
+      AUTHZ_MODE: ${AUTHZ_MODE:-none}   # none | avp
+      COGNITO_ISSUER: ${COGNITO_ISSUER:-}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      AVP_POLICY_STORE_ID: ${AVP_POLICY_STORE_ID:-}
+
+      # Sugerido: profile local de Spring si lo tienes
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_IDENTITY:-local}
     depends_on:
-      redis:
+      postgres:
         condition: service_healthy
+      localstack:
+        condition: service_started
+    ports:
+      - "18081:8080"   # HTTP debug (si aplica)
+      - "19091:9091"   # gRPC (si aplica)
+    networks: [banknet]
+
+  # ---------------------------
+  # Account (Spring Boot)
+  # ---------------------------
+  account:
+    build:
+      context: ./micro/account
+      dockerfile: Dockerfile
+    container_name: bank-account
+    environment:
+      DB_DSN: postgresql://bank:bank@postgres:5432/account?sslmode=disable
+
+      USE_LOCALSTACK: ${USE_LOCALSTACK:-true}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_LOCALSTACK_ENDPOINT: http://localstack:4566
+      EVENTBUS_NAME: ${EVENTBUS_NAME:-imaginarybank-audit}
+
+      AUTHN_MODE: ${AUTHN_MODE:-none}
+      AUTHZ_MODE: ${AUTHZ_MODE:-none}
+      COGNITO_ISSUER: ${COGNITO_ISSUER:-}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      AVP_POLICY_STORE_ID: ${AVP_POLICY_STORE_ID:-}
+
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_ACCOUNT:-local}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+    ports:
+      - "18082:8080"
+      - "19092:9092"
+    networks: [banknet]
+
+  # ---------------------------
+  # Ledger (Go)
+  # ---------------------------
+  ledger:
+    build:
+      context: ./micro/ledger
+      dockerfile: Dockerfile
+    container_name: bank-ledger
+    environment:
+      DB_DSN: postgresql://bank:bank@postgres:5432/ledger?sslmode=disable
+
+      USE_LOCALSTACK: ${USE_LOCALSTACK:-true}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_LOCALSTACK_ENDPOINT: http://localstack:4566
+      EVENTBUS_NAME: ${EVENTBUS_NAME:-imaginarybank-audit}
+
+      AUTHN_MODE: ${AUTHN_MODE:-none}
+      AUTHZ_MODE: ${AUTHZ_MODE:-none}
+      COGNITO_ISSUER: ${COGNITO_ISSUER:-}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      AVP_POLICY_STORE_ID: ${AVP_POLICY_STORE_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+    ports:
+      - "19093:9093"
+    networks: [banknet]
+
+  # ---------------------------
+  # BFF (Go)
+  # ---------------------------
+  bff:
+    build:
+      context: ./bff
+      dockerfile: Dockerfile
+    container_name: bank-bff
+    environment:
+      # Interno
+      APP_ENV: local
+
+      # gRPC endpoints internos (ajusta puertos reales de tus micros)
+      IDENTITY_GRPC_ADDR: identity:9091
+      ACCOUNT_GRPC_ADDR: account:9092
+      LEDGER_GRPC_ADDR: ledger:9093
+
+      # DB si tu BFF necesita (si no, puedes borrar)
+      DB_DSN: postgresql://bank:bank@postgres:5432/bff?sslmode=disable
+
+      # AWS local emulado
+      USE_LOCALSTACK: ${USE_LOCALSTACK:-true}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_LOCALSTACK_ENDPOINT: http://localstack:4566
+      EVENTBUS_NAME: ${EVENTBUS_NAME:-imaginarybank-audit}
+
+      # KYC S3 (localstack)
+      KYC_BUCKET: ${KYC_BUCKET:-imaginarybank-kyc-local}
+      KYC_S3_MODE: ${KYC_S3_MODE:-local}  # local | aws
+      KYC_S3_ENDPOINT: ${KYC_S3_ENDPOINT:-http://localstack:4566}
+      S3_FORCE_PATH_STYLE: "true"
+
+      # Seguridad (modo)
+      AUTHN_MODE: ${AUTHN_MODE:-none}
+      AUTHZ_MODE: ${AUTHZ_MODE:-none}
+      COGNITO_ISSUER: ${COGNITO_ISSUER:-}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      COGNITO_REDIRECT_URI: ${COGNITO_REDIRECT_URI:-http://localhost:8080/api/v1/auth/oidc/callback}
+      AVP_POLICY_STORE_ID: ${AVP_POLICY_STORE_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity:
+        condition: service_started
+      account:
+        condition: service_started
+      ledger:
+        condition: service_started
+      localstack:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    networks: [banknet]
