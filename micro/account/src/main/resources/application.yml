@@ -7,11 +7,17 @@ spring:
       pool:
         size: ${SCHED_POOL_SIZE:2}
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${COGNITO_ISSUER_URI:}
+
   # ---------------------------
   # Datasource (Postgres)
   # ---------------------------
   datasource:
-    url: ${DB_JDBC_URL:jdbc:postgresql://localhost:5432/account}
+    url: ${DB_JDBC_URL:jdbc:postgresql://postgres:5432/account}
     username: ${DB_USER:bank}
     password: ${DB_PASSWORD:bank}
     driver-class-name: org.postgresql.Driver
@@ -74,7 +80,7 @@ app:
     endpoint: ${AWS_ENDPOINT_OVERRIDE:}
 
   security:
-    issuerUri: ${COGNITO_ISSUER_URI:}
+    issuer-uri: ${COGNITO_ISSUER_URI:}
     audience: ${COGNITO_AUDIENCE:}
     hashSalt: ${SECURITY_HASH_SALT:change-me}
     channel: ${SECURITY_CHANNEL:web}

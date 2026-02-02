@@ -3,6 +3,8 @@ package com.tagokoder.account.infra.out.persistence.jpa.entity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import org.hibernate.annotations.UpdateTimestamp;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,11 +12,15 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity(name = "accounts")
+@Entity
+@Table(name = "accounts")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,7 +34,7 @@ public class AccountEntity {
 
     @Column(name = "product_type")
     private String productType;
-
+    @Column(name ="currency", nullable = false)
     private String currency;
     private String status;
 
@@ -36,6 +42,7 @@ public class AccountEntity {
     private OffsetDateTime openedAt;
 
     @Column(name = "updated_at")
+    @UpdateTimestamp
     private OffsetDateTime updatedAt;
 
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -43,4 +50,15 @@ public class AccountEntity {
 
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
     private AccountLimitEntity limit;
+
+    @PrePersist
+    void prePersist() {
+    if (openedAt == null) openedAt = OffsetDateTime.now();
+    if (updatedAt == null) updatedAt = OffsetDateTime.now();
+    }
+
+    @PreUpdate
+    void preUpdate() {
+    updatedAt = OffsetDateTime.now();
+    }
 }

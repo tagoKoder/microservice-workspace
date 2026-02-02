@@ -22,14 +22,14 @@ public class IdempotencyRepositoryAdapter implements IdempotencyRepositoryPort {
   @Override
   public Optional<Record> find(String key) {
     if (key == null || key.isBlank()) return Optional.empty();
-    return jpa.findByKey(key).map(e -> new Record(e.getKey(), e.getOperation(), e.getStatusCode(), e.getResponseJson()));
+    return jpa.findByIdempotencyKey(key).map(e -> new Record(e.getIdempotencyKey(), e.getOperation(), e.getStatusCode(), e.getResponseJson()));
   }
 
   @Override
   @Transactional
   public void save(String key, String operation, int statusCode, String responseJson) {
     IdempotencyRecordEntity e = new IdempotencyRecordEntity();
-    e.setKey(key);
+    e.setIdempotencyKey(key);
     e.setOperation(operation);
     e.setStatusCode(statusCode);
     e.setResponseJson(responseJson);

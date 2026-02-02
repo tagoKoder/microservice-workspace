@@ -7,11 +7,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity(name = "customer_addresses")
+@Entity
+@Table(name = "customer_addresses")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,7 +24,8 @@ public class CustomerAddressEntity {
 
     @Column(name = "customer_id", nullable = false)
     private UUID customerId;
-
+    
+    @Column(name = "country", nullable = false)
     private String country;
     private String line1;
     private String line2;

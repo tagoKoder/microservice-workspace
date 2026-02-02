@@ -15,8 +15,8 @@ public class IdempotencyRecordEntity {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column(name = "key", nullable = false, unique = true, length = 255)
-  private String key;
+  @Column(name = "idempotency_key", nullable = false, unique = true, length = 255)
+  private String idempotencyKey;
 
   @Column(name = "operation", nullable = false)
   private String operation;

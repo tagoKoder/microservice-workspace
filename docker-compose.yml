@@ -143,6 +143,7 @@ services:
       COGNITO_ISSUER: ${COGNITO_ISSUER:-}
       COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
       AVP_POLICY_STORE_ID: ${AVP_POLICY_STORE_ID:-}
+      COGNITO_ISSUER_URI: "https://cognito-idp.<REGION>.amazonaws.com/<USER_POOL_ID>"
 
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_ACCOUNT:-local}
     depends_on:

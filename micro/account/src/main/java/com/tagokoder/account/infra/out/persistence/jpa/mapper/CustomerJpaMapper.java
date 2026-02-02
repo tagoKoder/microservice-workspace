@@ -16,7 +16,7 @@ public interface CustomerJpaMapper {
     @Mappings({
             @Mapping(source = "id", target = "id"),
             @Mapping(source = "fullname", target = "fullName"),
-            @Mapping(source = "birthdate", target = "birthDate"),
+            @Mapping(source = "birthDate", target = "birthDate"),
             @Mapping(source = "status", target = "customerStatus"),
             @Mapping(source = "kycVerifiedAt", target = "kycVerifiedAt")
     })
@@ -26,7 +26,7 @@ public interface CustomerJpaMapper {
     @InheritInverseConfiguration(name = "toDomain")
     @Mappings({
             @Mapping(source = "fullName", target = "fullname"),
-            @Mapping(source = "birthDate", target = "birthdate"),
+            @Mapping(source = "birthDate", target = "birthDate"),
             @Mapping(source = "customerStatus", target = "status"),
             @Mapping(source = "kycVerifiedAt", target = "kycVerifiedAt")
     })

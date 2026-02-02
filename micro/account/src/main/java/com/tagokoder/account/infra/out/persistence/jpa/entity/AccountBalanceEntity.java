@@ -8,11 +8,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity(name = "account_balances")
+@Entity
+@Table(name = "account_balances")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,7 +28,10 @@ public class AccountBalanceEntity {
     @JoinColumn(name = "account_id")
     private AccountEntity account;
 
+    @Column(name="ledger", nullable=false, precision=20, scale=6)
     private BigDecimal ledger;
+    @Column(name="available", nullable=false, precision=20, scale=6)
     private BigDecimal available;
+    @Column(name="hold", nullable=false, precision=20, scale=6)
     private BigDecimal hold;
 }

@@ -9,11 +9,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity(name = "account_limits")
+@Entity
+@Table(name = "account_limits")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,9 +29,9 @@ public class AccountLimitEntity {
     @JoinColumn(name = "account_id")
     private AccountEntity account;
 
-    @Column(name = "daily_out")
+    @Column(name = "daily_out", nullable = false, precision = 20, scale = 6)
     private BigDecimal dailyOut;
 
-    @Column(name = "daily_in")
+    @Column(name = "daily_in", nullable = false, precision = 20, scale = 6)
     private BigDecimal dailyIn;
 }

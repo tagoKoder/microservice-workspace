@@ -1,25 +1,31 @@
 package com.tagokoder.account.infra.out.persistence.jpa.entity;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.UUID;
-
-import org.springframework.data.jpa.repository.JpaRepository;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
 import lombok.Data;
 
-@Entity(name = "account_holds")
+@Entity
+@Table(name = "account_holds")
 @Data
 public class AccountHoldEntity {
   @EmbeddedId
   private AccountHoldId id;
 
-  @Column(name="currency", nullable=false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @MapsId("accountId")
+  @JoinColumn(name = "account_id", nullable = false)
+  private AccountEntity account;
+
+  @Column(name = "currency", nullable = false)
   private String currency;
 
   @Column(name="amount", nullable=false)
