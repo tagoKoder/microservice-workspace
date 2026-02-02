@@ -2,13 +2,11 @@ package com.tagokoder.account.infra.in.grpc;
 
 import com.tagokoder.account.domain.port.in.CreateCustomerUseCase;
 import com.tagokoder.account.domain.port.in.PatchCustomerUseCase;
-import com.google.protobuf.StringValue;
 import io.grpc.stub.StreamObserver;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 import java.time.LocalDate;
-
 import bank.accounts.v1.*;
 
 @Service

@@ -216,6 +216,17 @@
   </dependencies>
 
   <build>
+
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <includes>
+          <include>**/*.yml</include>
+          <include>**/*.yaml</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
 
       <!-- Detecta OS para ${os.detected.classifier} -->

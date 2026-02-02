@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\in\grpc\mapper\mapper.go
 package mapper
 
 import (
@@ -45,7 +46,6 @@ func ToGetPaymentResponse(res *in.GetPaymentResult) (*ledgerpb.GetPaymentRespons
 	out := &ledgerpb.GetPaymentResponse{
 		PaymentId:            res.PaymentID.String(),
 		Status:               res.Status,
-		IdempotencyKey:       res.IdempotencyKey,
 		SourceAccountId:      res.SourceAccountID.String(),
 		DestinationAccountId: res.DestAccountID.String(),
 		Currency:             res.Currency,
@@ -133,36 +133,4 @@ func ToListAccountJournalEntriesResponse(res *in.ListAccountJournalEntriesResult
 		out.Entries = append(out.Entries, je)
 	}
 	return out
-}
-
-func ToCreateManualJournalEntryCommand(req *ledgerpb.CreateManualJournalEntryRequest) in.CreateManualJournalEntryCommand {
-	booked := ""
-	if req.BookedAt != nil {
-		booked = req.BookedAt.AsTime().UTC().Format(time.RFC3339Nano)
-	}
-
-	lines := make([]in.JournalLineView, 0, len(req.Lines))
-	for _, l := range req.Lines {
-		lines = append(lines, in.JournalLineView{
-			GLAccountCode:   l.GetGlAccountCode(),
-			CounterpartyRef: l.GetCounterpartyRef(),
-			Debit:           l.GetDebit(),
-			Credit:          l.GetCredit(),
-		})
-	}
-
-	return in.CreateManualJournalEntryCommand{
-		ExternalRef:     req.GetExternalRef(),
-		Currency:        req.GetCurrency(),
-		BookedAtRFC3339: booked,
-		CreatedBy:       req.GetCreatedBy(),
-		Lines:           lines,
-	}
-}
-
-func ToCreateManualJournalEntryResponse(res in.CreateManualJournalEntryResult) *ledgerpb.CreateManualJournalEntryResponse {
-	return &ledgerpb.CreateManualJournalEntryResponse{
-		JournalId: res.JournalID.String(),
-		Status:    res.Status,
-	}
 }

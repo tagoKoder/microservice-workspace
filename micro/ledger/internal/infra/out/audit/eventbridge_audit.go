@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	ebtypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
+	"github.com/google/uuid"
 	"github.com/tagoKoder/ledger/internal/domain/model"
 	out "github.com/tagoKoder/ledger/internal/domain/port/out"
 	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
@@ -30,7 +31,7 @@ func NewEventBridgeAudit(eb *eventbridge.Client, busName, source, detailType, se
 	}
 }
 
-func (a *EventBridgeAudit) Record(ctx context.Context, action, entity, entityID, actor string, at time.Time, details map[string]any) error {
+func (a *EventBridgeAudit) Record(ctx context.Context, entity, entityID string, at time.Time, details map[string]any) error {
 	ev := model.AuditEventV1{
 		Version:       "1.0",
 		EventID:       newEventID(),
@@ -58,15 +59,10 @@ func (a *EventBridgeAudit) Record(ctx context.Context, action, entity, entityID,
 	ev.Authorization.Decision = authctx.AuthzDecision(ctx)
 	ev.Authorization.PolicyID = authctx.AuthzPolicyID(ctx)
 
-	ev.RequestContext.Channel = "web"
+	ev.RequestContext.Channel = authctx.Channel(ctx)
 	ev.RequestContext.IPHash = authctx.IPHash(ctx)
 	ev.RequestContext.UAHash = authctx.UAHash(ctx)
 	ev.RequestContext.IdempotencyKey = authctx.IdempotencyKey(ctx)
-
-	// Permite sobreescribir action catálogo si te pasan "action" externo
-	// (pero tu estándar prioriza catálogo derivado de resolver)
-	_ = action
-	_ = actor
 
 	b, err := json.Marshal(ev)
 	if err != nil {
@@ -98,7 +94,7 @@ func (a *EventBridgeAudit) Record(ctx context.Context, action, entity, entityID,
 	return nil
 }
 
-func newEventID() string { return time.Now().UTC().Format("20060102T150405.000000000Z07:00") }
+func newEventID() string { return uuid.NewString() }
 
 func ptr(s string) *string           { return &s }
 func ptrTime(t time.Time) *time.Time { return &t }

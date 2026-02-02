@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\config\config.go
 package config
 
 import (
@@ -42,15 +43,19 @@ type Config struct {
 	// EventBridge
 	DomainEventBusName string
 
-	// Audit
-	AuditTopic string
-
 	// Outbox worker
 	OutboxBatchSize    int
 	OutboxPollInterval time.Duration
 
 	// Security (opcional)
 	InternalTokenHeader string
+
+	// Accounts (gRPC internal)
+	AccountsGrpcTarget        string
+	AccountsGrpcInsecure      bool
+	AccountsGrpcTimeout       time.Duration
+	AccountsGrpcTLSServerName string
+	AccountsGrpcTLSCaFile     string
 }
 
 func Load() Config {
@@ -81,12 +86,17 @@ func Load() Config {
 
 		DomainEventBusName: getEnv("DOMAIN_EVENTBUS_NAME", "default"),
 
-		AuditTopic: getEnv("AUDIT_TOPIC", "audit.events"),
-
 		OutboxBatchSize:    getEnvInt("OUTBOX_BATCH_SIZE", 50),
 		OutboxPollInterval: getEnvDuration("OUTBOX_POLL_INTERVAL", 200*time.Millisecond),
 
 		InternalTokenHeader: getEnv("INTERNAL_TOKEN_HEADER", "X-Internal-Token"),
+
+		// Accounts (gRPC internal)
+		AccountsGrpcTarget:        getEnv("ACCOUNTS_GRPC_TARGET", "accounts:9090"),
+		AccountsGrpcInsecure:      getEnvBool("ACCOUNTS_GRPC_INSECURE", true),
+		AccountsGrpcTimeout:       getEnvDuration("ACCOUNTS_GRPC_TIMEOUT", 3*time.Second),
+		AccountsGrpcTLSServerName: getEnv("ACCOUNTS_GRPC_TLS_SERVER_NAME", "accounts"),
+		AccountsGrpcTLSCaFile:     getEnv("ACCOUNTS_GRPC_TLS_CA_FILE", ""),
 	}
 }
 
@@ -131,4 +141,19 @@ func splitCSV(s string) []string {
 		}
 	}
 	return out
+}
+
+func getEnvBool(k string, def bool) bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(k)))
+	if v == "" {
+		return def
+	}
+	switch v {
+	case "1", "true", "yes", "y", "on":
+		return true
+	case "0", "false", "no", "n", "off":
+		return false
+	default:
+		return def
+	}
 }

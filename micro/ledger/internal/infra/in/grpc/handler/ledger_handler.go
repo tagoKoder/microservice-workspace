@@ -10,13 +10,12 @@ import (
 
 type LedgerHandler struct {
 	ledgerpb.UnimplementedLedgerServiceServer
-	creaAcc   in.CreditAccountUseCase
-	listAcc   in.ListAccountJournalEntriesUseCase
-	createMan in.CreateManualJournalEntryUseCase
+	creaAcc in.CreditAccountUseCase
+	listAcc in.ListAccountJournalEntriesUseCase
 }
 
-func NewLedgerHandler(creaAcc in.CreditAccountUseCase, listAcc in.ListAccountJournalEntriesUseCase, createMan in.CreateManualJournalEntryUseCase) *LedgerHandler {
-	return &LedgerHandler{creaAcc: creaAcc, listAcc: listAcc, createMan: createMan}
+func NewLedgerHandler(creaAcc in.CreditAccountUseCase, listAcc in.ListAccountJournalEntriesUseCase) *LedgerHandler {
+	return &LedgerHandler{creaAcc: creaAcc, listAcc: listAcc}
 }
 
 func (h *LedgerHandler) CreditAccount(ctx context.Context, req *ledgerpb.CreditAccountRequest) (*ledgerpb.CreditAccountResponse, error) {
@@ -30,7 +29,7 @@ func (h *LedgerHandler) CreditAccount(ctx context.Context, req *ledgerpb.CreditA
 		return nil, err
 	}
 
-	return mapper.ToCreditAccountResponse(&res), nil
+	return mapper.ToCreditAccountResponse(res), nil
 }
 
 func (h *LedgerHandler) ListAccountJournalEntries(ctx context.Context, req *ledgerpb.ListAccountJournalEntriesRequest) (*ledgerpb.ListAccountJournalEntriesResponse, error) {
@@ -44,15 +43,5 @@ func (h *LedgerHandler) ListAccountJournalEntries(ctx context.Context, req *ledg
 		return nil, err
 	}
 
-	return mapper.ToListAccountJournalEntriesResponse(&res), nil
-}
-
-func (h *LedgerHandler) CreateManualJournalEntry(ctx context.Context, req *ledgerpb.CreateManualJournalEntryRequest) (*ledgerpb.CreateManualJournalEntryResponse, error) {
-	cmd := mapper.ToCreateManualJournalEntryCommand(req)
-	res, err := h.createMan.CreateManualJournalEntry(ctx, cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	return mapper.ToCreateManualJournalEntryResponse(res), nil
+	return mapper.ToListAccountJournalEntriesResponse(res), nil
 }

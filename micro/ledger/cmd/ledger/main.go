@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/verifiedpermissions"
 	"github.com/tagoKoder/ledger/internal/application/service"
+	accountsv1 "github.com/tagoKoder/ledger/internal/genproto/bank/accounts/v1"
 	"github.com/tagoKoder/ledger/internal/infra/config"
 	"github.com/tagoKoder/ledger/internal/infra/in/grpc/handler"
 	"github.com/tagoKoder/ledger/internal/infra/out/audit"
@@ -28,6 +30,8 @@ import (
 
 	ledgerpb "github.com/tagoKoder/ledger/internal/genproto/bank/ledgerpayments/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -63,7 +67,7 @@ func main() {
 		log.Fatalf("aws cfg: %v", err)
 	}
 
-	// Kafka publisher (outbox events del dominio)
+	// EventBridge client  publisher
 	eb := eventbridge.NewFromConfig(awsCfg)
 	pub := messaging.NewEventBridgePublisher(eb, cfg.DomainEventBusName, "ledger-payments")
 
@@ -79,8 +83,18 @@ func main() {
 		cfg.AppEnv,
 	)
 
-	// AccountsGatewayPort (REST internal)
-	accountsGW := gateway.NewAccountsHTTPGateway(cfg.AccountsBaseURL, cfg.AccountsInternalTok, cfg.InternalTokenHeader)
+	// Accounts gRPC client (internal)
+	accountsConn, err := dialAccountsGRPC(cfg)
+	if err != nil {
+		log.Fatalf("accounts grpc dial: %v", err)
+	}
+	accountsClient := accountsv1.NewInternalAccountsServiceClient(accountsConn)
+	accountsGW := gateway.NewAccountsGRPCGateway(
+		accountsClient,
+		cfg.AccountsGrpcTimeout,
+		cfg.AccountsInternalTok,
+		cfg.InternalTokenHeader,
+	)
 
 	// Application services
 	paySvc := service.NewPaymentService(uow, accountsGW, auditPort)
@@ -88,7 +102,7 @@ func main() {
 
 	// gRPC handlers
 	payH := handler.NewPaymentsHandler(paySvc, paySvc)
-	ledH := handler.NewLedgerHandler(ledSvc, ledSvc, ledSvc)
+	ledH := handler.NewLedgerHandler(ledSvc, ledSvc)
 
 	// Outbox worker
 	outboxWorker := messaging.NewOutboxWorker(uow, pub, cfg.OutboxBatchSize, cfg.OutboxPollInterval)
@@ -154,4 +168,30 @@ func waitForShutdown(fn func()) {
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	<-ch
 	fn()
+}
+
+func dialAccountsGRPC(cfg config.Config) (*grpc.ClientConn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	defer cancel()
+
+	var tc credentials.TransportCredentials
+	if cfg.AccountsGrpcInsecure {
+		tc = insecure.NewCredentials()
+	} else {
+		if cfg.AccountsGrpcTLSCaFile == "" {
+			return nil, fmt.Errorf("ACCOUNTS_GRPC_TLS_CA_FILE is required when ACCOUNTS_GRPC_INSECURE=false")
+		}
+		creds, err := credentials.NewClientTLSFromFile(cfg.AccountsGrpcTLSCaFile, cfg.AccountsGrpcTLSServerName)
+		if err != nil {
+			return nil, err
+		}
+		tc = creds
+	}
+
+	return grpc.DialContext(
+		ctx,
+		cfg.AccountsGrpcTarget,
+		grpc.WithTransportCredentials(tc),
+		grpc.WithBlock(),
+	)
 }

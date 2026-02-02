@@ -29,7 +29,7 @@ func (h *PaymentsHandler) PostPayment(ctx context.Context, req *ledgerpb.PostPay
 		return nil, err
 	}
 
-	return mapper.ToPostPaymentResponse(&res), nil
+	return mapper.ToPostPaymentResponse(res), nil
 }
 
 func (h *PaymentsHandler) GetPayment(ctx context.Context, req *ledgerpb.GetPaymentRequest) (*ledgerpb.GetPaymentResponse, error) {
@@ -43,5 +43,5 @@ func (h *PaymentsHandler) GetPayment(ctx context.Context, req *ledgerpb.GetPayme
 		return nil, err
 	}
 
-	return mapper.ToGetPaymentResponse(&res)
+	return mapper.ToGetPaymentResponse(res)
 }

@@ -1,66 +1,149 @@
-server:
-  port: 8080
-
-grpc:
-  server:
-    port: 9091
-
 spring:
+  application:
+    name: identity
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # ---------------------------
+  # Database + Flyway (Identity)
+  # ---------------------------
   datasource:
-    url: jdbc:postgresql://localhost:5433/identity
-    username: identity
-    password: identity
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/identity}
+    username: ${SPRING_DATASOURCE_USERNAME:bank}
+    password: ${SPRING_DATASOURCE_PASSWORD:bank}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      connection-timeout: ${DB_CONN_TIMEOUT_MS:5000}
+
   jpa:
+    open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         jdbc:
           time_zone: UTC
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+# HTTP (si tienes actuator/health o endpoints)
+server:
+  port: ${HTTP_PORT:8080}
+
+# gRPC (tu docker-compose usa 9091 para identity)
+grpc:
+  server:
+    port: ${GRPC_PORT:9091}
+
+
+
+
+# ---------------------------
+# AppProps (prefix = app)
+# ---------------------------
+app:
+  env: ${APP_ENV:local}
+  aws:
+    region: ${AWS_REGION:us-east-1}
+    avpPolicyStoreId: ${AVP_POLICY_STORE_ID:}   # en local normalmente vacío si AUTHZ_MODE=none
+    auditBusName: ${EVENTBUS_NAME:imaginarybank-audit}
+    # Nota: si vas a usar LocalStack con AWS SDK v2 necesitas endpointOverride en código (ver notas)
+    endpoint: ${AWS_LOCALSTACK_ENDPOINT:http://localstack:4566}
+    useLocalstack: ${USE_LOCALSTACK:true}
+  security:
+    issuerUri: ${COGNITO_ISSUER:}               # opcional si authn none
+    audience: ${COGNITO_CLIENT_ID:}             # opcional si authn none
+    hashSalt: ${SECURITY_HASH_SALT:change-me}
+    channel: ${CHANNEL:web}
+
+# Alias temporal SOLO para tu AuditConfig actual (lee ${aws.region})
 aws:
   region: ${AWS_REGION:us-east-1}
 
+# ---------------------------
+# Identity extra props
+# ---------------------------
 identity:
   clients:
-    accountsTarget: "dns:///accounts:9090"
-    ledgerTarget: "dns:///ledgerpayments:9090"
-    serviceAccessToken: "${IDENTITY_SVC_ACCESS_TOKEN}"
-  audit:
-    bus-name: ${AUDIT_EVENT_BUS:bank-audit-bus}
-    source: ${AUDIT_SOURCE:bank.identity}
-    environment: ${ENVIRONMENT:dev}
-  session:
-    ttl-seconds: 1800
-    absolute-ttl-seconds: 43200  # 12h
-  kyc:
-    storage:
-      type: ${IDENTITY_KYC_STORAGE_TYPE:s3}
-      bucket: ${IDENTITY_KYC_BUCKET:imaginarybank-kyc-dev}
-      region: ${AWS_REGION:us-east-1}
-      kms-key-id: ${IDENTITY_KYC_KMS_KEY_ID:}
-      staging-prefix: ${IDENTITY_KYC_STAGING_PREFIX:staging/}
-      final-prefix: ${IDENTITY_KYC_FINAL_PREFIX:kyc/}
-      max-bytes-id-front: ${IDENTITY_KYC_MAX_ID_FRONT:5242880}
-      max-bytes-selfie: ${IDENTITY_KYC_MAX_SELFIE:5242880}
-  oidc:
-    issuer: ${IDENTITY_OIDC_ISSUER:}
-    client-id: ${IDENTITY_OIDC_CLIENT_ID:}
-    client-secret: ${IDENTITY_OIDC_CLIENT_SECRET:}
-    bff-callback-url: ${IDENTITY_OIDC_BFF_CALLBACK_URL:}
+    # dentro del docker network: account:9092 y ledger:9093
+    accountsTarget: ${ACCOUNTS_TARGET:dns:///account:9092}
+    ledgerTarget: ${LEDGER_TARGET:dns:///ledger:9093}
+    serviceAccessToken: ${IDENTITY_SERVICE_ACCESS_TOKEN:} # si lo usas para endpoints public->internos
 
-    allowed-redirect-prefixes:
+  audit:
+    bus-name: ${EVENTBUS_NAME:imaginarybank-audit}
+    source: ${AUDIT_SOURCE:bank.identity}
+
+  kyc:
+    # S3 (en local normalmente es LocalStack)
+    bucket: ${KYC_BUCKET:imaginarybank-kyc-local}
+    region: ${AWS_REGION:us-east-1}
+    kmsKeyId: ${KYC_KMS_KEY_ID:}
+
+    stagingPrefix: ${KYC_STAGING_PREFIX:staging}
+    finalPrefix: ${KYC_FINAL_PREFIX:kyc}
+
+    presignExpiresSeconds: ${KYC_PRESIGN_EXPIRES_SECONDS:900}
+
+    idFrontMaxBytes: ${KYC_ID_FRONT_MAX_BYTES:8388608}     # 8MB
+    selfieMaxBytes: ${KYC_SELFIE_MAX_BYTES:6291456}        # 6MB
+
+    idFrontAllowedContentTypes:
+      - image/jpeg
+      - image/png
+      - application/pdf
+    selfieAllowedContentTypes:
+      - image/jpeg
+      - image/png
+
+    idFrontDefaultContentType: ${KYC_ID_FRONT_DEFAULT_CT:image/jpeg}
+    selfieDefaultContentType: ${KYC_SELFIE_DEFAULT_CT:image/jpeg}
+
+  security:
+    refreshTokenPepper: ${IDENTITY_REFRESH_TOKEN_PEPPER:change-me}
+    refreshTokenEncKeyB64: ${IDENTITY_REFRESH_TOKEN_ENC_KEY_B64:} # requerido (32 bytes en base64)
+
+  session:
+    ttlSeconds: ${IDENTITY_SESSION_TTL_SECONDS:1800}
+    absoluteTtlSeconds: ${IDENTITY_SESSION_ABSOLUTE_TTL_SECONDS:43200}
+
+  oidc:
+    provider: ${OIDC_PROVIDER:cognito}
+    bffCallbackUrl: ${BFF_CALLBACK_URL:http://localhost:8080/api/v1/auth/oidc/callback}
+
+    issuer: ${COGNITO_ISSUER:}
+    discoveryEnabled: ${OIDC_DISCOVERY_ENABLED:true}
+
+    # overrides opcionales (si discoveryEnabled=false)
+    authUrl: ${OIDC_AUTH_URL:}
+    tokenUrl: ${OIDC_TOKEN_URL:}
+    userInfoUrl: ${OIDC_USERINFO_URL:}
+    revocationUrl: ${OIDC_REVOCATION_URL:}
+
+    clientId: ${COGNITO_CLIENT_ID:}
+    clientSecret: ${COGNITO_CLIENT_SECRET:}
+
+    scope: ${OIDC_SCOPE:openid profile email}
+    allowedRedirectPrefixes:
       - "/"
       - "/app"
       - "/dashboard"
-      
-  webauthn:
-    rp-id: "tu-dominio.com"
-    rp-name: "ImaginaryBank"
-    origins:
-      - "https://app.tu-dominio.com"
+
+logging:
+  level:
+    root: INFO
+    com.tagokoder: DEBUG

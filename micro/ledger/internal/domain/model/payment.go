@@ -1,4 +1,4 @@
-// micro\ledger\internal\domain\model\payment.go
+// micro/ledger/internal/domain/model/payment.go
 package model
 
 import (
@@ -25,8 +25,18 @@ type Payment struct {
 	Amount         decimal.Decimal
 	Currency       string
 	Status         PaymentStatus
-	CustomerID     uuid.UUID
-	CreatedAt      time.Time
+
+	// OJO: tu entity tiene CustomerID *uuid.UUID + not null.
+	// Si DB es NOT NULL, aquí lo dejamos puntero pero el service debe garantizar != nil.
+	CustomerID *uuid.UUID
+
+	// SAGA / HOLD / LEDGER
+	HoldID        *uuid.UUID
+	JournalID     *uuid.UUID
+	CorrelationID string
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type PaymentStep struct {

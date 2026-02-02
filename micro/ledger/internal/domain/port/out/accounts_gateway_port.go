@@ -3,12 +3,11 @@ package out
 import (
 	"context"
 
-	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
+	accountsv1 "github.com/tagoKoder/ledger/internal/genproto/bank/accounts/v1"
 )
 
 type AccountsGatewayPort interface {
-	ValidateAccountsAndLimits(ctx context.Context, source, dest uuid.UUID, currency string, amount decimal.Decimal) error
-	ReserveHold(ctx context.Context, source uuid.UUID, currency string, amount decimal.Decimal) error
-	ReleaseHold(ctx context.Context, source uuid.UUID, currency string, amount decimal.Decimal) error
+	ValidateAccountsAndLimits(ctx context.Context, req *accountsv1.ValidateAccountsAndLimitsRequest) (*accountsv1.ValidateAccountsAndLimitsResponse, error)
+	ReserveHold(ctx context.Context, req *accountsv1.ReserveHoldRequest) (*accountsv1.ReserveHoldResponse, error)
+	ReleaseHold(ctx context.Context, req *accountsv1.ReleaseHoldRequest) (*accountsv1.ReleaseHoldResponse, error)
 }

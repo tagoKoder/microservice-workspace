@@ -4,14 +4,17 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/tagoKoder/ledger/internal/application/uow"
+	"github.com/tagoKoder/ledger/internal/domain/model"
 	dm "github.com/tagoKoder/ledger/internal/domain/model"
 	in "github.com/tagoKoder/ledger/internal/domain/port/in"
 	out "github.com/tagoKoder/ledger/internal/domain/port/out"
+	accountsv1 "github.com/tagoKoder/ledger/internal/genproto/bank/accounts/v1"
 	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
 )
 
@@ -25,7 +28,7 @@ func NewLedgerAppService(uow uow.UnitOfWorkManager, accounts out.AccountsGateway
 	return &ledgerAppService{uow: uow, accounts: accounts, audit: audit}
 }
 
-func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccountCommand) (in.CreditAccountResult, error) {
+func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccountCommand) (*in.CreditAccountResult, error) {
 	actor := authctx.ActorFrom(ctx)
 	initiatedBy := actor.Subject
 	if initiatedBy == "" {
@@ -34,7 +37,13 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 
 	amt, err := decimal.NewFromString(cmd.Amount)
 	if err != nil {
-		return in.CreditAccountResult{}, err
+		return nil, err
+	}
+
+	af, exact := amt.Float64()
+	if !exact {
+		// ideal migrar proto a
+		return nil, model.ErrAmountNotExact
 	}
 
 	// Idempotencia
@@ -49,24 +58,36 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 		}
 		return nil
 	}); err != nil {
-		return in.CreditAccountResult{}, err
+		return nil, err
 	}
 
 	if cachedJSON != "" {
-		var prev in.CreditAccountResult
+		var prev *in.CreditAccountResult
 		_ = json.Unmarshal([]byte(cachedJSON), &prev)
 		return prev, nil
 	}
 
-	// Validación con account (reusa la RPC/endpoint existente)
-	if err := s.accounts.ValidateAccountsAndLimits(ctx, cmd.AccountID, cmd.AccountID, cmd.Currency, amt); err != nil {
-		return in.CreditAccountResult{}, err
+	vresp, err := s.accounts.ValidateAccountsAndLimits(ctx, &accountsv1.ValidateAccountsAndLimitsRequest{
+		SourceAccountId:      cmd.AccountID.String(),
+		DestinationAccountId: cmd.AccountID.String(),
+		Currency:             cmd.Currency,
+		Amount:               af,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if vresp != nil && !vresp.Ok {
+		reason := ""
+		if vresp.Reason != nil {
+			reason = vresp.Reason.Value
+		}
+		return nil, fmt.Errorf("accounts validation failed: %s", reason)
 	}
 
 	journalID := uuid.New()
 	now := time.Now().UTC()
 
-	var result in.CreditAccountResult
+	var result *in.CreditAccountResult
 	err = s.uow.DoWrite(ctx, func(w uow.WriteRepos) error {
 		// Journal lines:
 		// - Débito a "System Funding" (GL_SYSTEM_FUND)
@@ -127,7 +148,7 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 		}
 
 		// Idempotency save
-		result = in.CreditAccountResult{JournalID: journalID, Status: "posted"}
+		result = &in.CreditAccountResult{JournalID: journalID, Status: "posted"}
 		rj, _ := json.Marshal(result)
 		record := &dm.IdempotencyRecord{
 			Key:          cmd.IdempotencyKey,
@@ -142,10 +163,10 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 		return nil
 	})
 	if err != nil {
-		return in.CreditAccountResult{}, err
+		return nil, err
 	}
 
-	_ = s.audit.Record(ctx, "POST_TOPUP", "journal_entries", journalID.String(), initiatedBy, now, map[string]any{
+	_ = s.audit.Record(ctx, "journal_entries", journalID.String(), now, map[string]any{
 		"account_id": cmd.AccountID.String(),
 		"currency":   cmd.Currency,
 		"amount":     amt.StringFixed(6),
@@ -154,7 +175,7 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 	return result, nil
 }
 
-func (s *ledgerAppService) ListAccountJournalEntries(ctx context.Context, q in.ListAccountJournalEntriesQuery) (in.ListAccountJournalEntriesResult, error) {
+func (s *ledgerAppService) ListAccountJournalEntries(ctx context.Context, q in.ListAccountJournalEntriesQuery) (*in.ListAccountJournalEntriesResult, error) {
 
 	from := time.Time{}
 	to := time.Now().UTC()
@@ -186,7 +207,7 @@ func (s *ledgerAppService) ListAccountJournalEntries(ctx context.Context, q in.L
 		return err
 	})
 	if err != nil {
-		return in.ListAccountJournalEntriesResult{}, err
+		return nil, err
 	}
 
 	views := make([]in.JournalEntryView, 0, len(entries))
@@ -213,91 +234,5 @@ func (s *ledgerAppService) ListAccountJournalEntries(ctx context.Context, q in.L
 		views = append(views, v)
 	}
 
-	return in.ListAccountJournalEntriesResult{Entries: views, Page: q.Page, Size: q.Size}, nil
-}
-
-func (s *ledgerAppService) CreateManualJournalEntry(ctx context.Context, cmd in.CreateManualJournalEntryCommand) (in.CreateManualJournalEntryResult, error) {
-	actor := authctx.ActorFrom(ctx)
-	createdBy := actor.Subject
-	if createdBy == "" {
-		createdBy = cmd.CreatedBy // fallback temporal
-	}
-
-	bookedAt := time.Now().UTC()
-	if cmd.BookedAtRFC3339 != "" {
-		t, err := time.Parse(time.RFC3339Nano, cmd.BookedAtRFC3339)
-		if err == nil {
-			bookedAt = t
-		}
-	}
-
-	jid := uuid.New()
-
-	// Map cmd lines -> domain lines (decimal)
-	var lines []dm.EntryLine
-	for _, l := range cmd.Lines {
-		d, err := decimal.NewFromString(l.Debit)
-		if err != nil {
-			return in.CreateManualJournalEntryResult{}, err
-		}
-		c, err := decimal.NewFromString(l.Credit)
-		if err != nil {
-			return in.CreateManualJournalEntryResult{}, err
-		}
-		cp := l.CounterpartyRef
-		var cpPtr *string
-		if cp != "" {
-			cpPtr = &cp
-		}
-
-		lines = append(lines, dm.EntryLine{
-			ID: uuid.New(), JournalID: jid,
-			GLAccountID:     uuid.New(), // idealmente lo resuelves por code->id leyendo gl_accounts
-			GLAccountCode:   l.GLAccountCode,
-			CounterpartyRef: cpPtr,
-			Debit:           d, Credit: c,
-		})
-	}
-	if err := EnsureBalanced(lines); err != nil {
-		return in.CreateManualJournalEntryResult{}, err
-	}
-
-	now := time.Now().UTC()
-	err := s.uow.DoWrite(ctx, func(w uow.WriteRepos) error {
-		j := &dm.JournalEntry{
-			ID:          jid,
-			ExternalRef: cmd.ExternalRef,
-			BookedAt:    bookedAt,
-			Status:      dm.JournalPosted,
-			Currency:    cmd.Currency,
-			CreatedBy:   createdBy,
-			Lines:       lines,
-		}
-		if err := w.Journals().InsertJournal(ctx, j); err != nil {
-			return err
-		}
-
-		payload := map[string]any{
-			"journal_id":  jid.String(),
-			"currency":    cmd.Currency,
-			"occurred_at": now.Format(time.RFC3339Nano),
-		}
-		pj, _ := json.Marshal(payload)
-
-		return w.Outbox().Insert(ctx, &dm.OutboxEvent{
-			ID: uuid.New(), AggregateType: "ledger", AggregateID: jid,
-			EventType: "ledger.posted", PayloadJSON: string(pj),
-			Published: false, CreatedAt: now,
-		})
-	})
-	if err != nil {
-		return in.CreateManualJournalEntryResult{}, err
-	}
-
-	_ = s.audit.Record(ctx, "CREATE_JOURNAL_ENTRY", "journal_entries", jid.String(), createdBy, now, map[string]any{
-		"currency": cmd.Currency,
-		"lines":    len(lines),
-	})
-
-	return in.CreateManualJournalEntryResult{JournalID: jid, Status: "posted"}, nil
+	return &in.ListAccountJournalEntriesResult{Entries: views, Page: q.Page, Size: q.Size}, nil
 }

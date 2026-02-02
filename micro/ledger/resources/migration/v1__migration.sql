@@ -48,6 +48,10 @@ CREATE TABLE IF NOT EXISTS payments (
   dest_account    uuid NOT NULL,
   amount          numeric(20,6) NOT NULL,
   currency        char(3) NOT NULL,
+  hold_id uuid not null,
+  journal_id uuid null,
+  correlation_id varchar(128) null,
+  updated_at timestamptz not null,
   status          text NOT NULL CHECK (status IN ('pending','processing','posted','failed')),
   customer_id     uuid NOT NULL,
   created_at      timestamptz NOT NULL

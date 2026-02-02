@@ -21,7 +21,8 @@ const (
 	keyUAHash      ctxKey = "ua_hash"
 	keyIdempotency ctxKey = "idempotency_key"
 
-	keyActor ctxKey = "actor"
+	keyActor   ctxKey = "actor"
+	keyChannel ctxKey = "channel"
 )
 
 type Actor struct {
@@ -108,5 +109,13 @@ func WithActor(ctx context.Context, a Actor) context.Context {
 }
 func ActorFrom(ctx context.Context) Actor {
 	v, _ := ctx.Value(keyActor).(Actor)
+	return v
+}
+
+func WithChannel(ctx context.Context, c string) context.Context {
+	return context.WithValue(ctx, keyChannel, c)
+}
+func Channel(ctx context.Context) string {
+	v, _ := ctx.Value(keyChannel).(string)
 	return v
 }

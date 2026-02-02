@@ -169,12 +169,9 @@ func (i *Interceptor) bestEffortAudit(ctx context.Context, fullMethod, decision,
 	if i.audit == nil {
 		return
 	}
-	actor := authctx.ActorFrom(ctx)
 	_ = i.audit.Record(ctx,
 		"AUTHZ",
-		"grpc_method",
 		fullMethod,
-		actor.Subject,
 		at,
 		map[string]any{
 			"decision":       decision,

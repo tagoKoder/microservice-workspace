@@ -4,6 +4,7 @@ package adapter
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	dm "github.com/tagoKoder/ledger/internal/domain/model"
@@ -28,6 +29,7 @@ func (r *PaymentRepo) FindByIdempotencyKey(ctx context.Context, key string) (*dm
 	var m entity.PaymentEntity
 	err := r.db.WithContext(ctx).Preload("Steps").First(&m, "idempotency_key = ?", key).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Si prefieres "nil, nil" cámbialo, pero mantengo tu patrón actual.
 		return &dm.Payment{}, nil
 	}
 	if err != nil {
@@ -56,17 +58,23 @@ func (r *PaymentRepo) InsertStep(ctx context.Context, step *dm.PaymentStep) erro
 func (r *PaymentRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
 	return r.db.WithContext(ctx).Model(&entity.PaymentEntity{}).
 		Where("id = ?", id).
-		Update("status", status).Error
+		Updates(map[string]any{
+			"status":     status,
+			"updated_at": time.Now().UTC(),
+		}).Error
 }
 
 func (r *PaymentRepo) ListSteps(ctx context.Context, paymentID uuid.UUID) ([]dm.PaymentStep, error) {
 	var ms []entity.PaymentStepEntity
-	if err := r.db.WithContext(ctx).Find(&ms, "payment_id = ?", paymentID).Error; err != nil {
+	if err := r.db.WithContext(ctx).
+		Order("attempted_at asc").
+		Find(&ms, "payment_id = ?", paymentID).Error; err != nil {
 		return nil, err
 	}
-	out := make([]dm.PaymentStep, 0, len(ms))
+
+	stepsOut := make([]dm.PaymentStep, 0, len(ms))
 	for _, x := range ms {
-		out = append(out, dm.PaymentStep{
+		stepsOut = append(stepsOut, dm.PaymentStep{
 			ID:          x.ID,
 			PaymentID:   x.PaymentID,
 			Step:        x.Step,
@@ -75,22 +83,26 @@ func (r *PaymentRepo) ListSteps(ctx context.Context, paymentID uuid.UUID) ([]dm.
 			AttemptedAt: x.AttemptedAt,
 		})
 	}
-	return out, nil
+	return stepsOut, nil
 }
 
 func toDomainPayment(m *entity.PaymentEntity) *dm.Payment {
-	p := &dm.Payment{
+	return &dm.Payment{
 		ID:             m.ID,
 		IdempotencyKey: m.IdempotencyKey,
 		SourceAccount:  m.SourceAccount,
 		DestAccount:    m.DestAccount,
 		Amount:         m.Amount,
 		Currency:       m.Currency,
-		CustomerID:     m.CustomerID,
 		Status:         dm.PaymentStatus(m.Status),
-		CreatedAt:      m.CreatedAt,
+
+		CustomerID:    m.CustomerID,
+		HoldID:        m.HoldID,
+		JournalID:     m.JournalID,
+		CorrelationID: m.CorrelationID,
+		CreatedAt:     m.CreatedAt,
+		UpdatedAt:     m.UpdatedAt,
 	}
-	return p
 }
 
 func fromDomainPayment(p *dm.Payment) entity.PaymentEntity {
@@ -98,12 +110,17 @@ func fromDomainPayment(p *dm.Payment) entity.PaymentEntity {
 		ID:             p.ID,
 		IdempotencyKey: p.IdempotencyKey,
 		SourceAccount:  p.SourceAccount,
-		CustomerID:     p.CustomerID,
 		DestAccount:    p.DestAccount,
 		Amount:         p.Amount,
 		Currency:       p.Currency,
 		Status:         string(p.Status),
-		CreatedAt:      p.CreatedAt,
+
+		CustomerID:    p.CustomerID,
+		HoldID:        p.HoldID,
+		JournalID:     p.JournalID,
+		CorrelationID: p.CorrelationID,
+		CreatedAt:     p.CreatedAt,
+		UpdatedAt:     p.UpdatedAt,
 	}
 }
 

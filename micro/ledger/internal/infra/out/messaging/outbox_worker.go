@@ -69,7 +69,6 @@ func (w *OutboxWorker) Start() {
 				topic := e.EventType // mapping simple
 				if err := w.publisher.Publish(context.Background(), topic, e.AggregateID.String(), []byte(e.PayloadJSON)); err != nil {
 					// si falla, cortamos (se reintentará luego)
-					okIDs = nil
 					break
 				}
 				okIDs = append(okIDs, e.ID)

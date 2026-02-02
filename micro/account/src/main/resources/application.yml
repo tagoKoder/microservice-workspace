@@ -1,11 +1,89 @@
+spring:
+  application:
+    name: account
+
+  task:
+    scheduling:
+      pool:
+        size: ${SCHED_POOL_SIZE:2}
+
+  # ---------------------------
+  # Datasource (Postgres)
+  # ---------------------------
+  datasource:
+    url: ${DB_JDBC_URL:jdbc:postgresql://localhost:5432/account}
+    username: ${DB_USER:bank}
+    password: ${DB_PASSWORD:bank}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:2}
+      connection-timeout: ${DB_POOL_CONN_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
+
+  # ---------------------------
+  # JPA (NO auto-migrations)
+  # ---------------------------
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+
+  # ---------------------------
+  # Flyway (migraciones)
+  # - En prod lo dejamos apagado por defecto
+  # - En local/dev lo activas por profile
+  # ---------------------------
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration}
+
+# ---------------------------
+# gRPC
+# ---------------------------
+grpc:
+  server:
+    port: ${GRPC_PORT:9091}
+
+
+# ---------------------------
+# App Props (tu record AppProps)
+# ---------------------------
 app:
-  env: dev
+  env: ${APP_ENV:local}
+
   aws:
-    region: us-east-1
-    avpPolicyStoreId: "ps-xxxxxxxxxxxxxxxx"
-    auditBusName: "bank-audit-bus"
+    region: ${AWS_REGION:us-east-1}
+
+    # AVP / Audit
+    avpPolicyStoreId: ${AVP_POLICY_STORE_ID:ps-xxxxxxxxxxxxxxxx}
+    auditBusName: ${AUDIT_BUS_NAME:imaginarybank-audit}
+
+    # Cola donde llegan eventos "ledger.posted" (SQS)
+    ledgerEventsQueueUrl: ${LEDGER_EVENTS_QUEUE_URL:http://localhost:4566/000000000000/ledger-events}
+
+    # Endpoint opcional (LOCALSTACK) - lo usaremos en AwsClientsConfig
+    endpoint: ${AWS_ENDPOINT_OVERRIDE:}
+
   security:
-    issuerUri: "https://cognito-idp.us-east-1.amazonaws.com/<USER_POOL_ID>"
-    audience: "<COGNITO_APP_CLIENT_ID>"
-    hashSalt: "${SECURITY_HASH_SALT:change-me}"
-    channel: "web"
+    issuerUri: ${COGNITO_ISSUER_URI:}
+    audience: ${COGNITO_AUDIENCE:}
+    hashSalt: ${SECURITY_HASH_SALT:change-me}
+    channel: ${SECURITY_CHANNEL:web}
+
+# ---------------------------
+# Logging (útil para debug local)
+# ---------------------------
+logging:
+  level:
+    root: INFO
+    com.tagokoder.account: INFO
+    org.springframework.security: INFO

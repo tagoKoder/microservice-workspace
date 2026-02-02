@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,7 +14,9 @@ import (
 	dm "github.com/tagoKoder/ledger/internal/domain/model"
 	in "github.com/tagoKoder/ledger/internal/domain/port/in"
 	out "github.com/tagoKoder/ledger/internal/domain/port/out"
+	accountsv1 "github.com/tagoKoder/ledger/internal/genproto/bank/accounts/v1"
 	authctx "github.com/tagoKoder/ledger/internal/infra/security/context"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type paymentService struct {
@@ -26,17 +29,20 @@ func NewPaymentService(u uow.UnitOfWorkManager, accounts out.AccountsGatewayPort
 	return &paymentService{uow: u, accounts: accounts, audit: audit}
 }
 
-func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentCommand) (in.PostPaymentResult, error) {
+func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentCommand) (*in.PostPaymentResult, error) {
 	actor := authctx.ActorFrom(ctx)
 	initiatedBy := actor.Subject
 	if initiatedBy == "" {
-		// fallback temporal (compat)
 		initiatedBy = cmd.InitiatedBy
 	}
 
 	amt, err := decimal.NewFromString(cmd.Amount)
 	if err != nil {
-		return in.PostPaymentResult{}, err
+		return nil, err
+	}
+	af, exact := amt.Float64()
+	if !exact {
+		return nil, model.ErrAmountNotExact
 	}
 
 	// 1) Idempotencia (read)
@@ -51,33 +57,90 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 		}
 		return nil
 	}); err != nil {
-		return in.PostPaymentResult{}, err
+		return nil, err
 	}
 
 	if cachedJSON != "" {
-		var pr in.PostPaymentResult
+		var pr *in.PostPaymentResult
 		_ = json.Unmarshal([]byte(cachedJSON), &pr)
 		return pr, nil
 	}
 
-	// 2) Validación en Accounts (breaker  timeout ya en gateway)
-	if err := s.accounts.ValidateAccountsAndLimits(ctx, cmd.SourceAccountID, cmd.DestinationAccount, cmd.Currency, amt); err != nil {
-		return in.PostPaymentResult{}, err
+	// 2) Validación en Accounts (gRPC)
+	vresp, err := s.accounts.ValidateAccountsAndLimits(ctx, &accountsv1.ValidateAccountsAndLimitsRequest{
+		SourceAccountId:      cmd.SourceAccountID.String(),
+		DestinationAccountId: cmd.DestinationAccount.String(),
+		Currency:             cmd.Currency,
+		Amount:               af,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if vresp != nil && !vresp.Ok {
+		reason := ""
+		if vresp.Reason != nil {
+			reason = vresp.Reason.Value
+		}
+		return nil, fmt.Errorf("accounts validation failed: %s", reason)
 	}
 
+	// IDs estables
 	paymentID := uuid.New()
 	now := time.Now().UTC()
 
-	// 3) TX: reserve hold  ledger  payment  outbox  idempotency
-	var result in.PostPaymentResult
-	err = s.uow.DoWrite(ctx, func(w uow.WriteRepos) error {
-		// 3.1 reserve hold (external)
-		if err := s.accounts.ReserveHold(ctx, cmd.SourceAccountID, cmd.Currency, amt); err != nil {
-			// no hay cambios locales aún
-			return err
-		}
+	// customer_id (tu entity y DB dicen NOT NULL: garantiza no-nil aquí)
+	customerID := uuidPtrFromString(actor.CustomerID)
+	if customerID == nil {
+		return nil, fmt.Errorf("customer_id is required in context (got empty/invalid actor.CustomerID)")
+	}
 
-		// 3.2 crear payment
+	// HoldID estable = paymentID (puntero)
+	holdID := paymentID
+	holdIDPtr := &holdID
+
+	// 3) ReserveHold FUERA del TX (saga)
+	reserveKey := cmd.IdempotencyKey + ":reserve_hold"
+	rresp, err := s.accounts.ReserveHold(ctx, &accountsv1.ReserveHoldRequest{
+		Id: cmd.SourceAccountID.String(),
+		Hold: &accountsv1.HoldRequest{
+			Currency: cmd.Currency,
+			Amount:   af,
+			Reason:   wrapperspb.String("payment"),
+		},
+		HoldId:         paymentID.String(),
+		IdempotencyKey: reserveKey,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if rresp != nil && !rresp.Ok {
+		st := ""
+		if rresp.Status != nil {
+			st = rresp.Status.Value
+		}
+		return nil, fmt.Errorf("reserve hold failed status=%s", st)
+	}
+
+	// Si el TX falla luego, compensamos con ReleaseHold
+	releaseKey := cmd.IdempotencyKey + ":release_hold"
+	releaseReq := &accountsv1.ReleaseHoldRequest{
+		Id: cmd.SourceAccountID.String(),
+		Hold: &accountsv1.HoldRequest{
+			Currency: cmd.Currency,
+			Amount:   af,
+			Reason:   wrapperspb.String("payment-compensation"),
+		},
+		HoldId:         paymentID.String(),
+		IdempotencyKey: releaseKey,
+	}
+
+	// 4) TX: persist payment + journal + outbox + idempotency + steps + status update
+	var result *in.PostPaymentResult
+	err = s.uow.DoWrite(ctx, func(w uow.WriteRepos) error {
+		// 4.1 Genera journal_id dentro del TX y guárdalo en payments.journal_id
+		jid := uuid.New()
+
+		// 4.2 Insert payment (processing)
 		p := &dm.Payment{
 			ID:             paymentID,
 			IdempotencyKey: cmd.IdempotencyKey,
@@ -85,19 +148,21 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 			DestAccount:    cmd.DestinationAccount,
 			Amount:         amt,
 			Currency:       cmd.Currency,
-			Status:         dm.PaymentPosted,
-			CustomerID:     uuidFromStringOrNil(actor.CustomerID),
-			CreatedAt:      now,
+			Status:         dm.PaymentProcessing,
+
+			CustomerID:    customerID,
+			HoldID:        holdIDPtr,
+			JournalID:     &jid,
+			CorrelationID: "", // si luego tienes un getter real, lo llenas aquí
+
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
 		if err := w.Payments().Insert(ctx, p); err != nil {
-			_ = s.accounts.ReleaseHold(ctx, cmd.SourceAccountID, cmd.Currency, amt)
 			return err
 		}
 
-		// 3.3 journal entry (doble partida)
-		jid := uuid.New()
-		// GL accounts: aquí usas IDs/Code desde tu plan de cuentas. Simplifico con códigos.
-		// counterparty_ref guarda accountID string para activity.
+		// 4.3 journal entry (doble partida)
 		srcRef := cmd.SourceAccountID.String()
 		dstRef := cmd.DestinationAccount.String()
 
@@ -106,7 +171,6 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 			{ID: uuid.New(), JournalID: jid, GLAccountID: uuid.New(), GLAccountCode: "GL_IN", CounterpartyRef: &dstRef, Debit: decimal.Zero, Credit: amt},
 		}
 		if err := EnsureBalanced(lines); err != nil {
-			_ = s.accounts.ReleaseHold(ctx, cmd.SourceAccountID, cmd.Currency, amt)
 			return err
 		}
 
@@ -120,29 +184,32 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 			Lines:       lines,
 		}
 		if err := w.Journals().InsertJournal(ctx, j); err != nil {
-			_ = s.accounts.ReleaseHold(ctx, cmd.SourceAccountID, cmd.Currency, amt)
 			return err
 		}
 
-		// 3.4 steps
+		// 4.4 payment steps (si falla no aborta el TX; son evidencia/trace)
 		_ = w.Payments().InsertStep(ctx, &dm.PaymentStep{
 			ID: uuid.New(), PaymentID: paymentID,
 			Step: "reserve_hold", State: "ok",
-			DetailsJSON: `{"account":"` + srcRef + `}`, AttemptedAt: now,
+			DetailsJSON: `{"hold_id":"` + paymentID.String() + `"}`,
+			AttemptedAt: now,
 		})
 		_ = w.Payments().InsertStep(ctx, &dm.PaymentStep{
 			ID: uuid.New(), PaymentID: paymentID,
 			Step: "post_ledger", State: "ok",
-			DetailsJSON: `{"journal_id":"` + jid.String() + `}`, AttemptedAt: now,
+			DetailsJSON: `{"journal_id":"` + jid.String() + `","hold_id":"` + paymentID.String() + `"}`,
+			AttemptedAt: now,
 		})
 
-		// 3.5 outbox payment.posted
+		// 4.5 outbox payment.posted
 		payload := map[string]any{
 			"payment_id":             paymentID.String(),
 			"source_account_id":      srcRef,
 			"destination_account_id": dstRef,
 			"currency":               cmd.Currency,
 			"amount":                 amt.StringFixed(6),
+			"hold_id":                holdIDPtr.String(),
+			"journal_id":             jid.String(),
 			"occurred_at":            now.Format(time.RFC3339Nano),
 		}
 		pj, _ := json.Marshal(payload)
@@ -156,30 +223,37 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 			Published:     false,
 			CreatedAt:     now,
 		}); err != nil {
-			_ = s.accounts.ReleaseHold(ctx, cmd.SourceAccountID, cmd.Currency, amt)
 			return err
 		}
 
-		// 3.6 idempotency record
-		result = in.PostPaymentResult{PaymentID: paymentID, Status: "posted"}
+		// 4.6 status -> posted (actualiza updated_at también)
+		if err := w.Payments().UpdateStatus(ctx, paymentID, string(dm.PaymentPosted)); err != nil {
+			return err
+		}
+
+		// 4.7 idempotency record
+		result = &in.PostPaymentResult{PaymentID: paymentID, Status: "posted"}
 		rj, _ := json.Marshal(result)
-		_ = w.Idempotency().Put(ctx, &model.IdempotencyRecord{
-			ID:           uuid.New(),
+		if err := w.Idempotency().Put(ctx, &model.IdempotencyRecord{
 			Key:          cmd.IdempotencyKey,
 			Operation:    "PostPayment",
 			ResponseJSON: string(rj),
 			StatusCode:   200,
 			CreatedAt:    now,
-		})
+		}); err != nil {
+			return err
+		}
 
 		return nil
 	})
+
 	if err != nil {
-		// si falla después de reservar hold pero antes de compensar, tu saga puede reintentar release por step
-		return in.PostPaymentResult{}, err
+		// compensación: ReleaseHold best-effort
+		_, _ = s.accounts.ReleaseHold(ctx, releaseReq)
+		return nil, err
 	}
 
-	_ = s.audit.Record(ctx, "POST_PAYMENT", "payments", paymentID.String(), initiatedBy, now, map[string]any{
+	_ = s.audit.Record(ctx, "payments", paymentID.String(), now, map[string]any{
 		"currency": cmd.Currency,
 		"amount":   amt.StringFixed(6),
 	})
@@ -187,8 +261,8 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 	return result, nil
 }
 
-func (s *paymentService) GetPayment(ctx context.Context, paymentID uuid.UUID) (in.GetPaymentResult, error) {
-	var res in.GetPaymentResult
+func (s *paymentService) GetPayment(ctx context.Context, paymentID uuid.UUID) (*in.GetPaymentResult, error) {
+	var res *in.GetPaymentResult
 	err := s.uow.DoRead(ctx, func(r uow.ReadRepos) error {
 		p, err := r.Payments().FindById(ctx, paymentID)
 		if err != nil {
@@ -196,7 +270,7 @@ func (s *paymentService) GetPayment(ctx context.Context, paymentID uuid.UUID) (i
 		}
 		steps, _ := r.Payments().ListSteps(ctx, paymentID)
 
-		res = in.GetPaymentResult{
+		res = &in.GetPaymentResult{
 			PaymentID:        paymentID,
 			Status:           string(p.Status),
 			IdempotencyKey:   p.IdempotencyKey,
@@ -218,10 +292,10 @@ func (s *paymentService) GetPayment(ctx context.Context, paymentID uuid.UUID) (i
 	return res, err
 }
 
-func uuidFromStringOrNil(s string) uuid.UUID {
+func uuidPtrFromString(s string) *uuid.UUID {
 	u, err := uuid.Parse(s)
 	if err != nil {
-		return uuid.Nil
+		return nil
 	}
-	return u
+	return &u
 }

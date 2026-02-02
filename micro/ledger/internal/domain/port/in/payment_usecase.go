@@ -12,11 +12,11 @@ type PaymentService interface {
 }
 
 type PostPaymentUseCase interface {
-	PostPayment(ctx context.Context, cmd PostPaymentCommand) (PostPaymentResult, error)
+	PostPayment(ctx context.Context, cmd PostPaymentCommand) (*PostPaymentResult, error)
 }
 
 type GetPaymentUseCase interface {
-	GetPayment(ctx context.Context, paymentID uuid.UUID) (GetPaymentResult, error)
+	GetPayment(ctx context.Context, paymentID uuid.UUID) (*GetPaymentResult, error)
 }
 
 type PostPaymentCommand struct {

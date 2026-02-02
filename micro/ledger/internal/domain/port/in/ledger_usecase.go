@@ -9,19 +9,14 @@ import (
 type LedgerAppService interface {
 	CreditAccountUseCase
 	ListAccountJournalEntriesUseCase
-	CreateManualJournalEntryUseCase
 }
 
 type CreditAccountUseCase interface {
-	CreditAccount(ctx context.Context, cmd CreditAccountCommand) (CreditAccountResult, error)
+	CreditAccount(ctx context.Context, cmd CreditAccountCommand) (*CreditAccountResult, error)
 }
 
 type ListAccountJournalEntriesUseCase interface {
-	ListAccountJournalEntries(ctx context.Context, q ListAccountJournalEntriesQuery) (ListAccountJournalEntriesResult, error)
-}
-
-type CreateManualJournalEntryUseCase interface {
-	CreateManualJournalEntry(ctx context.Context, cmd CreateManualJournalEntryCommand) (CreateManualJournalEntryResult, error)
+	ListAccountJournalEntries(ctx context.Context, q ListAccountJournalEntriesQuery) (*ListAccountJournalEntriesResult, error)
 }
 
 type CreditAccountCommand struct {
@@ -66,17 +61,4 @@ type JournalLineView struct {
 	CounterpartyRef string
 	Debit           string
 	Credit          string
-}
-
-type CreateManualJournalEntryCommand struct {
-	ExternalRef     string
-	Currency        string
-	BookedAtRFC3339 string
-	CreatedBy       string
-	Lines           []JournalLineView
-}
-
-type CreateManualJournalEntryResult struct {
-	JournalID uuid.UUID
-	Status    string
 }

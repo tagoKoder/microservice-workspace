@@ -22,7 +22,7 @@ services:
       POSTGRES_PASSWORD: bank
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "5442:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./infra/local/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -60,6 +60,30 @@ services:
       # scripts que se ejecutan cuando LocalStack está listo
       - ./infra/local/localstack/init:/etc/localstack/init/ready.d:ro
     networks: [banknet]
+
+
+  # ---------------------------
+  # Ledger DB Migrations (Flyway - one shot)
+  # ---------------------------
+  ledger-migrate:
+    image: flyway/flyway:10-alpine
+    container_name: bank-ledger-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # <- tu ruta real de migraciones
+      - ./micro/ledger/resources/migration:/flyway/sql:ro
+    # OJO: usa JDBC URL, no postgresql://
+    command:
+      - -url=jdbc:postgresql://postgres:5432/ledger
+      - -user=bank
+      - -password=bank
+      - -schemas=public
+      - -connectRetries=30
+      - migrate
+    networks: [banknet]
+    restart: "no"
 
   # ---------------------------
   # Identity (Spring Boot)

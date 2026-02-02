@@ -1,3 +1,4 @@
+// micro\ledger\internal\infra\out\messaging\errors.go
 package messaging
 
 type TemporaryPublishError struct {
