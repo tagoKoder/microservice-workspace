@@ -17,8 +17,9 @@ import bank.accounts.v1.ReserveHoldResponse;
 import bank.accounts.v1.ValidateAccountsAndLimitsRequest;
 import bank.accounts.v1.ValidateAccountsAndLimitsResponse;
 import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
 
-@Service
+@GrpcService
 public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.InternalAccountsServiceImplBase {
 
     private final ValidateAccountsAndLimitsUseCase validateUC;

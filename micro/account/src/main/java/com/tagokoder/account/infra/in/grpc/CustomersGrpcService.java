@@ -3,13 +3,15 @@ package com.tagokoder.account.infra.in.grpc;
 import com.tagokoder.account.domain.port.in.CreateCustomerUseCase;
 import com.tagokoder.account.domain.port.in.PatchCustomerUseCase;
 import io.grpc.stub.StreamObserver;
-import org.springframework.stereotype.Service;
+import net.devh.boot.grpc.server.service.GrpcService;
+
 
 import java.util.UUID;
 import java.time.LocalDate;
 import bank.accounts.v1.*;
 
-@Service
+
+@GrpcService
 public class CustomersGrpcService extends CustomersServiceGrpc.CustomersServiceImplBase {
 
     private final CreateCustomerUseCase createCustomer;

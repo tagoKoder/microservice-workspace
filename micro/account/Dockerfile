@@ -26,6 +26,6 @@ USER 10001
 
 COPY --from=build /workspace/target/*.jar /app/app.jar
 
-EXPOSE 9091
+EXPOSE 9092
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -Djava.security.egd=file:/dev/./urandom"
 ENTRYPOINT ["java","-jar","/app/app.jar"]

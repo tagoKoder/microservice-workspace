@@ -2,7 +2,14 @@ spring:
   flyway:
     enabled: true
 
+messaging:
+  sqs:
+    enabled: false
+
+
 app:
+  security:
+    enabled: false
   env: local
   aws:
     endpoint: ${AWS_ENDPOINT_OVERRIDE:http://localstack:4566}

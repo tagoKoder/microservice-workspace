@@ -146,6 +146,7 @@ services:
       COGNITO_ISSUER_URI: "https://cognito-idp.<REGION>.amazonaws.com/<USER_POOL_ID>"
 
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_ACCOUNT:-local}
+      GRPC_PORT: 9092
     depends_on:
       postgres:
         condition: service_healthy
@@ -153,7 +154,7 @@ services:
         condition: service_started
     ports:
       - "18082:8080"
-      - "19092:9092"
+      - "18092:9092"
     networks: [banknet]
 
   # ---------------------------

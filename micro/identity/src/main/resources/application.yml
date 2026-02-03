@@ -1,149 +1,95 @@
 spring:
   application:
     name: identity
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  task:
+    scheduling:
+      pool:
+        size: ${SCHED_POOL_SIZE:2}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${COGNITO_ISSUER_URI:}
 
   # ---------------------------
-  # Database + Flyway (Identity)
+  # Datasource (Postgres)
   # ---------------------------
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/identity}
-    username: ${SPRING_DATASOURCE_USERNAME:bank}
-    password: ${SPRING_DATASOURCE_PASSWORD:bank}
+    url: ${DB_JDBC_URL:jdbc:postgresql://postgres:5432/identity}
+    username: ${DB_USER:bank}
+    password: ${DB_PASSWORD:bank}
+    driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: ${DB_POOL_SIZE:10}
-      connection-timeout: ${DB_CONN_TIMEOUT_MS:5000}
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:2}
+      connection-timeout: ${DB_POOL_CONN_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
 
+  # ---------------------------
+  # JPA (NO auto-migrations)
+  # ---------------------------
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
+        format_sql: false
         jdbc:
           time_zone: UTC
 
+  # ---------------------------
+  # Flyway (migraciones)
+  # - En prod lo dejamos apagado por defecto
+  # - En local/dev lo activas por profile
+  # ---------------------------
   flyway:
-    enabled: ${FLYWAY_ENABLED:true}
-    locations: classpath:db/migration
+    enabled: ${FLYWAY_ENABLED:false}
     baseline-on-migrate: true
     validate-on-migrate: true
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration}
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,prometheus
-  endpoint:
-    health:
-      probes:
-        enabled: true
-
-# HTTP (si tienes actuator/health o endpoints)
-server:
-  port: ${HTTP_PORT:8080}
-
-# gRPC (tu docker-compose usa 9091 para identity)
+# ---------------------------
+# gRPC
+# ---------------------------
 grpc:
   server:
-    port: ${GRPC_PORT:9091}
-
-
+    port: ${GRPC_PORT:9092}
 
 
 # ---------------------------
-# AppProps (prefix = app)
+# App Props (tu record AppProps)
 # ---------------------------
 app:
   env: ${APP_ENV:local}
+
   aws:
     region: ${AWS_REGION:us-east-1}
-    avpPolicyStoreId: ${AVP_POLICY_STORE_ID:}   # en local normalmente vacío si AUTHZ_MODE=none
-    auditBusName: ${EVENTBUS_NAME:imaginarybank-audit}
-    # Nota: si vas a usar LocalStack con AWS SDK v2 necesitas endpointOverride en código (ver notas)
-    endpoint: ${AWS_LOCALSTACK_ENDPOINT:http://localstack:4566}
-    useLocalstack: ${USE_LOCALSTACK:true}
+
+    # AVP / Audit
+    avpPolicyStoreId: ${AVP_POLICY_STORE_ID:ps-xxxxxxxxxxxxxxxx}
+    auditBusName: ${AUDIT_BUS_NAME:imaginarybank-audit}
+
+    # Cola donde llegan eventos "ledger.posted" (SQS)
+    ledgerEventsQueueUrl: ${LEDGER_EVENTS_QUEUE_URL:http://localhost:4566/000000000000/ledger-events}
+
+    # Endpoint opcional (LOCALSTACK) - lo usaremos en AwsClientsConfig
+    endpoint: ${AWS_ENDPOINT_OVERRIDE:}
+
   security:
-    issuerUri: ${COGNITO_ISSUER:}               # opcional si authn none
-    audience: ${COGNITO_CLIENT_ID:}             # opcional si authn none
+    issuer-uri: ${COGNITO_ISSUER_URI:}
+    audience: ${COGNITO_AUDIENCE:}
     hashSalt: ${SECURITY_HASH_SALT:change-me}
-    channel: ${CHANNEL:web}
-
-# Alias temporal SOLO para tu AuditConfig actual (lee ${aws.region})
-aws:
-  region: ${AWS_REGION:us-east-1}
+    channel: ${SECURITY_CHANNEL:web}
 
 # ---------------------------
-# Identity extra props
+# Logging (útil para debug local)
 # ---------------------------
-identity:
-  clients:
-    # dentro del docker network: account:9092 y ledger:9093
-    accountsTarget: ${ACCOUNTS_TARGET:dns:///account:9092}
-    ledgerTarget: ${LEDGER_TARGET:dns:///ledger:9093}
-    serviceAccessToken: ${IDENTITY_SERVICE_ACCESS_TOKEN:} # si lo usas para endpoints public->internos
-
-  audit:
-    bus-name: ${EVENTBUS_NAME:imaginarybank-audit}
-    source: ${AUDIT_SOURCE:bank.identity}
-
-  kyc:
-    # S3 (en local normalmente es LocalStack)
-    bucket: ${KYC_BUCKET:imaginarybank-kyc-local}
-    region: ${AWS_REGION:us-east-1}
-    kmsKeyId: ${KYC_KMS_KEY_ID:}
-
-    stagingPrefix: ${KYC_STAGING_PREFIX:staging}
-    finalPrefix: ${KYC_FINAL_PREFIX:kyc}
-
-    presignExpiresSeconds: ${KYC_PRESIGN_EXPIRES_SECONDS:900}
-
-    idFrontMaxBytes: ${KYC_ID_FRONT_MAX_BYTES:8388608}     # 8MB
-    selfieMaxBytes: ${KYC_SELFIE_MAX_BYTES:6291456}        # 6MB
-
-    idFrontAllowedContentTypes:
-      - image/jpeg
-      - image/png
-      - application/pdf
-    selfieAllowedContentTypes:
-      - image/jpeg
-      - image/png
-
-    idFrontDefaultContentType: ${KYC_ID_FRONT_DEFAULT_CT:image/jpeg}
-    selfieDefaultContentType: ${KYC_SELFIE_DEFAULT_CT:image/jpeg}
-
-  security:
-    refreshTokenPepper: ${IDENTITY_REFRESH_TOKEN_PEPPER:change-me}
-    refreshTokenEncKeyB64: ${IDENTITY_REFRESH_TOKEN_ENC_KEY_B64:} # requerido (32 bytes en base64)
-
-  session:
-    ttlSeconds: ${IDENTITY_SESSION_TTL_SECONDS:1800}
-    absoluteTtlSeconds: ${IDENTITY_SESSION_ABSOLUTE_TTL_SECONDS:43200}
-
-  oidc:
-    provider: ${OIDC_PROVIDER:cognito}
-    bffCallbackUrl: ${BFF_CALLBACK_URL:http://localhost:8080/api/v1/auth/oidc/callback}
-
-    issuer: ${COGNITO_ISSUER:}
-    discoveryEnabled: ${OIDC_DISCOVERY_ENABLED:true}
-
-    # overrides opcionales (si discoveryEnabled=false)
-    authUrl: ${OIDC_AUTH_URL:}
-    tokenUrl: ${OIDC_TOKEN_URL:}
-    userInfoUrl: ${OIDC_USERINFO_URL:}
-    revocationUrl: ${OIDC_REVOCATION_URL:}
-
-    clientId: ${COGNITO_CLIENT_ID:}
-    clientSecret: ${COGNITO_CLIENT_SECRET:}
-
-    scope: ${OIDC_SCOPE:openid profile email}
-    allowedRedirectPrefixes:
-      - "/"
-      - "/app"
-      - "/dashboard"
-
 logging:
   level:
     root: INFO
-    com.tagokoder: DEBUG
+    com.tagokoder.identity: INFO
+    org.springframework.security: INFO

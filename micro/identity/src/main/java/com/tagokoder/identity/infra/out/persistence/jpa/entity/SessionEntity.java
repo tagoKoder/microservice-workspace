@@ -1,6 +1,5 @@
 package com.tagokoder.identity.infra.out.persistence.jpa.entity;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -49,7 +48,7 @@ public class SessionEntity {
 
     @Column(name = "rotated_to_session_id")
     private UUID rotatedToSessionId;
-
+    @Column(columnDefinition="inet")
     private String ip;  // PostgreSQL 'inet' → String
     private String ua;  // User-Agent
 }

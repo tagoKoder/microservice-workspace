@@ -1,4 +1,4 @@
-package com.tagokoder.account.infra.in.grpc;
+package com.tagokoder.account.infra.security.grpc;
 
 import org.springframework.stereotype.Component;
 

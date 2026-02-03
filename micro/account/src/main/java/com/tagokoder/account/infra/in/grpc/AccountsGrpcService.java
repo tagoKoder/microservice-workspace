@@ -3,7 +3,6 @@ package com.tagokoder.account.infra.in.grpc;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-import org.springframework.stereotype.Service;
 
 import com.google.protobuf.Timestamp;
 import com.tagokoder.account.application.service.IdempotencyService;
@@ -11,6 +10,8 @@ import com.tagokoder.account.domain.port.in.CreateAccountUseCase;
 import com.tagokoder.account.domain.port.in.GetAccountBalancesUseCase;
 import com.tagokoder.account.domain.port.in.ListAccountsUseCase;
 import com.tagokoder.account.domain.port.in.PatchAccountLimitsUseCase;
+import com.tagokoder.account.infra.security.grpc.IdempotencyKeyInterceptor;
+import net.devh.boot.grpc.server.service.GrpcService;
 
 // si usas java_package recomendado
 import bank.accounts.v1.AccountBalances;
@@ -26,7 +27,7 @@ import bank.accounts.v1.PatchAccountLimitsRequest;
 import bank.accounts.v1.PatchAccountLimitsResponse;
 import io.grpc.stub.StreamObserver;
 // si NO defines java_package, cambia a: import bank.accounts.v1.*;
-@Service
+@GrpcService
 public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImplBase {
 
     private final ListAccountsUseCase listAccounts;

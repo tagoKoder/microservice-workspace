@@ -1,6 +1,6 @@
 package com.tagokoder.identity.infra.out.cache;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.tagokoder.identity.domain.port.out.OidcStateRepositoryPort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -11,11 +11,10 @@ import java.time.Duration;
 public class RedisOidcStateRepository implements OidcStateRepositoryPort {
 
     private final StringRedisTemplate redis;
-    private final ObjectMapper om;
+    private final JsonMapper  om = new JsonMapper();
 
-    public RedisOidcStateRepository(StringRedisTemplate redis, ObjectMapper om) {
+    public RedisOidcStateRepository(StringRedisTemplate redis) {
         this.redis = redis;
-        this.om = om;
     }
 
     @Override

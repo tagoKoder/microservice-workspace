@@ -1,10 +1,11 @@
 package com.tagokoder.identity.infra.audit;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tagokoder.identity.domain.port.out.AuditPublisher;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.tagokoder.identity.domain.port.out.AuditPublisher;
+
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
@@ -13,11 +14,11 @@ public class EventBridgeAuditPublisher implements AuditPublisher {
   private static final Logger log = LoggerFactory.getLogger(EventBridgeAuditPublisher.class);
 
   private final EventBridgeClient eb;
-  private final ObjectMapper om;
+  private final JsonMapper om;
   private final String busName;
   private final String source; // e.g. "bank.identity"
 
-  public EventBridgeAuditPublisher(EventBridgeClient eb, ObjectMapper om, String busName, String source) {
+  public EventBridgeAuditPublisher(EventBridgeClient eb, JsonMapper om, String busName, String source) {
     this.eb = eb;
     this.om = om;
     this.busName = busName;

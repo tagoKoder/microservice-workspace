@@ -1,25 +1,26 @@
 package com.tagokoder.identity.infra.out.audit;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tagokoder.identity.application.AppProps;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
-import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
-import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.tagokoder.identity.application.AppProps;
+
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 
 public class AuditPublisher {
     private static final Logger log = LoggerFactory.getLogger(AuditPublisher.class);
 
     private final EventBridgeClient eb;
     private final AppProps props;
-    private final ObjectMapper om = new ObjectMapper();
+    private final JsonMapper om = new JsonMapper();
 
     public AuditPublisher(EventBridgeClient eb, AppProps props) {
         this.eb = eb;
