@@ -32,8 +32,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/health"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -87,10 +85,23 @@ func main() {
 		cfg.AppEnv,
 	)
 
-	sw := gateway.NewAccountsGatewaySwitch(gateway.NewUnavailableAccountsGateway())
+	// Accounts gRPC client (internal)
+	accountsConn, err := dialAccountsGRPC(cfg)
+	if err != nil {
+		log.Printf("Account address: %v", cfg.AccountsGrpcTarget)
+		log.Printf("accounts grpc dial: %v", err)
+	}
+	accountsClient := accountsv1.NewInternalAccountsServiceClient(accountsConn)
+	accountsGW := gateway.NewAccountsGRPCGateway(
+		accountsClient,
+		cfg.AccountsGrpcTimeout,
+		cfg.AccountsInternalTok,
+		cfg.InternalTokenHeader,
+	)
+
 	// Application services
-	paySvc := service.NewPaymentService(uow, sw, auditPort)
-	ledSvc := service.NewLedgerAppService(uow, sw, auditPort)
+	paySvc := service.NewPaymentService(uow, accountsGW, auditPort)
+	ledSvc := service.NewLedgerAppService(uow, accountsGW, auditPort)
 
 	// gRPC handlers
 	payH := handler.NewPaymentsHandler(paySvc, paySvc)
@@ -127,15 +138,9 @@ func main() {
 		),
 	)
 
-	hs := health.NewServer()
-	healthpb.RegisterHealthServer(grpcSrv, hs)
-	// Estado inicial: no listo hasta terminar wiring
-	hs.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
-
 	ledgerpb.RegisterPaymentsServiceServer(grpcSrv, payH)
 	ledgerpb.RegisterLedgerServiceServer(grpcSrv, ledH)
-
-	if cfg.AppEnv == "local" {
+	if cfg.AppEnv != "local" {
 		reflection.Register(grpcSrv)
 	}
 
@@ -144,32 +149,6 @@ func main() {
 		log.Printf("ledger-payments gRPC listening on %s env=%s", cfg.GrpcPort, cfg.AppEnv)
 		if err := grpcSrv.Serve(lis); err != nil {
 			log.Fatalf("grpc serve: %v", err)
-		}
-	}()
-
-	go func() {
-		for {
-			conn, err := dialAccountsGRPC(cfg)
-			if err == nil {
-				// aquí sí ya puedes crear cliente/gateway
-				accountsClient := accountsv1.NewInternalAccountsServiceClient(conn)
-				accountsGW := gateway.NewAccountsGRPCGateway(
-					accountsClient,
-					cfg.AccountsGrpcTimeout,
-					cfg.AccountsInternalTok,
-					cfg.InternalTokenHeader,
-				)
-
-				// si tus services ya usan accountsGW creado antes, necesitarías inyectarlo via atomic o setter.
-				sw.Set(accountsGW)
-				// si NO puedes cambiar eso ahora, al menos marca ready sólo cuando conecte:
-				hs.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
-				log.Println("accounts connected; health SERVING")
-				return
-			}
-
-			log.Printf("accounts not ready yet: %v", err)
-			time.Sleep(1 * time.Second)
 		}
 	}()
 
