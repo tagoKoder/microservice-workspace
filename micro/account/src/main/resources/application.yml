@@ -17,9 +17,9 @@ spring:
   # Datasource (Postgres)
   # ---------------------------
   datasource:
-    url: ${DB_JDBC_URL:jdbc:postgresql://postgres:5432/account}
-    username: ${DB_USER:bank}
-    password: ${DB_PASSWORD:bank}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/account}
+    username: ${SPRING_DATASOURCE_USERNAME:bank}
+    password: ${SPRING_DATASOURCE_PASSWORD:bank}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:10}
@@ -58,6 +58,7 @@ spring:
 grpc:
   server:
     port: ${GRPC_PORT:9092}
+    reflection-service-enabled: ${GRPC_REFLECTION_ENABLED:false}
 
 
 # ---------------------------

@@ -22,7 +22,6 @@ import com.tagokoder.identity.domain.port.out.AuditPublisher;
 import com.tagokoder.identity.domain.port.out.IdentityRepositoryPort;
 import com.tagokoder.identity.domain.port.out.OidcIdpClientPort;
 import com.tagokoder.identity.domain.port.out.OidcStateRepositoryPort;
-import com.tagokoder.identity.domain.port.out.WebauthnCredentialRepositoryPort;
 import com.tagokoder.identity.infra.audit.AuditEventV1;
 import com.tagokoder.identity.infra.security.OidcIdTokenValidator;
 import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
@@ -36,7 +35,6 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
     private final OidcProperties properties;
     private final OidcIdTokenValidator idTokenValidator;
     private final CreateSessionUseCase createSessionUseCase;
-    private final WebauthnCredentialRepositoryPort creds;
     private final AuditPublisher audit;
     private final AppProps props;
 
@@ -50,7 +48,6 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
                            OidcProperties properties,
                            OidcIdTokenValidator idTokenValidator,
                            CreateSessionUseCase createSessionUseCase,
-                           WebauthnCredentialRepositoryPort creds,
                            AuditPublisher audit, AppProps props) {
         this.stateRepo = stateRepo;
         this.idpClient = idpClient;
@@ -58,7 +55,6 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
         this.properties = properties;
         this.idTokenValidator = idTokenValidator;
         this.createSessionUseCase = createSessionUseCase;
-        this.creds = creds;
         this.audit = audit;
         this.props = props;
     }
@@ -145,9 +141,8 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
 
         if (!identity.isActive()) identity = identity.activate();
         identity = identityRepo.save(identity);
-        boolean mfaRequired = creds.countEnabledByIdentityId(identity.getId()) > 0;
         // 3) Sesión server-side: guardas refresh token cifrado + hash
-        var created = createSessionUseCase.createSession(identity, token.refreshToken, command.ip(), command.userAgent(), mfaRequired);
+        var created = createSessionUseCase.createSession(identity, token.refreshToken, command.ip(), command.userAgent());
 
         return new CompleteLoginResponse(
                 identity.getId(),

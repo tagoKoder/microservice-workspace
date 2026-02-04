@@ -69,7 +69,7 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
     public CreatedSession createSession(Identity identity,
                                         String refreshToken,
                                         String ip,
-                                        String ua, boolean mfaRequired) {
+                                        String ua) {
         UUID sid = UUID.randomUUID();
         Instant now = Instant.now();
 
@@ -83,8 +83,6 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         s.setRotatedToSessionId(null);
         s.setIp(ip);
         s.setUa(ua);
-        s.setMfaRequired(mfaRequired);
-        s.setMfaVerifiedAt(mfaRequired ? null : now);
 
         s.setRefreshTokenHash(hasher.hmacSha256(refreshToken));
         s.setRefreshTokenEnc(crypto.encrypt(refreshToken));

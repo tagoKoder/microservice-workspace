@@ -12,11 +12,10 @@ import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 
 @Configuration
 public class AuditConfig {
-
+  private JsonMapper om = new JsonMapper();
   @Bean
   public AuditPublisher auditPublisher(
       EventBridgeClient eb,
-      JsonMapper om,
       @Value("${identity.audit.bus-name}") String busName,
       @Value("${identity.audit.source}") String source
   ) {

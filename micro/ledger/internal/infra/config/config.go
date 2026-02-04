@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	AppEnv      string
-	GrpcAddr    string
+	GrpcPort    string
 	ServiceName string
 
 	// AWS
@@ -61,7 +61,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		AppEnv:      getEnv("APP_ENV", "dev"),
-		GrpcAddr:    getEnv("GRPC_ADDR", ":8082"),
+		GrpcPort:    getEnv("GRPC_PORT", "8082"),
 		ServiceName: getEnv("SERVICE_NAME", "ledger-payments"),
 
 		AWSRegion: getEnv("AWS_REGION", "us-east-1"),
@@ -92,9 +92,9 @@ func Load() Config {
 		InternalTokenHeader: getEnv("INTERNAL_TOKEN_HEADER", "X-Internal-Token"),
 
 		// Accounts (gRPC internal)
-		AccountsGrpcTarget:        getEnv("ACCOUNTS_GRPC_TARGET", "accounts:9090"),
+		AccountsGrpcTarget:        getEnv("ACCOUNTS_GRPC_TARGET", "account:9092"),
 		AccountsGrpcInsecure:      getEnvBool("ACCOUNTS_GRPC_INSECURE", true),
-		AccountsGrpcTimeout:       getEnvDuration("ACCOUNTS_GRPC_TIMEOUT", 3*time.Second),
+		AccountsGrpcTimeout:       getEnvDuration("ACCOUNTS_GRPC_TIMEOUT", 30*time.Second),
 		AccountsGrpcTLSServerName: getEnv("ACCOUNTS_GRPC_TLS_SERVER_NAME", "accounts"),
 		AccountsGrpcTLSCaFile:     getEnv("ACCOUNTS_GRPC_TLS_CA_FILE", ""),
 	}

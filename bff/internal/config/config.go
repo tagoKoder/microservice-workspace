@@ -20,7 +20,6 @@ type Config struct {
 	IdentityGRPCAddr       string
 	AccountsGRPCAddr       string
 	LedgerPaymentsGRPCAddr string
-	OpsGRPCAddr            string
 
 	// TLS
 	GRPCUseTLS         bool
@@ -42,9 +41,8 @@ func Load() Config {
 		RateLimitRPS: mustInt(getenv("RATE_LIMIT_RPS", "50")),
 
 		IdentityGRPCAddr:       getenv("IDENTITY_GRPC_ADDR", "identity:9090"),
-		AccountsGRPCAddr:       getenv("ACCOUNTS_GRPC_ADDR", "accounts:9090"),
-		LedgerPaymentsGRPCAddr: getenv("LEDGERPAYMENTS_GRPC_ADDR", "ledgerpayments:9090"),
-		OpsGRPCAddr:            getenv("OPS_GRPC_ADDR", "ops:9090"),
+		AccountsGRPCAddr:       getenv("ACCOUNT_GRPC_ADDR", "accounts:9090"),
+		LedgerPaymentsGRPCAddr: getenv("LEDGER_GRPC_ADDR", "ledger:9090"),
 
 		GRPCUseTLS:         getenv("GRPC_USE_TLS", "false") == "true",
 		GRPCCACertPath:     getenv("GRPC_CA_CERT", ""),

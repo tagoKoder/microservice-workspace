@@ -20,6 +20,10 @@ RUN mvn -q -DskipTests -DskipProtos=true package
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
+# root por defecto
+ADD https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.28/grpc_health_probe-linux-amd64 /usr/local/bin/grpc_health_probe
+RUN chmod +x /usr/local/bin/grpc_health_probe
+
 # Crea usuario no root (Ubuntu/UBI: usar 'useradd' requiere root)
 RUN useradd -r -u 10001 appuser
 USER 10001

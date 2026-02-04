@@ -20,9 +20,6 @@ public class Session {
     // Refresh token cifrado (AES-GCM)
     private String refreshTokenEnc;
 
-    boolean mfaRequired;
-    Instant mfaVerifiedAt;
-
     private Instant expiresAt;
     private Instant createdAt;
     private Instant revokedAt;
