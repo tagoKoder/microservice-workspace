@@ -1,6 +1,6 @@
 permit(
   principal,
-  action == Action::"payments:create",
+  action == ImaginaryBank::Action::"payments:create",
   resource
 )
 when {

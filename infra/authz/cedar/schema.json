@@ -1,66 +1,67 @@
 {
-  "cedarVersion": "2.0",
-  "entityTypes": {
-    "User": {
-      "shape": {
-        "type": "Record",
-        "attributes": {
-          "customer_id": { "type": "String" },
-          "roles": { "type": "Set", "element": { "type": "String" } }
+  "ImaginaryBank": {
+    "entityTypes": {
+      "User": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "customer_id": { "type": "String" },
+            "roles": { "type": "Set", "element": { "type": "String" } }
+          }
+        }
+      },
+      "Account": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "account_id": { "type": "String" },
+            "owner_customer_id": { "type": "String" },
+            "status": { "type": "String" }
+          }
+        }
+      },
+      "Payment": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "payment_id": { "type": "String" },
+            "owner_customer_id": { "type": "String" },
+            "amount": { "type": "Long" },
+            "currency": { "type": "String" }
+          }
         }
       }
     },
-    "Account": {
-      "shape": {
-        "type": "Record",
-        "attributes": {
-          "account_id": { "type": "String" },
-          "owner_customer_id": { "type": "String" },
-          "status": { "type": "String" }
+    "actions": {
+      "accounts:read": {
+        "appliesTo": {
+          "principalTypes": ["User"],
+          "resourceTypes": ["Account"]
         }
-      }
-    },
-    "Payment": {
-      "shape": {
-        "type": "Record",
-        "attributes": {
-          "payment_id": { "type": "String" },
-          "owner_customer_id": { "type": "String" },
-          "amount": { "type": "Long" },
-          "currency": { "type": "String" }
+      },
+      "accounts:overview": {
+        "appliesTo": {
+          "principalTypes": ["User"],
+          "resourceTypes": ["Account"]
         }
-      }
-    }
-  },
-  "actions": {
-    "accounts:read": {
-      "appliesTo": {
-        "principalTypes": ["User"],
-        "resourceTypes": ["Account"]
-      }
-    },
-    "accounts:overview": {
-      "appliesTo": {
-        "principalTypes": ["User"],
-        "resourceTypes": ["Account"]
-      }
-    },
-    "payments:create": {
-      "appliesTo": {
-        "principalTypes": ["User"],
-        "resourceTypes": ["Payment"]
-      }
-    },
-    "payments:read": {
-      "appliesTo": {
-        "principalTypes": ["User"],
-        "resourceTypes": ["Payment"]
-      }
-    },
-    "admin:sandbox:topup": {
-      "appliesTo": {
-        "principalTypes": ["User"],
-        "resourceTypes": ["Account"]
+      },
+      "payments:create": {
+        "appliesTo": {
+          "principalTypes": ["User"],
+          "resourceTypes": ["Payment"],
+          "context": {
+            "type": "Record",
+            "attributes": {
+              "mfa_verified": { "type": "Boolean" }
+            }
+          }
+        }
+      },
+      "payments:read": {
+        "appliesTo": {
+          "principalTypes": ["User"],
+          "resourceTypes": ["Payment"]
+        }
       }
     }
   }

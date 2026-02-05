@@ -1,6 +1,6 @@
 permit(
   principal,
-  action == Action::"accounts:read",
+  action == ImaginaryBank::Action::"accounts:read",
   resource
 )
 when {

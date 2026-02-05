@@ -4,10 +4,10 @@
   "DomainName": "tudominio.com",
   "HostedZoneId": "ZXXXXXXXXXXXXX",
   "ApiSubdomain": "api",
-  "AcmCertArnApi": "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "AcmCertArnApi": "arn:aws:acm:us-east-1:936532783795:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
   "AlbSslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06",
 
-  "BffImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/imaginarybank-dev-bff:REEMPLAZA_TAG",
+  "BffImageUri": "936532783795.dkr.ecr.us-east-1.amazonaws.com/imaginarybank-dev-bff:REEMPLAZA_TAG",
   "BffContainerPort": 8080,
   "BffDesiredCount": 1,
   "BffCpu": 256,
@@ -20,9 +20,9 @@
 
   "ApiDomainName": "api.tudominio.com",
 
-  "IdentityImageUri": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/identity:dev-latest",
-  "AccountImageUri": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/account:dev-latest",
-  "LedgerImageUri": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/ledger:dev-latest",
+  "IdentityImageUri": "936532783795.dkr.ecr.us-east-1.amazonaws.com/identity:dev-latest",
+  "AccountImageUri": "936532783795.dkr.ecr.us-east-1.amazonaws.com/account:dev-latest",
+  "LedgerImageUri": "936532783795.dkr.ecr.us-east-1.amazonaws.com/ledger:dev-latest",
 
   "IdentityGrpcPort": 7001,
   "AccountGrpcPort": 7002,
@@ -32,7 +32,7 @@
   "AccountDesiredCount": 1,
   "LedgerDesiredCount": 1,
 
-  "IdentityDbSecretArn": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:bank/dev/db/identity-xxxxx",
-  "AccountDbSecretArn": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:bank/dev/db/account-xxxxx",
-  "LedgerDbSecretArn": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:bank/dev/db/ledger-xxxxx"
+  "IdentityDbSecretArn": "arn:aws:secretsmanager:us-east-1:936532783795:secret:bank/dev/db/identity-lnuEFP",
+  "AccountDbSecretArn": "arn:aws:secretsmanager:us-east-1:936532783795:secret:bank/dev/db/account-8NV071",
+  "LedgerDbSecretArn": "arn:aws:secretsmanager:us-east-1:936532783795:secret:bank/dev/db/ledger-FYz3p7"
 }
