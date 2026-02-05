@@ -1,14 +1,34 @@
 Set-StrictMode -Version Latest
+$PSNativeCommandUseErrorActionPreference = $false
 
 function Resolve-RepoRoot {
-  $here = Split-Path -Parent $PSScriptRoot
-  return (Resolve-Path $here).Path
+  # Partimos desde ...\infra\cloudformation\scripts
+  $cur = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path  # ...\infra\cloudformation
+
+  while ($true) {
+    if ( (Test-Path (Join-Path $cur "infra\config")) -or (Test-Path (Join-Path $cur ".git")) ) {
+      return $cur
+    }
+
+    $parent = Split-Path -Parent $cur
+    if ($parent -eq $cur -or [string]::IsNullOrWhiteSpace($parent)) {
+      throw "No pude detectar RepoRoot subiendo desde: $PSScriptRoot. No encontré infra\config ni .git."
+    }
+
+    $cur = $parent
+  }
 }
+
+
+
 
 function Load-EnvConfig {
   param([string]$RepoRoot, [string]$Env)
   $cfgPath = Join-Path $RepoRoot "infra/config/$Env.psd1"
-  if (!(Test-Path $cfgPath)) { throw "Missing config: $cfgPath" }
+  if (!(Test-Path $cfgPath)) {
+    throw "Missing config: $cfgPath`nRepoRoot detectado: $RepoRoot`nPSScriptRoot: $PSScriptRoot"
+  }
+
   return Import-PowerShellDataFile $cfgPath
 }
 
@@ -40,6 +60,13 @@ function Get-AwsProfileRegion {
   return @{ Profile = $profile; Region = $region }
 }
 
+function Quote-Arg {
+  param([string]$s)
+  if ($null -eq $s) { return '""' }
+  if ($s -match '[\s"`]') { return '"' + ($s -replace '"','\"') + '"' }
+  return $s
+}
+
 function Invoke-Aws {
   param(
     [Parameter(Mandatory=$true)][string]$Profile,
@@ -48,15 +75,44 @@ function Invoke-Aws {
     [switch]$AllowFailure
   )
 
-  $base = @("--profile", $Profile, "--region", $Region)
-  & aws @base @Args
-  $exit = $LASTEXITCODE
+  $awsArgs = @("--profile", $Profile, "--region", $Region) + $Args
+  $argLine = ($awsArgs | ForEach-Object { Quote-Arg $_ }) -join " "
+
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = "aws"
+  $psi.Arguments = $argLine
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError  = $true
+  $psi.UseShellExecute = $false
+  $psi.CreateNoWindow  = $true
+
+  $p = New-Object System.Diagnostics.Process
+  $p.StartInfo = $psi
+
+  $null   = $p.Start()
+  $stdout = $p.StandardOutput.ReadToEnd()
+  $stderr = $p.StandardError.ReadToEnd()
+  $p.WaitForExit()
+
+  $exit = $p.ExitCode
+  $out  = (($stdout + "`n" + $stderr).Trim())
 
   if (-not $AllowFailure -and $exit -ne 0) {
-    throw "AWS CLI falló (exit=$exit) -> aws $($Args -join ' ')"
+    throw "AWS CLI falló (exit=$exit)`nCommand: aws $argLine`n--- output ---`n$out"
   }
-  return $exit
+
+  return @{
+    Exit    = $exit
+    Output  = $out
+    StdOut  = $stdout
+    StdErr  = $stderr
+    Command = ("aws " + $argLine)
+  }
 }
+
+
+
+
 
 function Read-ParamsJsonAsOverrides {
   param([Parameter(Mandatory=$true)][string]$ParamsPath)
@@ -94,16 +150,15 @@ function Read-ParamsJsonAsOverrides {
 }
 
 function Get-StackStatus {
-  param(
-    [string]$Profile,
-    [string]$Region,
-    [string]$StackName
-  )
+  param([string]$Profile,[string]$Region,[string]$StackName)
 
-  $json = aws --profile $Profile --region $Region cloudformation describe-stacks --stack-name $StackName 2>$null
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { return $null }
+  $res = Invoke-Aws -Profile $Profile -Region $Region -Args @(
+    "cloudformation","describe-stacks","--stack-name",$StackName
+  ) -AllowFailure
 
-  $obj = $json | ConvertFrom-Json
+  if ($res.Exit -ne 0 -or [string]::IsNullOrWhiteSpace($res.Output)) { return $null }
+
+  $obj = $res.Output | ConvertFrom-Json
   return $obj.Stacks[0].StackStatus
 }
 
@@ -122,27 +177,36 @@ function Print-StackFailureSummary {
     Write-Host "StackStatus: (no disponible / stack no existe aún)" -ForegroundColor Yellow
   }
 
-  $eventsJson = aws --profile $Profile --region $Region cloudformation describe-stack-events --stack-name $StackName --max-items 100 2>$null
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($eventsJson)) {
-    Write-Host "No pude leer stack-events para $StackName (puede no existir o no hay permisos)." -ForegroundColor Yellow
+  $eventsRes = Invoke-Aws -Profile $Profile -Region $Region -Args @(
+    "cloudformation","describe-stack-events","--stack-name",$StackName,"--max-items","100"
+  ) -AllowFailure
+
+  if ($eventsRes.Exit -ne 0 -or [string]::IsNullOrWhiteSpace($eventsRes.Output)) {
+    Write-Host "No pude leer stack-events para $StackName." -ForegroundColor Yellow
+    Write-Host $eventsRes.Output -ForegroundColor Yellow
     return
   }
 
-  $events = ($eventsJson | ConvertFrom-Json).StackEvents
+  $events = ($eventsRes.Output | ConvertFrom-Json).StackEvents
 
   $interesting = $events |
     Where-Object {
+      $hasReason = $_.PSObject.Properties.Name -contains 'ResourceStatusReason'
       $_.ResourceStatus -match 'FAILED|ROLLBACK|DELETE_FAILED' -or
-      ($_.ResourceStatusReason -and $_.ResourceStatusReason.Trim().Length -gt 0)
+      ($hasReason -and $_.ResourceStatusReason -and $_.ResourceStatusReason.Trim().Length -gt 0)
     } |
     Select-Object -First $Max Timestamp, LogicalResourceId, ResourceType, ResourceStatus, ResourceStatusReason
+
 
   Write-Host "=== Eventos relevantes (top $Max) ===" -ForegroundColor Cyan
   $interesting | Format-Table -AutoSize | Out-String | Write-Host
 
   # “Root cause” probable: primer evento FAILED con reason
   $root = $events |
-    Where-Object { $_.ResourceStatus -match 'FAILED' -and $_.ResourceStatusReason } |
+    Where-Object {
+      $hasReason = $_.PSObject.Properties.Name -contains 'ResourceStatusReason'
+      $_.ResourceStatus -match 'FAILED' -and $hasReason -and $_.ResourceStatusReason
+    } |
     Select-Object -First 1 Timestamp, LogicalResourceId, ResourceType, ResourceStatusReason
 
   if ($root) {
@@ -181,12 +245,15 @@ function Preflight {
 
   Write-Host "AWS Profile: $profile | Region: $region" -ForegroundColor Gray
 
-  $who = aws --profile $profile --region $region sts get-caller-identity 2>$null
-  if ($LASTEXITCODE -ne 0) { throw "No pude ejecutar sts get-caller-identity. Revisa credenciales/perfil." }
+  $res = Invoke-Aws -Profile $profile -Region $region -Args @("sts","get-caller-identity") -AllowFailure
+  if ($res.Exit -ne 0) {
+    throw "No pude ejecutar sts get-caller-identity (exit=$($res.Exit)). Output:`n$($res.Output)"
+  }
 
-  $whoObj = $who | ConvertFrom-Json
+  $whoObj = ($res.Output | Out-String | ConvertFrom-Json)
   Write-Host "AWS Account: $($whoObj.Account) | Arn: $($whoObj.Arn)" -ForegroundColor Gray
 }
+
 
 function Deploy-Stack {
   param(
@@ -204,6 +271,9 @@ function Deploy-Stack {
   $region  = $ar.Region
 
   $stackName = "$($cfg.ProjectName)-$Env-$StackDir"
+  if ($AutoDeleteFailedCreate) {
+    Remove-FailedCreateStackIfNeeded -Profile $profile -Region $region -StackName $stackName
+  }
   $template  = Join-Path $RepoRoot "infra/cloudformation/$StackDir/template.yml"
   $params    = Join-Path $RepoRoot $ParamsFile
 
@@ -227,9 +297,9 @@ function Deploy-Stack {
   }
 
   # Ejecuta y captura exit code
-  $exit = Invoke-Aws -Profile $profile -Region $region -Args $args -AllowFailure
-  if ($exit -ne 0) {
-    Write-Host "❌ Falló deploy: $stackName (exit=$exit)" -ForegroundColor Red
+  $res = Invoke-Aws -Profile $profile -Region $region -Args $args -AllowFailure
+  if ($res.Exit -ne 0) {
+    Write-Host "AWS output:`n$($res.Output)" -ForegroundColor Yellow
     Print-StackFailureSummary -Profile $profile -Region $region -StackName $stackName -Max 25
 
     if ($AutoDeleteFailedCreate) {

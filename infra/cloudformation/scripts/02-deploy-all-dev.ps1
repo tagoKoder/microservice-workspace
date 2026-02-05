@@ -4,6 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $false
 
 $EnvName = "dev"
 . "$PSScriptRoot/helpers.ps1"
@@ -27,7 +28,8 @@ try {
   if ($LASTEXITCODE -ne 0) { throw "AVP apply schema/policies failed (exit=$LASTEXITCODE)" }
 
   Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "80-messaging" -ParamsFile "infra/params/dev/80-messaging.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
-
+  
+  Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "40-edge" -ParamsFile "infra/params/dev/40-edge.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
   Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "50-compute-ecs" -ParamsFile "infra/params/dev/50-compute-ecs.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
   Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "60-audit-observability" -ParamsFile "infra/params/dev/60-audit-observability.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
 
@@ -35,6 +37,30 @@ try {
 }
 catch {
   Write-Host "`n🛑 Deploy DEV detenido por error:" -ForegroundColor Red
-  Write-Host "   $($_.Exception.Message)" -ForegroundColor Red
+
+  # ErrorRecord completo
+  Write-Host "=== ErrorRecord ===" -ForegroundColor Yellow
+  ($_ | Format-List * -Force | Out-String) | Write-Host
+
+  # Exception detallada
+  if ($_.Exception) {
+    Write-Host "=== Exception ===" -ForegroundColor Yellow
+    Write-Host ("Type: {0}" -f $_.Exception.GetType().FullName) -ForegroundColor Yellow
+    Write-Host ("Message: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
+    Write-Host "StackTrace:" -ForegroundColor Yellow
+    Write-Host ($_.Exception.StackTrace) -ForegroundColor Yellow
+  }
+
+  # Stack del script (cuando aplica)
+  if ($_.ScriptStackTrace) {
+    Write-Host "=== ScriptStackTrace ===" -ForegroundColor Yellow
+    Write-Host $_.ScriptStackTrace -ForegroundColor Yellow
+  }
+
+  if ($_.Exception -and $_.Exception.Message) {
+    Write-Host "=== Exception.Message ===" -ForegroundColor Yellow
+    Write-Host $_.Exception.Message -ForegroundColor Yellow
+  }
+
   exit 1
 }
