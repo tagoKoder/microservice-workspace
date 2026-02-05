@@ -1,9 +1,25 @@
 Set-StrictMode -Version Latest
+$PSNativeCommandUseErrorActionPreference = $false
 
 function Resolve-RepoRoot {
-  $here = Split-Path -Parent $PSScriptRoot
-  return (Resolve-Path $here).Path
+  # Partimos desde ...\infra\cloudformation\scripts
+  $cur = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path  # ...\infra\cloudformation
+
+  while ($true) {
+    if ( (Test-Path (Join-Path $cur "infra\config")) -or (Test-Path (Join-Path $cur ".git")) ) {
+      return $cur
+    }
+
+    $parent = Split-Path -Parent $cur
+    if ($parent -eq $cur -or [string]::IsNullOrWhiteSpace($parent)) {
+      throw "No pude detectar RepoRoot subiendo desde: $PSScriptRoot. No encontré infra\config ni .git."
+    }
+
+    $cur = $parent
+  }
 }
+
+
 
 function Load-EnvConfig {
   param([string]$RepoRoot, [string]$Env)
@@ -49,14 +65,18 @@ function Invoke-Aws {
   )
 
   $base = @("--profile", $Profile, "--region", $Region)
-  & aws @base @Args
+
+  # Captura stdout+stderr
+  $out = & aws @base @Args 2>&1
   $exit = $LASTEXITCODE
 
   if (-not $AllowFailure -and $exit -ne 0) {
-    throw "AWS CLI falló (exit=$exit) -> aws $($Args -join ' ')"
+    throw "AWS CLI falló (exit=$exit) -> aws $($Args -join ' ')`n--- output ---`n$out"
   }
-  return $exit
+
+  return @{ Exit = $exit; Output = $out }
 }
+
 
 function Read-ParamsJsonAsOverrides {
   param([Parameter(Mandatory=$true)][string]$ParamsPath)
@@ -181,10 +201,12 @@ function Preflight {
 
   Write-Host "AWS Profile: $profile | Region: $region" -ForegroundColor Gray
 
-  $who = aws --profile $profile --region $region sts get-caller-identity 2>$null
-  if ($LASTEXITCODE -ne 0) { throw "No pude ejecutar sts get-caller-identity. Revisa credenciales/perfil." }
+  $res = Invoke-Aws -Profile $profile -Region $region -Args @("sts","get-caller-identity") -AllowFailure
+  if ($res.Exit -ne 0) {
+    throw "No pude ejecutar sts get-caller-identity (exit=$($res.Exit)). Output:`n$($res.Output)"
+  }
 
-  $whoObj = $who | ConvertFrom-Json
+  $whoObj = ($res.Output | Out-String | ConvertFrom-Json)
   Write-Host "AWS Account: $($whoObj.Account) | Arn: $($whoObj.Arn)" -ForegroundColor Gray
 }
 
@@ -227,9 +249,9 @@ function Deploy-Stack {
   }
 
   # Ejecuta y captura exit code
-  $exit = Invoke-Aws -Profile $profile -Region $region -Args $args -AllowFailure
-  if ($exit -ne 0) {
-    Write-Host "❌ Falló deploy: $stackName (exit=$exit)" -ForegroundColor Red
+  $res = Invoke-Aws -Profile $profile -Region $region -Args $args -AllowFailure
+  if ($res.Exit -ne 0) {
+    Write-Host "AWS output:`n$($res.Output)" -ForegroundColor Yellow
     Print-StackFailureSummary -Profile $profile -Region $region -StackName $stackName -Max 25
 
     if ($AutoDeleteFailedCreate) {

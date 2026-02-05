@@ -4,6 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $false
 
 $EnvName = "dev"
 . "$PSScriptRoot/helpers.ps1"
@@ -35,6 +36,25 @@ try {
 }
 catch {
   Write-Host "`n🛑 Deploy DEV detenido por error:" -ForegroundColor Red
-  Write-Host "   $($_.Exception.Message)" -ForegroundColor Red
+
+  # ErrorRecord completo
+  Write-Host "=== ErrorRecord ===" -ForegroundColor Yellow
+  ($_ | Format-List * -Force | Out-String) | Write-Host
+
+  # Exception detallada
+  if ($_.Exception) {
+    Write-Host "=== Exception ===" -ForegroundColor Yellow
+    Write-Host ("Type: {0}" -f $_.Exception.GetType().FullName) -ForegroundColor Yellow
+    Write-Host ("Message: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
+    Write-Host "StackTrace:" -ForegroundColor Yellow
+    Write-Host ($_.Exception.StackTrace) -ForegroundColor Yellow
+  }
+
+  # Stack del script (cuando aplica)
+  if ($_.ScriptStackTrace) {
+    Write-Host "=== ScriptStackTrace ===" -ForegroundColor Yellow
+    Write-Host $_.ScriptStackTrace -ForegroundColor Yellow
+  }
+
   exit 1
 }
