@@ -21,11 +21,14 @@ try {
   Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "20-data"      -ParamsFile "infra/params/dev/20-data.json"      -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
   Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "30-identity-cognito" -ParamsFile "infra/params/dev/30-identity-cognito.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
 
+  # 70) AVP Policy Store (stack)
   Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "70-authz-avp" -ParamsFile "infra/params/dev/70-authz-avp.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
 
-  # Post-step AVP: si falla, corta aquí
-  & "$PSScriptRoot/70-apply-avp-schema-policies.ps1" -Env $EnvName -RepoRoot $RepoRoot
+  # Post-step: aplicar schema + policies (script)
+  $cfgPath = Join-Path $RepoRoot "infra/config/$EnvName.psd1"
+  & (Join-Path $PSScriptRoot "70-avp-apply-schema-policies.ps1") -Env $EnvName -ConfigPath $cfgPath -PolicyStoreStackName "$($config.ProjectName)-$EnvName-70-authz-avp" -ReplaceAllPolicies
   if ($LASTEXITCODE -ne 0) { throw "AVP apply schema/policies failed (exit=$LASTEXITCODE)" }
+
 
   Deploy-Stack -RepoRoot $RepoRoot -Env $EnvName -StackDir "80-messaging" -ParamsFile "infra/params/dev/80-messaging.json" -PreserveFailedStack:$PreserveFailedStack -AutoDeleteFailedCreate:$AutoDeleteFailedCreate
   
