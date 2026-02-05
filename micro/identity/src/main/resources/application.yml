@@ -43,7 +43,6 @@ grpc:
 # AppProps (prefix = app)
 # ---------------------------
 app:
-  env: ${APP_ENV:local}
   aws:
     region: ${AWS_REGION:us-east-1}
     avpPolicyStoreId: ${AVP_POLICY_STORE_ID:}   # en local normalmente vacío si AUTHZ_MODE=none
