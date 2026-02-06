@@ -110,6 +110,8 @@ services:
       retries: 30
       start_period: 60s
     networks: [banknet]
+    volumes:
+      - ./.aws:/home/app/.aws:ro
 
   # ---------------------------
   # Account (Spring Boot)
@@ -139,6 +141,9 @@ services:
 
     networks: [banknet]
 
+    volumes:
+      - ./.aws:/home/app/.aws:ro
+
   # ---------------------------
   # Ledger (Go)
   # ---------------------------
@@ -159,6 +164,8 @@ services:
     ports:
       - "19093:9093"
     networks: [banknet]
+    volumes:
+      - ./.aws:/home/app/.aws:ro
 
   # ---------------------------
   # BFF (Go)
