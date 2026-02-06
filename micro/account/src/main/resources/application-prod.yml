@@ -1,8 +1,0 @@
-spring:
-  flyway:
-    enabled: false
-
-app:
-  env: prod
-  aws:
-    endpoint: ""  # vacío => AWS real

@@ -9,7 +9,6 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 
@@ -18,14 +17,21 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 public class JwtConfig {
 
     @Bean
+    @Profile("!local")
     JwtDecoder jwtDecoder(AppProps props) {
-        NimbusJwtDecoder decoder = JwtDecoders.fromIssuerLocation(props.security().issuerUri());
+        String issuer = props.security().issuerUri();
+        if (issuer == null || issuer.isBlank()) {
+            throw new IllegalStateException("Missing app.security.issuer-uri (COGNITO_ISSUER_URI)");
+        }
+        String jwks = issuer.replaceAll("/$", "") + "/.well-known/jwks.json";
 
-        OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(props.security().issuerUri());
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwks).build();
+
+        OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuer);
         OAuth2TokenValidator<Jwt> withAudience = jwt -> {
             boolean ok = jwt.getAudience() != null && jwt.getAudience().contains(props.security().audience());
             return ok ? OAuth2TokenValidatorResult.success()
-                    : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Invalid audience", null));
+            : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Invalid audience", null));
         };
 
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(withIssuer, withAudience));

@@ -93,30 +93,8 @@ services:
       context: ./micro/identity
       dockerfile: Dockerfile
     container_name: bank-identity
-    environment:
-      # DB (ajusta nombres si tu app usa otras keys)
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/identity?sslmode=disable
-      SPRING_DATASOURCE_USERNAME: bank
-      SPRING_DATASOURCE_PASSWORD: bank
-      # AWS local emulado para mensajería / s3 local
-      USE_LOCALSTACK: ${USE_LOCALSTACK:-true}
-      AWS_REGION: ${AWS_REGION:-us-east-1}
-      AWS_LOCALSTACK_ENDPOINT: http://localstack:4566
-      EVENTBUS_NAME: ${EVENTBUS_NAME:-imaginarybank-audit}
-
-      # Seguridad (modo)
-      AUTHN_MODE: ${AUTHN_MODE:-none}   # none | cognito
-      AUTHZ_MODE: ${AUTHZ_MODE:-none}   # none | avp
-      COGNITO_ISSUER: ${COGNITO_ISSUER:-}
-      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
-      AVP_POLICY_STORE_ID: ${AVP_POLICY_STORE_ID:-}
-
-      # Sugerido: profile local de Spring si lo tienes
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_IDENTITY:-local}
-      IDENTITY_REFRESH_TOKEN_PEPPER: "dev-only-change-me-32+chars"
-      IDENTITY_REFRESH_TOKEN_ENC_KEY_B64: "mZ5Yl4y9t6fE6xG8rN2h3Y4KcL+eB1Q0M2nJj7Zwg8s="
-      GRPC_PORT: 9091
-      GRPC_REFLECTION_ENABLED: "true"
+    env_file:
+      - ./micro/identity/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -169,23 +147,8 @@ services:
       context: ./micro/ledger
       dockerfile: Dockerfile
     container_name: bank-ledger
-    environment:
-      DB_DSN: postgresql://bank:bank@postgres:5432/ledger?sslmode=disable
-      APP_ENV: local
-      USE_LOCALSTACK: ${USE_LOCALSTACK:-true}
-      AWS_REGION: ${AWS_REGION:-us-east-1}
-      AWS_LOCALSTACK_ENDPOINT: http://localstack:4566
-      EVENTBUS_NAME: ${EVENTBUS_NAME:-imaginarybank-audit}
-
-      AUTHN_MODE: ${AUTHN_MODE:-none}
-      AUTHZ_MODE: ${AUTHZ_MODE:-none}
-      COGNITO_ISSUER: ${COGNITO_ISSUER:-}
-      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
-      AVP_POLICY_STORE_ID: ${AVP_POLICY_STORE_ID:-}
-      GRPC_PORT: 9093
-      ACCOUNTS_GRPC_TARGET: account:9092
-      ACCOUNTS_GRPC_INSECURE: "true"
-      ACCOUNTS_GRPC_TIMEOUT: 30s
+    env_file:
+      - ./micro/ledger/.env
     depends_on:
       postgres:
         condition: service_healthy

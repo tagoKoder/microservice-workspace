@@ -19,7 +19,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 
 @Service
-@ConditionalOnProperty(name = "messaging.sqs.enabled", havingValue = "true", matchIfMissing = false)
+//@ConditionalOnProperty(name = "messaging.sqs.enabled", havingValue = "true", matchIfMissing = false)
 public class LedgerPostedConsumer {
 
   private final SqsClient sqs;
