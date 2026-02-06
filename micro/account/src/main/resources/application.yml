@@ -17,7 +17,7 @@ spring:
   # Datasource (Postgres)
   # ---------------------------
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/account}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://base-datos:5432/account}
     username: ${SPRING_DATASOURCE_USERNAME:bank}
     password: ${SPRING_DATASOURCE_PASSWORD:bank}
     driver-class-name: org.postgresql.Driver
