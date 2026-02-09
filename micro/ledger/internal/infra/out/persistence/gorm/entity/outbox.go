@@ -12,7 +12,7 @@ type OutboxEventEntity struct {
 	AggregateType   string     `gorm:"type:text;not null;index"`
 	AggregateID     uuid.UUID  `gorm:"type:uuid;not null;index"`
 	EventType       string     `gorm:"type:text;not null;index"`
-	PayloadJSON     string     `gorm:"type:jsonb;not null"`
+	PayloadJSON     string     `gorm:"column:payload;type:jsonb;not null"`
 	Published       bool       `gorm:"not null;default:false;index"`
 	PublishedAt     *time.Time `gorm:"type:timestamptz"`
 	Processing      bool       `gorm:"not null;default:false;index"`

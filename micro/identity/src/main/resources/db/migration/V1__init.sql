@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 
   rotated_to_session_id   uuid NULL,
 
-  ip                      inet NULL,
+  ip                      text NULL,
   ua                      text NULL,
 
   CONSTRAINT fk_sessions_identity

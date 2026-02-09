@@ -2,7 +2,7 @@
   "ProjectName": "imaginarybank",
   "Env": "dev",
   "CognitoDomainPrefix": "imaginarybank-dev-auth-936532783795",
-  "CallbackUrls": "http://localhost:8080/api/v1/auth/oidc/callback",
+  "CallbackUrls": "http://localhost:4200/api/v1/auth/oidc/callback",
   "LogoutUrls": "http://localhost:4200,http://localhost:4200/",
   "MfaConfiguration": "OPTIONAL",
   "AccessTokenMinutes": 60,

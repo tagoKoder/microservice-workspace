@@ -167,8 +167,8 @@ func (s *paymentService) PostPayment(ctx context.Context, cmd in.PostPaymentComm
 		dstRef := cmd.DestinationAccount.String()
 
 		lines := []dm.EntryLine{
-			{ID: uuid.New(), JournalID: jid, GLAccountID: uuid.New(), GLAccountCode: "GL_OUT", CounterpartyRef: &srcRef, Debit: amt, Credit: decimal.Zero},
-			{ID: uuid.New(), JournalID: jid, GLAccountID: uuid.New(), GLAccountCode: "GL_IN", CounterpartyRef: &dstRef, Debit: decimal.Zero, Credit: amt},
+			{ID: uuid.New(), JournalID: jid, GLAccountID: dm.GLOutID, GLAccountCode: "GL_OUT", CounterpartyRef: &srcRef, Debit: amt, Credit: decimal.Zero},
+			{ID: uuid.New(), JournalID: jid, GLAccountID: dm.GLInID, GLAccountCode: "GL_IN", CounterpartyRef: &dstRef, Debit: decimal.Zero, Credit: amt},
 		}
 		if err := EnsureBalanced(lines); err != nil {
 			return err

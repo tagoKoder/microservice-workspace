@@ -132,25 +132,40 @@ public class AccountService implements
         if (!c.currency().equalsIgnoreCase(src.getCurrency())) return new ValidateAccountsAndLimitsUseCase.Result(false, "source currency mismatch");
         if (!c.currency().equalsIgnoreCase(dst.getCurrency())) return new ValidateAccountsAndLimitsUseCase.Result(false, "destination currency mismatch");
 
+        boolean isCredit = c.sourceAccountId().equals(c.destinationAccountId());
+
+        if (isCredit) {
+            // ✅ CREDIT: NO validar available.
+            // (opcional) validar dailyIn sobre DESTINO
+            var limOpt = limitsRepo.findByAccountId(dst.getId());
+            if (limOpt.isPresent()) {
+            var lim = limOpt.get();
+            if (lim.dailyIn().compareTo(BigDecimal.ZERO) > 0 && c.amount().compareTo(lim.dailyIn()) > 0) {
+                return new ValidateAccountsAndLimitsUseCase.Result(false, "dailyIn limit exceeded");
+            }
+            }
+            return new ValidateAccountsAndLimitsUseCase.Result(true, null);
+        }
+
+        // ✅ DEBIT/TRANSFER: validar available y dailyOut (como ya tienes)
         var bal = balanceRepo.findByAccountId(src.getId())
-                .orElse(new AccountBalanceRepositoryPort.BalancesRow(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+            .orElse(new AccountBalanceRepositoryPort.BalancesRow(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
 
         if (bal.available().compareTo(c.amount()) < 0) {
             return new ValidateAccountsAndLimitsUseCase.Result(false, "insufficient available");
         }
 
-        // límites (si aplican)
         var limOpt = limitsRepo.findByAccountId(src.getId());
         if (limOpt.isPresent()) {
             var lim = limOpt.get();
-            // ejemplo simple: dailyOut debe ser >= amount si dailyOut>0
             if (lim.dailyOut().compareTo(BigDecimal.ZERO) > 0 && c.amount().compareTo(lim.dailyOut()) > 0) {
-                return new ValidateAccountsAndLimitsUseCase.Result(false, "dailyOut limit exceeded");
+            return new ValidateAccountsAndLimitsUseCase.Result(false, "dailyOut limit exceeded");
             }
         }
 
         return new ValidateAccountsAndLimitsUseCase.Result(true, null);
     }
+
 
     @Override
     @Transactional

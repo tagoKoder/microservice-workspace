@@ -1,3 +1,4 @@
+// bff\internal\api\rest\v1\web\feature\login\handler.go
 package login
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/tagoKoder/bff/internal/client/ports"
 	"github.com/tagoKoder/bff/internal/config"
 	"github.com/tagoKoder/bff/internal/security"
+	"github.com/tagoKoder/bff/internal/util"
 )
 
 type Handler struct {
@@ -50,7 +52,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	out, err := h.clients.Identity.CompleteOidcLogin(r.Context(), ports.CompleteOidcLoginInput{
 		Code:      code,
 		State:     state,
-		IP:        r.RemoteAddr,
+		IP:        util.GetClientIP(r),
 		UserAgent: r.UserAgent(),
 		Channel:   "web",
 	})

@@ -163,7 +163,7 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
         activationRef + ":bonus",
         reg.getPrimaryAccountId(),
         "USD",
-        "5.00",
+        "50.00",
         "registration_bonus",
         reg.getCustomerId()
       );

@@ -13,6 +13,8 @@ import bank.identity.v1.*;
 
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @GrpcService
 public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImplBase {
@@ -22,6 +24,7 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   private final RefreshSessionUseCase refreshSessionUseCase;
   private final LogoutSessionUseCase logoutSessionUseCase;
   private final GetSessionInfoUseCase getSessionInfoUseCase;
+  private static final Logger log = LoggerFactory.getLogger(OidcAuthGrpcService.class);
   public OidcAuthGrpcService(StartLoginUseCase startLogin, CompleteLoginUseCase completeLogin, 
     RefreshSessionUseCase refreshSessionUseCase, LogoutSessionUseCase logoutSessionUseCase, 
     GetSessionInfoUseCase getSessionInfoUseCase) {
@@ -78,6 +81,7 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   public void completeOidcLogin(CompleteOidcLoginRequest request,
                                StreamObserver<CompleteOidcLoginResponse> responseObserver) {
 
+    log.info("IDENTITY CATCHING IP ON COMPLETE AUHT: "+request.getIp());
     var res = completeLogin.complete(new CompleteLoginUseCase.CompleteLoginCommand(
         request.getCode(),
         request.getState(),

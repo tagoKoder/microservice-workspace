@@ -97,13 +97,13 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 		lines := []dm.EntryLine{
 			{
 				ID: uuid.New(), JournalID: journalID,
-				GLAccountID: uuid.New(), GLAccountCode: "GL_SYSTEM_FUND",
+				GLAccountID: dm.GLSystemFundID, GLAccountCode: "GL_SYSTEM_FUND",
 				CounterpartyRef: nil,
 				Debit:           amt, Credit: decimal.Zero,
 			},
 			{
 				ID: uuid.New(), JournalID: journalID,
-				GLAccountID: uuid.New(), GLAccountCode: "GL_CUSTOMER_CASH",
+				GLAccountID: dm.GLCustomerCashID, GLAccountCode: "GL_CUSTOMER_CASH",
 				CounterpartyRef: &accRef,
 				Debit:           decimal.Zero, Credit: amt,
 			},

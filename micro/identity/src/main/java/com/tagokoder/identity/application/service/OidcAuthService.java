@@ -10,6 +10,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.tagokoder.identity.application.AppProps;
@@ -25,7 +26,6 @@ import com.tagokoder.identity.domain.port.out.OidcStateRepositoryPort;
 import com.tagokoder.identity.infra.audit.AuditEventV1;
 import com.tagokoder.identity.infra.security.OidcIdTokenValidator;
 import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
-
 @Service
 public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase {
 

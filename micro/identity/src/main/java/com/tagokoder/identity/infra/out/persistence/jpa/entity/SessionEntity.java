@@ -48,7 +48,8 @@ public class SessionEntity {
 
     @Column(name = "rotated_to_session_id")
     private UUID rotatedToSessionId;
-    @Column(columnDefinition="inet")
-    private String ip;  // PostgreSQL 'inet' → String
+    @Column(name = "ip", columnDefinition = "text")
+    private String ip; 
+    @Column(name = "ua", columnDefinition = "text")
     private String ua;  // User-Agent
 }
