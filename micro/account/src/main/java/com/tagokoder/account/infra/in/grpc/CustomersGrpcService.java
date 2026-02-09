@@ -4,6 +4,7 @@ import com.tagokoder.account.domain.port.in.CreateCustomerUseCase;
 import com.tagokoder.account.domain.port.in.PatchCustomerUseCase;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
+import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
 
 
 import java.util.UUID;
@@ -36,7 +37,7 @@ public class CustomersGrpcService extends CustomersServiceGrpc.CustomersServiceI
                 request.getFullName(),
                 LocalDate.parse(request.getBirthDate()), // tú lo manejabas como string/date en OpenAPI; conserva tu lógica
                 request.getTin(),
-                request.getRiskSegment().name(),
+                ProtoEnumMapper.toDbRiskSegment(request.getRiskSegment()),
                 request.getEmail(),
                 request.getPhone(),
                 addr

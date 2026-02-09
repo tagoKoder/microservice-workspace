@@ -25,16 +25,24 @@ spring:
           time_zone: UTC
 
   flyway:
-    enabled: ${FLYWAY_ENABLED:true}
+    enabled: ${FLYWAY_ENABLED:false}
     locations: classpath:db/migration
     baseline-on-migrate: true
     validate-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl: 
+        enabled: ${REDIS_SSL:false}
 
 # gRPC (tu docker-compose usa 9091 para identity)
 grpc:
   server:
     port: ${GRPC_PORT:9091}
-    reflection-service-enabled: true
+    reflection-service-enabled: ${GRPC_REFLECTION_ENABLED:false}
 
 
 
@@ -133,3 +141,4 @@ logging:
   level:
     root: INFO
     com.tagokoder: DEBUG
+    net.devh.boot.grpc: DEBUG

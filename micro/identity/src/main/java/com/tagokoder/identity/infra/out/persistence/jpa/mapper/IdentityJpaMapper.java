@@ -6,6 +6,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import com.tagokoder.identity.domain.model.Identity;
@@ -31,5 +32,7 @@ public interface IdentityJpaMapper {
 
     // Mapeos principales
     Identity toDomain(IdentityEntity entity);
+    
+    @Mapping(target = "sessions", ignore = true)
     IdentityEntity fromDomain(Identity identity);
 }

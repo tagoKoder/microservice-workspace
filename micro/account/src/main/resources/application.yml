@@ -52,6 +52,8 @@ spring:
     validate-on-migrate: true
     locations: ${FLYWAY_LOCATIONS:classpath:db/migration}
 
+
+
 # ---------------------------
 # gRPC
 # ---------------------------

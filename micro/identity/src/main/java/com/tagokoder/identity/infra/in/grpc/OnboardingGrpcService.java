@@ -1,14 +1,15 @@
 package com.tagokoder.identity.infra.in.grpc;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.stereotype.Component;
-
 import com.google.protobuf.Timestamp;
 import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
+import com.tagokoder.identity.domain.model.kyc.UploadHeader;
 import com.tagokoder.identity.domain.model.kyc.UploadedObject;
 import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase;
 import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase.ActivateRegistrationCommand;
@@ -23,15 +24,16 @@ import bank.identity.v1.ActivateRegistrationResponse;
 import bank.identity.v1.ActivatedAccount;
 import bank.identity.v1.ConfirmRegistrationKycRequest;
 import bank.identity.v1.ConfirmRegistrationKycResponse;
+import bank.identity.v1.Header;
 import bank.identity.v1.OnboardingServiceGrpc;
 import bank.identity.v1.PresignedUpload;
 import bank.identity.v1.RegistrationState;
 import bank.identity.v1.StartRegistrationRequest;
 import bank.identity.v1.StartRegistrationResponse;
 import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
 
-
-@Component
+@GrpcService
 public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServiceImplBase {
 
   private final StartRegistrationUseCase startRegistration;
@@ -67,15 +69,17 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
                 .setCreatedAt(toTs(res.createdAt()));
 
         for (var u : res.uploads()) {
-            b.addUploads(PresignedUpload.newBuilder()
-                    .setDocType(toProtoKind(u.kind()))
-                    .setBucket(u.bucket())
-                    .setKey(u.key())
-                    .setUploadUrl(u.putUrl())
-                    .setExpiresInSeconds(toTs(u.expiresAt()).getSeconds())
-                    .setMaxBytes(u.maxBytes())
-                    .setContentType(u.requiredContentType() == null ? "" : u.requiredContentType())
-                    .build());
+            var up = PresignedUpload.newBuilder()
+                .setDocType(toProtoKind(u.kind()))
+                .setBucket(u.bucket())
+                .setKey(u.key())
+                .setUploadUrl(u.putUrl())
+                .addAllHeaders(toProtoHeaders(u.requiredHeaders()))
+                .setExpiresInSeconds(propsKycExpiresSeconds(res, u))
+                .setMaxBytes(u.maxBytes())
+                .setContentType(u.requiredContentType() == null ? "" : u.requiredContentType());
+
+            b.addUploads(up.build());
         }
 
         responseObserver.onNext(b.build());
@@ -195,5 +199,27 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
     private Timestamp toTs(java.time.Instant i) {
         if (i == null) i = java.time.Instant.now();
         return Timestamp.newBuilder().setSeconds(i.getEpochSecond()).setNanos(i.getNano()).build();
+    }
+
+    private static List<Header> toProtoHeaders(List<UploadHeader> hs) {
+        if (hs == null || hs.isEmpty()) return List.of();
+
+        return hs.stream()
+                .filter(h -> h != null && h.name() != null && !h.name().isBlank())
+                .map(h -> Header.newBuilder()
+                        .setName(h.name())
+                        .setValue(h.value() == null ? "" : h.value())
+                        .build())
+                .toList();
+    }
+
+    private static long propsKycExpiresSeconds(
+        StartRegistrationUseCase.StartRegistrationResponse res,
+        com.tagokoder.identity.domain.model.kyc.PresignedUpload u
+    ) {
+        if (u == null || u.expiresAt() == null) return 0L;
+
+        long ttl = Duration.between(Instant.now(), u.expiresAt()).getSeconds();
+        return Math.max(0L, ttl);
     }
 }

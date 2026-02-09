@@ -36,7 +36,13 @@ public class EventBridgeAuditPublisher implements AuditPublisher {
           .detail(detail)
           .build();
 
-      eb.putEvents(PutEventsRequest.builder().entries(entry).build());
+      var resp = eb.putEvents(PutEventsRequest.builder().entries(entry).build());
+      if (resp.failedEntryCount() != null && resp.failedEntryCount() > 0) {
+        var e0 = resp.entries().get(0);
+        log.warn("audit_publish_rejected correlation_id={} action={} code={} msg={}",
+            evt.correlation_id(), evt.action(), e0.errorCode(), e0.errorMessage());
+      }
+
     } catch (Exception e) {
       // fallback a log (best-effort)
       log.warn("audit_publish_failed correlation_id={} action={} err={}",

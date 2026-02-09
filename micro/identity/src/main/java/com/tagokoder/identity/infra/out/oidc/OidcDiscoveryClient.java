@@ -33,7 +33,8 @@ public class OidcDiscoveryClient {
             return c.meta;
         }
 
-        URI issuer = URI.create(props.getIssuer());
+        String issuerStr = normalizeIssuer(props.getIssuer());
+        URI issuer = URI.create(issuerStr);
         URI wellKnown = issuer.resolve(".well-known/openid-configuration");
 
         ProviderMetadata meta = web.get()
@@ -56,10 +57,13 @@ public class OidcDiscoveryClient {
     }
 
 
+
     private String normalizeIssuer(String issuer) {
         if (issuer == null) return "";
         return issuer.endsWith("/") ? issuer : issuer + "/";
     }
+
+    
 
     private record Cached(ProviderMetadata meta, long cachedAtMs) {}
 }

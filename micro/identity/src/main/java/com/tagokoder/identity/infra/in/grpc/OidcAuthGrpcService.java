@@ -9,18 +9,12 @@ import com.tagokoder.identity.domain.port.in.LogoutSessionUseCase;
 import com.tagokoder.identity.domain.port.in.RefreshSessionUseCase;
 import com.tagokoder.identity.domain.port.in.StartLoginUseCase;
 
-import bank.identity.v1.CompleteOidcLoginRequest;
-import bank.identity.v1.CompleteOidcLoginResponse;
-import bank.identity.v1.OidcAuthServiceGrpc;
-import bank.identity.v1.OidcUser;
-import bank.identity.v1.RefreshSessionRequest;
-import bank.identity.v1.StartOidcLoginRequest;
-import bank.identity.v1.StartOidcLoginResponse;
 import bank.identity.v1.*;
 
 import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
 
-@Component
+@GrpcService
 public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImplBase {
 
   private final StartLoginUseCase startLogin;

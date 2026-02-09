@@ -14,9 +14,10 @@ import { ApiModule, Configuration } from './api/bff';
 import { environment } from '../environments/environment';
 import Lara from '@primeuix/themes/lara'
 import { providePrimeNG } from 'primeng/config';
-
+import { BASE_PATH } from './api/bff';
 export const appConfig: ApplicationConfig = {
   providers: [
+    { provide: BASE_PATH, useValue: environment.bffBasePath || '' },
     provideRouter(routes),
     provideAnimations(),
 

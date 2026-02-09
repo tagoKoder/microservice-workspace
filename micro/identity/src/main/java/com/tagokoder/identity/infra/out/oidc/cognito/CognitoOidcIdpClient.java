@@ -1,9 +1,6 @@
 package com.tagokoder.identity.infra.out.oidc.cognito;
 
-import com.tagokoder.identity.application.OidcProperties;
-import com.tagokoder.identity.domain.port.out.OidcIdpClientPort;
-import com.tagokoder.identity.infra.out.oidc.OidcDiscoveryClient;
-import com.tagokoder.identity.infra.out.oidc.ProviderMetadata;
+import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -11,7 +8,12 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.List;
+import com.tagokoder.identity.application.OidcProperties;
+import com.tagokoder.identity.domain.port.out.OidcIdpClientPort;
+import com.tagokoder.identity.infra.out.oidc.OidcDiscoveryClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Component
 public class CognitoOidcIdpClient implements OidcIdpClientPort {
@@ -19,6 +21,7 @@ public class CognitoOidcIdpClient implements OidcIdpClientPort {
     private final OidcProperties props;
     private final OidcDiscoveryClient discovery;
     private final WebClient client;
+    private static final Logger log = LoggerFactory.getLogger(CognitoOidcIdpClient.class);
 
     public CognitoOidcIdpClient(OidcProperties props, OidcDiscoveryClient discovery, WebClient.Builder builder) {
         this.props = props;
@@ -31,17 +34,20 @@ public class CognitoOidcIdpClient implements OidcIdpClientPort {
         var meta = discovery.getMetadata();
 
         // Cognito soporta /oauth2/authorize (Hosted UI / Managed Login)
-        return UriComponentsBuilder.fromUriString(meta.authorization_endpoint())
-                .queryParam("client_id", props.getClientId())
-                .queryParam("response_type", "code")
-                .queryParam("scope", props.getScope())
-                .queryParam("redirect_uri", redirectUri)
-                .queryParam("state", state)
-                .queryParam("nonce", nonce)
-                .queryParam("code_challenge", codeChallenge)
-                .queryParam("code_challenge_method", "S256")
-                .build(true)
-                .toUriString();
+        String url = UriComponentsBuilder.fromUriString(meta.authorization_endpoint())
+        .queryParam("client_id", props.getClientId())
+        .queryParam("response_type", "code")
+        .queryParam("scope", props.getScope())
+        .queryParam("redirect_uri", redirectUri)
+        .queryParam("state", state)
+        .queryParam("nonce", nonce)
+        .queryParam("code_challenge", codeChallenge)
+        .queryParam("code_challenge_method", "S256")
+        .build()
+        .encode()
+        .toUriString();
+        log.info("Generated OIDC authorization URL: {}", url);
+        return url;
     }
 
     @Override

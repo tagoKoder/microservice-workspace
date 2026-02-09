@@ -63,6 +63,17 @@ services:
 
 
   # ---------------------------
+  # Redis (local)
+  # ---------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: bank-redis
+    ports:
+      - "6379:6379"
+    networks: [banknet]
+
+
+  # ---------------------------
   # Ledger DB Migrations (Flyway - one shot)
   # ---------------------------
   ledger-migrate:
@@ -101,7 +112,6 @@ services:
       localstack:
         condition: service_started
     ports:
-      - "18081:8080"   # HTTP debug (si aplica)
       - "19091:9091"   # gRPC (si aplica)
     healthcheck:
       test: ["CMD-SHELL", "/usr/local/bin/grpc_health_probe -addr=localhost:9091 -connect-timeout=2s -rpc-timeout=2s"]
@@ -111,7 +121,7 @@ services:
       start_period: 60s
     networks: [banknet]
     volumes:
-      - ./.aws:/home/app/.aws:ro
+      - ./.aws:/home/appuser/.aws:ro
 
   # ---------------------------
   # Account (Spring Boot)
@@ -129,7 +139,6 @@ services:
       localstack:
         condition: service_started
     ports:
-      - "18082:8080"
       - "19092:9092"
 
     healthcheck:
@@ -142,7 +151,7 @@ services:
     networks: [banknet]
 
     volumes:
-      - ./.aws:/home/app/.aws:ro
+      - ./.aws:/home/appuser/.aws:ro
 
   # ---------------------------
   # Ledger (Go)
@@ -165,58 +174,31 @@ services:
       - "19093:9093"
     networks: [banknet]
     volumes:
-      - ./.aws:/home/app/.aws:ro
+      - ./.aws:/home/nonroot/.aws:ro
 
   # ---------------------------
   # BFF (Go)
   # ---------------------------
-  bff:
-    build:
-      context: ./bff
-      dockerfile: Dockerfile
-    container_name: bank-bff
-    environment:
-      # Interno
-      APP_ENV: local
-
-      # gRPC endpoints internos (ajusta puertos reales de tus micros)
-      IDENTITY_GRPC_ADDR: identity:9091
-      ACCOUNT_GRPC_ADDR: account:9092
-      LEDGER_GRPC_ADDR: ledger:9093
-
-      # DB si tu BFF necesita (si no, puedes borrar)
-      DB_DSN: postgresql://bank:bank@postgres:5432/bff?sslmode=disable
-
-      # AWS local emulado
-      USE_LOCALSTACK: ${USE_LOCALSTACK:-true}
-      AWS_REGION: ${AWS_REGION:-us-east-1}
-      AWS_LOCALSTACK_ENDPOINT: http://localstack:4566
-      EVENTBUS_NAME: ${EVENTBUS_NAME:-imaginarybank-audit}
-
-      # KYC S3 (localstack)
-      KYC_BUCKET: ${KYC_BUCKET:-imaginarybank-kyc-local}
-      KYC_S3_MODE: ${KYC_S3_MODE:-local}  # local | aws
-      KYC_S3_ENDPOINT: ${KYC_S3_ENDPOINT:-http://localstack:4566}
-      S3_FORCE_PATH_STYLE: "true"
-
-      # Seguridad (modo)
-      AUTHN_MODE: ${AUTHN_MODE:-none}
-      AUTHZ_MODE: ${AUTHZ_MODE:-none}
-      COGNITO_ISSUER: ${COGNITO_ISSUER:-}
-      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
-      COGNITO_REDIRECT_URI: ${COGNITO_REDIRECT_URI:-http://localhost:8080/api/v1/auth/oidc/callback}
-      AVP_POLICY_STORE_ID: ${AVP_POLICY_STORE_ID:-}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      identity:
-        condition: service_healthy
-      account:
-        condition: service_healthy
-      ledger:
-        condition: service_started
-      localstack:
-        condition: service_started
-    ports:
-      - "8080:8080"
-    networks: [banknet]
+  # bff:
+  #   build:
+  #     context: ./bff
+  #     dockerfile: Dockerfile
+  #   container_name: bank-bff
+  #   env_file:
+  #     - ./bff/.env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     identity:
+  #       condition: service_healthy
+  #     account:
+  #       condition: service_healthy
+  #     ledger:
+  #       condition: service_started
+  #     localstack:
+  #       condition: service_started
+  #   ports:
+  #     - "8080:8080"
+  #   networks: [banknet]
+  #   volumes:
+  #     - ./.aws:/home/appuser/.aws:ro

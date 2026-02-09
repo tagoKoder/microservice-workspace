@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: "20-data: RDS Postgres (private) + Secrets (DB_DSN per service) + KYC S3 bucket (private)"
+Description: "20-data: RDS Postgres (private) + Secrets (DB_DSN per service) + KYC S3 bucket (private) + Redis cache (private)"
 
 Parameters:
   ProjectName:
@@ -54,11 +54,42 @@ Parameters:
   KycCorsAllowedOrigins:
     Type: CommaDelimitedList
     Default: "http://localhost:4200"
+    
+  RedisNodeType:
+    Type: String
+    Default: "cache.t4g.micro"
+    Description: "ElastiCache Redis node type (dev barato: cache.t4g.micro)"
+
+  RedisPort:
+    Type: Number
+    Default: 6379
+
+  RedisEngineVersion:
+    Type: String
+    Default: ""
+    Description: "Opcional. Si vacío, AWS usa la default del engine."
+
+  RedisTransitEncryption:
+    Type: String
+    AllowedValues: ["true","false"]
+    Default: "false"
+    Description: "TLS in-transit. En dev lo dejo false para simplicidad. En prod puedes poner true."
+
+  RedisAuthToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: "Opcional. Recomendado si RedisTransitEncryption=true (prod)."
+
 
 Conditions:
   UseFixedKycBucketName: !Not [!Equals [!Ref KycBucketName, ""]]
   IsMultiAz: !Equals [!Ref DbMultiAz, "true"]
   IsDeletionProtection: !Equals [!Ref DbDeletionProtection, "true"]
+  UseRedisEngineVersion: !Not [!Equals [!Ref RedisEngineVersion, ""]]
+  UseRedisAuthToken: !Not [!Equals [!Ref RedisAuthToken, ""]]
+  RedisTLS: !Equals [!Ref RedisTransitEncryption, "true"]
+
 
 Resources:
   DbSubnetGroup:
@@ -83,6 +114,55 @@ Resources:
           ToPort: 5432
           SourceSecurityGroupId:
             Fn::ImportValue: !Sub "${ProjectName}-${Env}-MicrosSecurityGroupId"
+  RedisSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: !Sub "${ProjectName}-${Env}-redis-subnet-group"
+      SubnetIds:
+        Fn::Split:
+          - ","
+          - Fn::ImportValue:
+              Fn::Sub: "${ProjectName}-${Env}-PrivateSubnetIds"
+
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName}-${Env}-redis-sg"
+      VpcId:
+        Fn::ImportValue: !Sub "${ProjectName}-${Env}-VpcId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref RedisPort
+          ToPort: !Ref RedisPort
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub "${ProjectName}-${Env}-MicrosSecurityGroupId"
+
+  RedisReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      ReplicationGroupId: !Sub "${ProjectName}-${Env}-redis"
+      ReplicationGroupDescription: !Sub "${ProjectName}-${Env}-redis (oidc state cache)"
+      Engine: redis
+      EngineVersion: !If [UseRedisEngineVersion, !Ref RedisEngineVersion, !Ref "AWS::NoValue"]
+      CacheNodeType: !Ref RedisNodeType
+
+      # Barato: 1 nodo, sin replicas
+      NumNodeGroups: 1
+      ReplicasPerNodeGroup: 0
+      AutomaticFailoverEnabled: false
+      MultiAZEnabled: false
+
+      CacheSubnetGroupName: !Ref RedisSubnetGroup
+      SecurityGroupIds:
+        - !Ref RedisSecurityGroup
+      Port: !Ref RedisPort
+
+      # En dev lo normal: solo SG + privado (sin TLS/auth).
+      # En prod puedes activar TLS + AuthToken con parámetros.
+      TransitEncryptionEnabled: !If [RedisTLS, true, false]
+      AuthToken: !If [UseRedisAuthToken, !Ref RedisAuthToken, !Ref "AWS::NoValue"]
+      AtRestEncryptionEnabled: true
+
 
   PostgresDb:
     Type: AWS::RDS::DBInstance
@@ -187,3 +267,17 @@ Outputs:
     Value: !Ref KycBucket
   KycBucketArnOut:
     Value: !Sub "arn:aws:s3:::${KycBucket}"
+  RedisPrimaryEndpoint:
+    Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-RedisPrimaryEndpoint"
+
+  RedisPrimaryPort:
+    Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Port
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-RedisPrimaryPort"
+
+  RedisSecurityGroupId:
+    Value: !Ref RedisSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Env}-RedisSecurityGroupId"

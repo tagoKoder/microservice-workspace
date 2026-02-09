@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.time.ZoneOffset;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -17,6 +18,8 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 
 @Entity
 @Table(name = "customers")
@@ -45,4 +48,16 @@ public class CustomerEntity {
     private OffsetDateTime updatedAt;
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     private List<CustomerContactEntity> contacts;
+
+    @PrePersist
+    void prePersist() {
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        if (createdAt == null) createdAt = now;
+        if (updatedAt == null) updatedAt = now;
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
+    }
 }

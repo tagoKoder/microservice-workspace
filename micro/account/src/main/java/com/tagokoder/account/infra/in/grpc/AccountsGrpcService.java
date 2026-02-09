@@ -26,6 +26,7 @@ import bank.accounts.v1.ListAccountsResponse;
 import bank.accounts.v1.PatchAccountLimitsRequest;
 import bank.accounts.v1.PatchAccountLimitsResponse;
 import io.grpc.stub.StreamObserver;
+import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
 // si NO defines java_package, cambia a: import bank.accounts.v1.*;
 @GrpcService
 public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImplBase {
@@ -82,7 +83,7 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
     public void createAccount(CreateAccountRequest request, StreamObserver<CreateAccountResponse> responseObserver) {
         var res = createAccount.create(new CreateAccountUseCase.Command(
                 UUID.fromString(request.getCustomerId()),
-                request.getProductType().name(), // tu dominio esperaba string
+                ProtoEnumMapper.mapProductType(request.getProductType()), // tu dominio esperaba string
                 request.getCurrency()
         ));
 

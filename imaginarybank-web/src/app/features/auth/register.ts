@@ -21,6 +21,7 @@ import { Router } from '@angular/router';
 import { OnboardingApi } from '../../api/bff';
 import { PresignedUploadService } from '../../core/security/presigned-upload.service';
 import { IdempotencyKeyService } from '../../core/security/idempotency.service';
+import { AuthService } from 'app/core/auth/auth.service';
 
 type OccupationOption = { label: string; value: string };
 
@@ -81,7 +82,8 @@ export class Register {
     private router: Router,
     private onboardingApi: OnboardingApi,
     private presigned: PresignedUploadService,
-    private idempotency: IdempotencyKeyService
+    private idempotency: IdempotencyKeyService,
+    private auth: AuthService
   ) {
     this.contactForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -253,7 +255,7 @@ export class Register {
       );
 
       // Activado -> ir a login (Cognito)
-      await this.router.navigateByUrl('/home');
+      this.auth.startLogin('/home');
     } finally {
       this.busy = false;
     }

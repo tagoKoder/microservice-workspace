@@ -24,8 +24,9 @@ WORKDIR /app
 ADD https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.28/grpc_health_probe-linux-amd64 /usr/local/bin/grpc_health_probe
 RUN chmod +x /usr/local/bin/grpc_health_probe
 
-# Crea usuario no root (Ubuntu/UBI: usar 'useradd' requiere root)
-RUN useradd -r -u 10001 appuser
+# Crea usuario NO root con home real
+RUN useradd -m -d /home/appuser -u 10001 appuser
+ENV HOME=/home/appuser
 USER 10001
 
 COPY --from=build /workspace/target/*.jar /app/app.jar

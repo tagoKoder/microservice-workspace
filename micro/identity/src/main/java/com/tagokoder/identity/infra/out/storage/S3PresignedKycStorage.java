@@ -10,6 +10,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.LoggerFactory;
+
 import com.tagokoder.identity.application.IdentityKycStorageProperties;
 import com.tagokoder.identity.domain.model.kyc.FinalizedObject;
 import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
@@ -17,6 +19,7 @@ import com.tagokoder.identity.domain.model.kyc.PresignedUpload;
 import com.tagokoder.identity.domain.model.kyc.UploadHeader;
 import com.tagokoder.identity.domain.model.kyc.UploadedObject;
 import com.tagokoder.identity.domain.port.out.KycPresignedStoragePort;
+import com.tagokoder.identity.infra.out.oidc.cognito.CognitoOidcIdpClient;
 
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -30,17 +33,20 @@ import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
-
+import org.slf4j.Logger;
 public class S3PresignedKycStorage implements KycPresignedStoragePort {
 
     private final S3Client s3;
     private final S3Presigner presigner;
     private final IdentityKycStorageProperties props;
+        private static final Logger log = LoggerFactory.getLogger(CognitoOidcIdpClient.class);
+
 
     public S3PresignedKycStorage(S3Client s3, S3Presigner presigner, IdentityKycStorageProperties props) {
         this.s3 = Objects.requireNonNull(s3);
         this.presigner = Objects.requireNonNull(presigner);
         this.props = Objects.requireNonNull(props);
+        log.info("KMS key for KYC storage: {}", props.getKmsKeyId() != null ? props.getKmsKeyId() : "none");
     }
 
     @Override
@@ -99,6 +105,7 @@ public class S3PresignedKycStorage implements KycPresignedStoragePort {
 
         List<UploadHeader> headers = new ArrayList<>();
         headers.add(new UploadHeader("Content-Type", contentType));
+        
 
         // SSE-KMS optional
         if (props.getKmsKeyId() != null && !props.getKmsKeyId().isBlank()) {

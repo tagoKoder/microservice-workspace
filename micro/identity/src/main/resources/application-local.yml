@@ -1,8 +1,0 @@
-spring:
-  flyway:
-    enabled: true
-
-app:
-  env: local
-  aws:
-    endpoint: ${AWS_ENDPOINT_OVERRIDE:http://localstack:4566}

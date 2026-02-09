@@ -9,11 +9,16 @@ import org.springframework.stereotype.Component;
 import com.tagokoder.account.domain.port.out.AccountBalanceRepositoryPort;
 import com.tagokoder.account.infra.out.persistence.jpa.SpringDataAccountBalanceJpa;
 import com.tagokoder.account.infra.out.persistence.jpa.entity.AccountBalanceEntity;
+import com.tagokoder.account.infra.out.persistence.jpa.entity.AccountEntity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @Component
 public class AccountBalanceRepositoryAdapter implements AccountBalanceRepositoryPort {
 
     private final SpringDataAccountBalanceJpa jpa;
+    @PersistenceContext
+    private EntityManager em;
 
     public AccountBalanceRepositoryAdapter(SpringDataAccountBalanceJpa jpa) {
         this.jpa = jpa;
@@ -29,7 +34,8 @@ public class AccountBalanceRepositoryAdapter implements AccountBalanceRepository
   @Override
   public void initZero(UUID accountId) {
     AccountBalanceEntity e = new AccountBalanceEntity();
-    e.setAccountId(accountId);
+    e.setAccount(em.getReference(AccountEntity.class, accountId));
+    //e.setAccountId(accountId);
     e.setLedger(BigDecimal.ZERO);
     e.setAvailable(BigDecimal.ZERO);
     e.setHold(BigDecimal.ZERO);

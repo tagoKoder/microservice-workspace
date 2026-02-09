@@ -11,13 +11,18 @@ public record ProviderMetadata(
         String revocation_endpoint
 ) {
     public static ProviderMetadata fromStatic(OidcProperties p) {
+        String issuer = p.getIssuer().replaceAll("/+$", "");
+        String jwks = issuer + "/.well-known/jwks.json";
         return new ProviderMetadata(
-                p.getIssuer(),
+                issuer,
                 p.getAuthUrl(),
                 p.getTokenUrl(),
                 p.getUserInfoUrl(),
-                null,
+                jwks,
                 p.getRevocationUrl()
         );
     }
+
+
+    
 }

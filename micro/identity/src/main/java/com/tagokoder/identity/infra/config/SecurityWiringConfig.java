@@ -1,5 +1,11 @@
 package com.tagokoder.identity.infra.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+
 import com.tagokoder.identity.application.AppProps;
 import com.tagokoder.identity.infra.out.audit.AuditPublisher;
 import com.tagokoder.identity.infra.security.authz.ActionResolver;
@@ -10,11 +16,6 @@ import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
 import com.tagokoder.identity.infra.security.grpc.NoAuthzServerInterceptor;
 
 import io.grpc.ServerInterceptor;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.verifiedpermissions.VerifiedPermissionsClient;
 
@@ -45,7 +46,7 @@ public class SecurityWiringConfig {
         return new ResourceResolver();
     }
 
-    @Bean
+    @Bean(name = "authzAuditPublisher")
     @Profile("!local")
     public AuditPublisher auditPublisher(EventBridgeClient eb, AppProps props) {
         return new AuditPublisher(eb, props);
@@ -63,7 +64,7 @@ public class SecurityWiringConfig {
             AppProps props,
             JwtDecoder jwtDecoder,
             AvpAuthorizer avpAuthorizer,
-            AuditPublisher auditPublisher,
+            @Qualifier("authzAuditPublisher") AuditPublisher auditPublisher,
             ActionResolver actionResolver,
             ResourceResolver resourceResolver
     ) {

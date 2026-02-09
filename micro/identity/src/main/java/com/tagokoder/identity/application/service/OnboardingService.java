@@ -84,7 +84,10 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
 
     List<FinalizedObject> finalized = kycStorage.confirmAndFinalize(regId, command.objects());
 
-    for (FinalizedObject f : finalized) reg.addKycObject(f);
+    for (FinalizedObject f : finalized) {
+        reg.getKycObjects().removeIf(x -> x.kind() == f.kind());
+        reg.addKycObject(f);
+    }
 
     reg.setState(RegistrationIntent.State.KYC_CONFIRMED);
     reg.setUpdatedAt(Instant.now());
