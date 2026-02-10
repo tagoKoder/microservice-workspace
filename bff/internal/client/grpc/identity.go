@@ -104,10 +104,10 @@ func (c *IdentityClient) LogoutSession(ctx context.Context, in ports.LogoutSessi
 }
 
 func (c *IdentityClient) GetSessionInfo(ctx context.Context, in ports.GetSessionInfoInput) (ports.GetSessionInfoOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+	//ctx2, cancel := context.WithTimeout(ctx, c.timeout)
+	//defer cancel()
 
-	res, err := c.oidc.GetSessionInfo(ctx2, &identityv1.GetSessionInfoRequest{
+	res, err := c.oidc.GetSessionInfo(ctx, &identityv1.GetSessionInfoRequest{
 		SessionId: in.SessionID,
 		Ip:        in.IP,
 		UserAgent: in.UserAgent,

@@ -1,3 +1,4 @@
+// bff\internal\security\cookies.go
 package security
 
 import (

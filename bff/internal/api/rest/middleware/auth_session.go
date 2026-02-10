@@ -4,12 +4,15 @@ package middleware
 
 import (
 	"context"
-	"net"
+	"log"
 	"net/http"
 
 	"github.com/tagoKoder/bff/internal/client/ports"
 	"github.com/tagoKoder/bff/internal/config"
 	"github.com/tagoKoder/bff/internal/security"
+	"github.com/tagoKoder/bff/internal/util"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -38,6 +41,9 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 
 			sid, ok := deps.Cookies.ReadSessionID(r)
 			if !ok || sid == "" {
+				// 🔎 Debug útil: mira si realmente vino Cookie header
+				// (no loguees el valor completo del SID; es secreto)
+				log.Printf("missing sid cookie: cookieHeader=%q expectedName=%s host=%s", r.Header.Get("Cookie"), deps.Cookies.Name(), r.Host)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -45,17 +51,36 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 			ctx := r.Context()
 			ctx = security.WithSessionID(ctx, sid)
 
-			// Nota: si luego quieres hash de IP/UA, hazlo aquí, pero cuida compatibilidad con Identity.
-			info, err := deps.Identity.GetSessionInfo(r.Context(), ports.GetSessionInfoInput{
+			info, err := deps.Identity.GetSessionInfo(ctx, ports.GetSessionInfoInput{
 				SessionID: sid,
-				IP:        clientIP(r),
+				IP:        util.GetClientIP(r),
 				UserAgent: r.UserAgent(),
 			})
 			if err != nil {
-				deps.Cookies.Clear(w)
-				w.WriteHeader(http.StatusUnauthorized)
+				// ✅ Clasifica el error: ¿sesión inválida o Identity caído?
+				if st, ok := status.FromError(err); ok {
+					switch st.Code() {
+					case codes.Unauthenticated, codes.NotFound, codes.FailedPrecondition:
+						// Sesión inválida/expirada/revocada → sí borrar cookie
+						deps.Cookies.Clear(w)
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					case codes.Unavailable, codes.DeadlineExceeded:
+						// Infra temporal → NO borrar cookie
+						http.Error(w, "identity unavailable", http.StatusServiceUnavailable)
+						return
+					default:
+						// Otros errores → no te auto-dispares borrando sesión
+						http.Error(w, "identity error", http.StatusBadGateway)
+						return
+					}
+				}
+
+				// Error no-gRPC: tratar como infraestructura
+				http.Error(w, "identity error", http.StatusBadGateway)
 				return
 			}
+
 			if info.UserStatus != "" && info.UserStatus != "ACTIVE" {
 				w.WriteHeader(http.StatusForbidden)
 				return
@@ -67,20 +92,9 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 			ctx = context.WithValue(ctx, CtxCustomer, info.CustomerID)
 			ctx = context.WithValue(ctx, CtxUserState, info.UserStatus)
 			ctx = context.WithValue(ctx, CtxIdentity, info.IdentityID)
-
-			// Route template en contexto (te sirve para auditoría y ActionResolver)
 			ctx = context.WithValue(ctx, ctxKey("route_template"), ri.RouteTemplate)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-func clientIP(r *http.Request) string {
-	// Si estás detrás de proxy, Chi RealIP te setea RemoteAddr con el real
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
 }

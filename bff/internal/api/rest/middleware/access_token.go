@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/tagoKoder/bff/internal/security"
+	"github.com/tagoKoder/bff/internal/util"
 )
 
 type AccessTokenDeps struct {
@@ -34,7 +35,7 @@ func AccessToken(deps AccessTokenDeps, oas *OpenAPISecurity) func(http.Handler) 
 				return
 			}
 
-			out, err := deps.Tokens.Ensure(r.Context(), sid, clientIP(r), r.UserAgent())
+			out, err := deps.Tokens.Ensure(r.Context(), sid, util.GetClientIP(r), r.UserAgent())
 			if err != nil {
 				// invalida estado local y borra cookie
 				deps.Tokens.Invalidate(sid)

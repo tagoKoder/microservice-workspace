@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.tagokoder.identity.application.IdentitySecurityProperties;
 import com.tagokoder.identity.application.IdentitySessionProperties;
@@ -65,7 +66,8 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         );
     }
 
-
+    @Override
+    @Transactional
     public CreatedSession createSession(Identity identity,
                                         String refreshToken,
                                         String ip,
@@ -87,12 +89,13 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         s.setRefreshTokenHash(hasher.hmacSha256(refreshToken));
         s.setRefreshTokenEnc(crypto.encrypt(refreshToken));
 
-
         sessions.save(s);
 
         return new CreatedSession(sid, sessionProps.getTtlSeconds());
     }
 
+    @Override
+    @Transactional
     public RefreshedSession refresh(UUID sessionId, String ip, String ua) {
         Session cur = sessions.findById(sessionId)
                 .orElseThrow(() -> new IllegalStateException("Session not found"));
@@ -108,10 +111,11 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         // Refresh en OP
         var token = idp.refreshTokens(refreshToken);
 
-        // Rotación de refresh token (si OP devuelve uno nuevo, se usa; si no, reusa el actual)
-        String newRefresh = (token.refreshToken != null && !token.refreshToken.isBlank()) ? token.refreshToken : refreshToken;
+        // Rotación de refresh token
+        String newRefresh = (token.refreshToken != null && !token.refreshToken.isBlank())
+                ? token.refreshToken
+                : refreshToken;
 
-        // Rotación de session_id (anti fixation)
         UUID newSid = UUID.randomUUID();
 
         Session next = new Session();
@@ -127,16 +131,19 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         next.setRefreshTokenHash(hasher.hmacSha256(newRefresh));
         next.setRefreshTokenEnc(crypto.encrypt(newRefresh));
 
-        // Marca la anterior como revocada y encadenada
+        // ✅ 1) INSERT primero (para satisfacer la FK)
+        sessions.save(next);
+
+        // ✅ 2) UPDATE después (ya existe newSid)
         cur.setRevokedAt(now);
         cur.setRotatedToSessionId(newSid);
-
         sessions.save(cur);
-        sessions.save(next);
 
         return new RefreshedSession(newSid, sessionProps.getTtlSeconds(), token.accessToken, token.expiresIn);
     }
 
+    @Override
+    @Transactional
     public void logout(UUID sessionId) {
         Session cur = sessions.findById(sessionId)
                 .orElseThrow(() -> new IllegalStateException("Session not found"));
@@ -144,7 +151,6 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         Instant now = Instant.now();
         if (cur.getRevokedAt() != null) return;
 
-        // Revocar en OP (opcional)
         String refreshToken = crypto.decrypt(cur.getRefreshTokenEnc());
         idp.revokeRefreshToken(refreshToken);
 
