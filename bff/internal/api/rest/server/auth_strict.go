@@ -1,14 +1,14 @@
+// bff\internal\api\rest\server\auth_strict.go
 package server
 
 import (
 	"context"
-	"net"
-	"net/http"
 
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
 	"github.com/tagoKoder/bff/internal/api/rest/middleware"
 	"github.com/tagoKoder/bff/internal/client/ports"
 	"github.com/tagoKoder/bff/internal/security"
+	"github.com/tagoKoder/bff/internal/util"
 )
 
 // GET /bff/login/start?redirect=/home
@@ -76,7 +76,7 @@ func (s *Server) CompleteWebLogin(
 	out, err := s.deps.Clients.Identity.CompleteOidcLogin(ctx, ports.CompleteOidcLoginInput{
 		Code:      code,
 		State:     state,
-		IP:        r.RemoteAddr,
+		IP:        util.GetClientIP(r),
 		UserAgent: r.UserAgent(),
 		Channel:   "web",
 	})
@@ -193,14 +193,6 @@ func (s *Server) GetWebCsrfToken(
 	}, nil
 }
 
-func ipOnly(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
-}
-
 // POST /bff/session/refresh
 func (s *Server) RefreshWebSession(
 	ctx context.Context,
@@ -236,7 +228,7 @@ func (s *Server) RefreshWebSession(
 
 	out, err := s.deps.Clients.Identity.RefreshSession(ctx, ports.RefreshSessionInput{
 		SessionID: sid,
-		IP:        ipOnly(r),
+		IP:        util.GetClientIP(r),
 		UserAgent: r.UserAgent(),
 	})
 	if err != nil {

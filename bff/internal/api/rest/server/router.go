@@ -1,3 +1,4 @@
+// bff\internal\api\rest\server\router.go
 package server
 
 import (

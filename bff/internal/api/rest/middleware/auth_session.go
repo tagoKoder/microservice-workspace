@@ -1,3 +1,5 @@
+// bff\internal\api\rest\middleware\auth_session.go
+
 package middleware
 
 import (

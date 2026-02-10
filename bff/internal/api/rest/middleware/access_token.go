@@ -1,3 +1,5 @@
+// bff\internal\api\rest\middleware\access_token.go
+
 package middleware
 
 import (

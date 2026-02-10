@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
-import { SessionApi } from '../../api/bff';
+import { firstValueFrom, Observable } from 'rxjs';
+import { SessionApi, WhoamiResponseDto } from '../../api/bff';
 import { CsrfService } from '../security/csrf.service';
 import { environment } from '@environment/environment';
 import {  AuthApi } from '../../api/bff';
@@ -44,7 +44,7 @@ export class AuthService {
   }
 
   // GET /api/v1/session
-  getSession() {
+  getSession(): Observable<WhoamiResponseDto>{
     return this.sessionApi.getCurrentSession();
   }
 }

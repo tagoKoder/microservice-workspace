@@ -1,3 +1,5 @@
+// bff\internal\api\rest\middleware\security_headers.go
+
 package middleware
 
 import "net/http"

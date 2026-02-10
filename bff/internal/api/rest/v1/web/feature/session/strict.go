@@ -1,3 +1,4 @@
+// bff\internal\api\rest\v1\web\feature\session\strict.go
 package session
 
 import (
