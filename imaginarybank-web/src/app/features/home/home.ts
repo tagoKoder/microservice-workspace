@@ -6,7 +6,7 @@ import { AsyncPipe } from '@angular/common';
 import { CommonModule } from '@angular/common';
 
 import { AuthService } from '../../core/auth/auth.service';
-import { AccountsApi, SessionApi } from '../../api/bff';
+import { AccountsApi } from '../../api/bff';
 
 @Component({
   standalone: true,
@@ -16,16 +16,15 @@ import { AccountsApi, SessionApi } from '../../api/bff';
   styleUrls: ['./home.scss']
 })
 export class Home {
-  session$;
+  session$; // <-- usa cache
   accounts$;
 
   constructor(
     private auth: AuthService,
-    private sessionApi: SessionApi,
     private accountsApi: AccountsApi
   ) {
-    this.session$ = this.sessionApi.getCurrentSession();
     this.accounts$ = this.accountsApi.getAccountsOverview();
+    this.session$ = this.auth.getSession();
   }
 
   async logout(): Promise<void> {

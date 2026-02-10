@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { catchError, map, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 
 export const guestGuard: CanActivateFn = () => {
@@ -8,9 +8,11 @@ export const guestGuard: CanActivateFn = () => {
   const router = inject(Router);
 
   return auth.getSession().pipe(
-    // Si HAY sesión => no dejes entrar a /login ni /register
-    map(() => router.createUrlTree(['/home'])),
-    // Si NO hay sesión => sí puede ver /login o /register
-    catchError(() => of(true))
+    map((sess) => {
+      // Si HAY sesión => fuera de /login y /register
+      if (sess) return router.createUrlTree(['/home']);
+      // Si NO hay sesión => sí entra
+      return true;
+    })
   );
 };

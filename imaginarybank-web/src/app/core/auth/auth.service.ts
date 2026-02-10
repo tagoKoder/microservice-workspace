@@ -1,13 +1,16 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { firstValueFrom, Observable } from 'rxjs';
-import { SessionApi, WhoamiResponseDto } from '../../api/bff';
+import { firstValueFrom, Observable, of } from 'rxjs';
+import { catchError, shareReplay } from 'rxjs/operators';
+
+import { SessionApi, WhoamiResponseDto, AuthApi } from '../../api/bff';
 import { CsrfService } from '../security/csrf.service';
 import { environment } from '@environment/environment';
-import {  AuthApi } from '../../api/bff';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private sessionOnce$?: Observable<WhoamiResponseDto | null>;
+
   constructor(
     private router: Router,
     private sessionApi: SessionApi,
@@ -17,34 +20,40 @@ export class AuthService {
 
   // OIDC start: navegación (no XHR)
   startLogin(redirectPath: string = '/home'): void {
-    
     const base = environment.bffBasePath || '';
     const url = `${base}/api/v1/auth/oidc/start?redirect=${encodeURIComponent(redirectPath)}`;
     window.location.assign(url);
-    /*
-    this.authApi.startWebLogin({ redirect: redirectPath }).subscribe({
-      next: () => {
-        // No esperamos respuesta (redirección inmediata), pero logueamos por si acaso
-        console.log('Login iniciado, redirigiendo a proveedor OIDC...');
-      },
-      error: (err) => {
-        console.error('Error al iniciar login:', err);
-      }
-    });*/
-
   }
 
-
   async logout(): Promise<void> {
-    // POST /bff/session/logout (CSRF se adjunta por interceptor)
     const token = await firstValueFrom(this.csrf.getToken());
     await firstValueFrom(this.sessionApi.logoutWebSession({ xCSRFToken: token }));
     this.csrf.clear();
+
+    // Importantísimo: invalida cache para que no “crea” que sigue logueado
+    this.invalidateSessionCache();
+
     await this.router.navigateByUrl('/login');
   }
 
-  // GET /api/v1/session
-  getSession(): Observable<WhoamiResponseDto>{
-    return this.sessionApi.getCurrentSession();
+  /**
+   * Session "a prueba de lluvia":
+   * - 1 sola llamada real a /session
+   * - si falla (401/otros), NO lanza error, devuelve null
+   * - se cachea el resultado (incluye null)
+   */
+  getSession(): Observable<WhoamiResponseDto | null> {
+    if (!this.sessionOnce$) {
+      this.sessionOnce$ = this.sessionApi.getCurrentSession().pipe(
+        catchError(() => of(null)),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.sessionOnce$;
+  }
+
+  /** Úsalo cuando sabes que la sesión cambió (login callback, logout) */
+  invalidateSessionCache(): void {
+    this.sessionOnce$ = undefined;
   }
 }
