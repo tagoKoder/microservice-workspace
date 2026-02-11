@@ -41,8 +41,6 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 
 			sid, ok := deps.Cookies.ReadSessionID(r)
 			if !ok || sid == "" {
-				// 🔎 Debug útil: mira si realmente vino Cookie header
-				// (no loguees el valor completo del SID; es secreto)
 				log.Printf("missing sid cookie: cookieHeader=%q expectedName=%s host=%s", r.Header.Get("Cookie"), deps.Cookies.Name(), r.Host)
 				w.WriteHeader(http.StatusUnauthorized)
 				return

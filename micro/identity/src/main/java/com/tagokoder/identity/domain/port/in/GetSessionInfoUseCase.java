@@ -10,6 +10,7 @@ public interface GetSessionInfoUseCase {
             String subjectIdOidc,
             String provider,
             String userStatus,
-            long expiresInSeconds
+            long expiresInSeconds,
+            String customerId
     ) {}
 }
