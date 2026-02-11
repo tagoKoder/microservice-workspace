@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, of, shareReplay, tap } from 'rxjs';
 
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -82,8 +82,17 @@ export class Home {
     private msg: MessageService
   ) {
     this.session$ = this.auth.getSession();
-    this.accounts$ = this.accountsApi.getAccountsOverview(); // Observable<AccountsOverviewResponseDto>
-    this.hydrateAccountsCache();
+    this.accounts$ = this.accountsApi.getAccountsOverview().pipe(
+  tap(res => {
+    this.accountsCache = res.accounts || [];
+    // set defaults...
+  }),
+  shareReplay({ bufferSize: 1, refCount: true }),
+  catchError(err => {
+    this.toastError('Error', 'No se pudieron cargar las cuentas.');
+    return of({ accounts: [] } as AccountsOverviewResponseDto);
+  })
+);
   }
 
   async logout(): Promise<void> {
