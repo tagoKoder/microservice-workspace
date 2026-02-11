@@ -57,10 +57,12 @@ public class AccountService implements
         a.setStatus("active");
         a.setOpenedAt(Instant.now());
         a.setUpdatedAt(Instant.now());
-
+        
         Account saved = accountRepo.save(a);
-
-        balanceRepo.initZero(saved.getId());
+        BigDecimal bonus = new BigDecimal("50.00");
+        balanceRepo.init(saved.getId(), bonus, bonus, BigDecimal.ZERO);
+        //balanceRepo.initZero(saved.getId());
+        
         limitsRepo.patch(saved.getId(), BigDecimal.ZERO, BigDecimal.ZERO);
 
         return new CreateAccountUseCase.Result(saved.getId());

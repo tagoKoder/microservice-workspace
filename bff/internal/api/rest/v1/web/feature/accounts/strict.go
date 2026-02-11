@@ -26,7 +26,7 @@ func (h *Handler) OverviewStrict(ctx context.Context) (openapi.GetAccountsOvervi
 	if err != nil {
 		return openapi.GetAccountsOverview502JSONResponse(openapi.ErrorResponse{
 			Code:    "UPSTREAM_ERROR",
-			Message: "accounts service unavailable",
+			Message: "service unavailable",
 			Details: &map[string]interface{}{"correlation_id": corrId},
 		}), nil
 	}

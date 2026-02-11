@@ -46,4 +46,17 @@ public interface SpringDataAccountBalanceJpa extends JpaRepository<AccountBalanc
                   @Param("dAvailable") BigDecimal dAvailable,
                   @Param("dHold") BigDecimal dHold);
 
+    @Modifying
+    @Query(value = """
+        INSERT INTO account_balances(account_id, ledger, available, hold)
+        VALUES (:accountId, :ledger, :available, :hold)
+        ON CONFLICT (account_id) DO NOTHING
+        """, nativeQuery = true)
+    int initIfAbsent(
+            @Param("accountId") UUID accountId,
+            @Param("ledger") BigDecimal ledger,
+            @Param("available") BigDecimal available,
+            @Param("hold") BigDecimal hold
+    );
+
 }

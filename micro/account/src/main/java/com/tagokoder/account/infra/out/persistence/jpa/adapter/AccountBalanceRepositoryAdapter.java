@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.tagokoder.account.domain.port.out.AccountBalanceRepositoryPort;
 import com.tagokoder.account.infra.out.persistence.jpa.SpringDataAccountBalanceJpa;
@@ -30,6 +31,20 @@ public class AccountBalanceRepositoryAdapter implements AccountBalanceRepository
       new BalancesRow(e.getLedger(), e.getAvailable(), e.getHold())
     );
   }
+
+    @Override
+    @Transactional
+    public void init(UUID accountId, BigDecimal ledger, BigDecimal available, BigDecimal hold) {
+        if (accountId == null) throw new IllegalArgumentException("accountId is required");
+        if (ledger == null || available == null || hold == null) throw new IllegalArgumentException("balances are required");
+        if (ledger.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("ledger must be >= 0");
+        if (available.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("available must be >= 0");
+        if (hold.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("hold must be >= 0");
+
+        jpa.initIfAbsent(accountId, ledger, available, hold);
+        // si devuelve 0 => ya existía, lo cual es OK (idempotente)
+    }
+
 
   @Override
   public void initZero(UUID accountId) {
