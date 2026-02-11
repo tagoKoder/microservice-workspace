@@ -52,6 +52,7 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
               .setUserStatus(info.userStatus() != null ? info.userStatus() : "")
               .setSessionExpiresIn(info.expiresInSeconds())
               .setUser(user)
+              .setCustomerId(info.customerId() != null ? info.customerId() : "")
               .build();
 
       responseObserver.onNext(resp);

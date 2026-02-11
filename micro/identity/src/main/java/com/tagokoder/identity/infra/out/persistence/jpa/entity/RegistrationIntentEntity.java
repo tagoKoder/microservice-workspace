@@ -7,7 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -64,6 +69,9 @@ public class RegistrationIntentEntity {
 
   @Column(name = "customer_id", length = 64)
   private String customerId;
+
+  @Column(name = "identity_id")
+  private UUID identityId;
 
   @Column(name = "primary_account_id", length = 64)
   private String primaryAccountId;

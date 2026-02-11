@@ -20,12 +20,16 @@ import com.tagokoder.identity.domain.port.in.CompleteLoginUseCase;
 import com.tagokoder.identity.domain.port.in.CreateSessionUseCase;
 import com.tagokoder.identity.domain.port.in.StartLoginUseCase;
 import com.tagokoder.identity.domain.port.out.AuditPublisher;
+import com.tagokoder.identity.domain.port.out.IdentityLinkRepositoryPort;
 import com.tagokoder.identity.domain.port.out.IdentityRepositoryPort;
 import com.tagokoder.identity.domain.port.out.OidcIdpClientPort;
 import com.tagokoder.identity.domain.port.out.OidcStateRepositoryPort;
+import com.tagokoder.identity.domain.port.out.RegistrationIntentRepositoryPort;
 import com.tagokoder.identity.infra.audit.AuditEventV1;
 import com.tagokoder.identity.infra.security.OidcIdTokenValidator;
 import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
+
+import jakarta.transaction.Transactional;
 @Service
 public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase {
 
@@ -37,6 +41,8 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
     private final CreateSessionUseCase createSessionUseCase;
     private final AuditPublisher audit;
     private final AppProps props;
+    private final RegistrationIntentRepositoryPort registrationRepo;
+    private final IdentityLinkRepositoryPort identityLinks;
 
 
 
@@ -48,7 +54,9 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
                            OidcProperties properties,
                            OidcIdTokenValidator idTokenValidator,
                            CreateSessionUseCase createSessionUseCase,
-                           AuditPublisher audit, AppProps props) {
+                           AuditPublisher audit, AppProps props,
+                           RegistrationIntentRepositoryPort registrationRepo,
+                           IdentityLinkRepositoryPort identityLinks) {
         this.stateRepo = stateRepo;
         this.idpClient = idpClient;
         this.identityRepo = identityRepo;
@@ -57,6 +65,8 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
         this.createSessionUseCase = createSessionUseCase;
         this.audit = audit;
         this.props = props;
+        this.registrationRepo = registrationRepo;
+        this.identityLinks = identityLinks;
     }
 
     @Override
@@ -141,6 +151,7 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
 
         if (!identity.isActive()) identity = identity.activate();
         identity = identityRepo.save(identity);
+        linkIdentityToCustomerIfPossible(identity.getId(), email);
         // 3) Sesión server-side: guardas refresh token cifrado + hash
         var created = createSessionUseCase.createSession(identity, token.refreshToken, command.ip(), command.userAgent());
 
@@ -175,4 +186,26 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
             throw new IllegalStateException("Cannot compute PKCE S256", e);
         }
     }
+
+    @Transactional
+    private void linkIdentityToCustomerIfPossible(UUID identityId, String email) {
+    if (email == null || email.isBlank()) return;
+
+    var regOpt = registrationRepo.findLatestByEmail(email); // crear este método
+    if (regOpt.isEmpty()) return;
+
+    var reg = regOpt.get();
+
+    // 1) persistir identityId dentro del registro (para el caso login->activate)
+    if (reg.getIdentityId() == null) {
+        reg.setIdentityId(identityId);
+        registrationRepo.save(reg);
+    }
+
+    // 2) si ya existe customerId, link inmediato
+    if (reg.getCustomerId() != null && !reg.getCustomerId().isBlank()) {
+        identityLinks.upsert(identityId, reg.getCustomerId());
+    }
+    }
+
 }

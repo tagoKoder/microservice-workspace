@@ -67,25 +67,14 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at
 -- =========================================================
 -- 3) identity_links (tabla puente identity <-> customer)
 -- =========================================================
-CREATE TABLE IF NOT EXISTS identity_links (
-  identity_id uuid NOT NULL,
-  customer_id uuid NOT NULL,
-
-  PRIMARY KEY (identity_id, customer_id),
-
-  CONSTRAINT fk_identity_links_identity
-    FOREIGN KEY (identity_id) REFERENCES identities(id)
-    ON DELETE CASCADE
-
-  -- Nota: si "customers" vive en otro microservicio, NO pongas FK.
-  -- Si sí existe en la misma BD, agrega:
-  -- ,CONSTRAINT fk_identity_links_customer
-  --   FOREIGN KEY (customer_id) REFERENCES customers(id)
-  --   ON DELETE RESTRICT
+create table if not exists identity_links (
+  identity_id uuid primary key references identities(id) on delete cascade,
+  customer_id varchar(64) not null,
+  created_at timestamptz not null default now(),
+  unique (customer_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_identity_links_customer_id
-  ON identity_links (customer_id);
+create index if not exists ix_identity_links_customer_id on identity_links(customer_id);
 
 
 -- =========================================================
@@ -111,6 +100,7 @@ CREATE TABLE IF NOT EXISTS registration_intents (
 
   activation_ref            varchar(64) NULL,
   customer_id               varchar(64) NULL,
+  identity_id               uuid NULL,
   primary_account_id        varchar(64) NULL,
   savings_account_id        varchar(64) NULL,
   bonus_journal_id          varchar(64) NULL,
@@ -125,8 +115,7 @@ CREATE TABLE IF NOT EXISTS registration_intents (
 CREATE INDEX IF NOT EXISTS idx_registration_state
   ON registration_intents (state);
 
-CREATE INDEX IF NOT EXISTS idx_registration_email
-  ON registration_intents (email);
+create index if not exists ix_registration_intents_email on registration_intents(email);
 
 CREATE INDEX IF NOT EXISTS idx_registration_phone
   ON registration_intents (phone);

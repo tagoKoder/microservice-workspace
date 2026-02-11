@@ -15,6 +15,7 @@ import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase;
 import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase;
 import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase;
 import com.tagokoder.identity.domain.port.out.AccountsClientPort;
+import com.tagokoder.identity.domain.port.out.IdentityLinkRepositoryPort;
 import com.tagokoder.identity.domain.port.out.KycPresignedStoragePort;
 import com.tagokoder.identity.domain.port.out.LedgerPaymentsClientPort;
 import com.tagokoder.identity.domain.port.out.RegistrationIntentRepositoryPort;
@@ -28,19 +29,22 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
   private final AccountsClientPort accounts;
   private final LedgerPaymentsClientPort ledger;
   private final IdentityClientsProperties clientProps;
+  private final IdentityLinkRepositoryPort identityLinks;
 
   public OnboardingService(
     RegistrationIntentRepositoryPort registrationRepo,
     KycPresignedStoragePort kycStorage,
     AccountsClientPort accounts,
     LedgerPaymentsClientPort ledger,
-    IdentityClientsProperties clientProps
+    IdentityClientsProperties clientProps,
+    IdentityLinkRepositoryPort identityLinks
   ) {
     this.registrationRepo = registrationRepo;
     this.kycStorage = kycStorage;
     this.accounts = accounts;
     this.ledger = ledger;
     this.clientProps = clientProps;
+    this.identityLinks = identityLinks;
   }
 
   @Override
@@ -139,6 +143,8 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
       reg.setCustomerId(customerId);
       reg.setUpdatedAt(Instant.now());
       registrationRepo.save(reg);
+      identityLinks.upsert(reg.getIdentityId(), reg.getCustomerId());
+
     }
 
     // (2) Create CHECKING

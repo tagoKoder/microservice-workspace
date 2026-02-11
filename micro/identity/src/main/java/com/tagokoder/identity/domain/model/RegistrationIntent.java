@@ -56,4 +56,5 @@ public class RegistrationIntent {
     private String savingsAccountId;   // si luego lo agregas
     private String bonusJournalId;
     private Instant activatedAt;
+    private UUID identityId;
 }

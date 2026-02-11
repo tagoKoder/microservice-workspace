@@ -101,5 +101,13 @@ public class RegistrationIntentRepositoryAdapter implements RegistrationIntentRe
         );
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RegistrationIntent> findLatestByEmail(String email) {
+        return jpa.findTopByEmailIgnoreCaseOrderByUpdatedAtDesc(email)
+                .map(mapper::toDomain);
+    }
+
+
     
 }

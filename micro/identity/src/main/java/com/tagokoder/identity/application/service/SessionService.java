@@ -14,6 +14,7 @@ import com.tagokoder.identity.domain.port.in.CreateSessionUseCase;
 import com.tagokoder.identity.domain.port.in.GetSessionInfoUseCase;
 import com.tagokoder.identity.domain.port.in.LogoutSessionUseCase;
 import com.tagokoder.identity.domain.port.in.RefreshSessionUseCase;
+import com.tagokoder.identity.domain.port.out.IdentityLinkRepositoryPort;
 import com.tagokoder.identity.domain.port.out.IdentityRepositoryPort;
 import com.tagokoder.identity.domain.port.out.OidcIdpClientPort;
 import com.tagokoder.identity.domain.port.out.SessionRepositoryPort;
@@ -29,18 +30,21 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
     private final TokenHasher hasher;
     private final TokenCrypto crypto;
     private final IdentityRepositoryPort identities;
+    private final IdentityLinkRepositoryPort identityLinks;
 
     public SessionService(SessionRepositoryPort sessions,
                           OidcIdpClientPort idp,
                           IdentitySessionProperties sessionProps,
                           IdentitySecurityProperties secProps,
-                          IdentityRepositoryPort identities) {
+                          IdentityRepositoryPort identities,
+                          IdentityLinkRepositoryPort identityLinks) {
         this.sessions = sessions;
         this.idp = idp;
         this.sessionProps = sessionProps;
         this.hasher = new TokenHasher(secProps.getRefreshTokenPepper());
         this.crypto = new TokenCrypto(secProps.getRefreshTokenEncKeyB64());
         this.identities = identities;
+        this.identityLinks = identityLinks;
     }
 
     @Override
@@ -56,13 +60,15 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         var identity = identities.findById(s.getIdentityId()).orElseThrow(() -> new IllegalStateException("Identity not found"));
         long expiresIn = java.time.Duration.between(now, s.getExpiresAt()).getSeconds();
         if (expiresIn < 0) expiresIn = 0;
+        String customerId = identityLinks.findCustomerIdByIdentityId(identity.getId()).orElse("");
 
         return new SessionInfo(
                 identity.getId(),
                 identity.getSubjectIdOidc(),
                 identity.getProvider(),
                 identity.getUserStatus().name(),
-                expiresIn
+                expiresIn,
+                customerId
         );
     }
 

@@ -8,4 +8,5 @@ import com.tagokoder.identity.domain.model.RegistrationIntent;
 public interface RegistrationIntentRepositoryPort {
     RegistrationIntent save(RegistrationIntent registrationIntent);
     Optional<RegistrationIntent> findById(UUID registrationId);
+    Optional<RegistrationIntent> findLatestByEmail(String email);
 }
