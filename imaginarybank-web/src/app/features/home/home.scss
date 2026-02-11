@@ -1,0 +1,85 @@
+.home {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home__top {
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  background: var(--surface-card);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+}
+
+.home__brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+.card-soft :host ::ng-deep .p-card {
+  border-radius: 16px;
+}
+
+.accounts-carousel {
+  margin-top: .25rem;
+}
+
+.account-hero {
+  border-radius: 16px;
+  padding: 1rem;
+  background:
+    radial-gradient(1200px 600px at 10% 0%, rgba(59,130,246,0.18), transparent 60%),
+    radial-gradient(900px 500px at 100% 40%, rgba(16,185,129,0.16), transparent 55%),
+    var(--surface-50);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.account-hero__title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.account-hero__money {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.empty {
+  padding: 1.25rem;
+  border-radius: 14px;
+  border: 1px dashed rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+.empty__icon {
+  font-size: 1.6rem;
+  opacity: .7;
+}
+
+.empty__title {
+  margin-top: .5rem;
+  font-weight: 700;
+}
+
+.empty__text {
+  margin-top: .25rem;
+  color: var(--text-color-secondary);
+  font-size: .9rem;
+}
+
+.bank-select {
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-card);
+  color: var(--text-color);
+  outline: none;
+  min-width: 18rem;
+}
+
+.bank-select.w-full {
+  width: 100%;
+  min-width: 0;
+}
+
