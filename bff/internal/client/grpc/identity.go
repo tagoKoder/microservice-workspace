@@ -27,10 +27,8 @@ func NewIdentityClient(conn *grpc.ClientConn) *IdentityClient {
 }
 
 func (c *IdentityClient) StartOidcLogin(ctx context.Context, in ports.StartOidcLoginInput) (ports.StartOidcLoginOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
-	res, err := c.oidc.StartOidcLogin(ctx2, &identityv1.StartOidcLoginRequest{
+	res, err := c.oidc.StartOidcLogin(ctx, &identityv1.StartOidcLoginRequest{
 		Channel:            in.Channel,
 		RedirectAfterLogin: in.RedirectAfterLogin,
 	})
@@ -41,10 +39,8 @@ func (c *IdentityClient) StartOidcLogin(ctx context.Context, in ports.StartOidcL
 }
 
 func (c *IdentityClient) CompleteOidcLogin(ctx context.Context, in ports.CompleteOidcLoginInput) (ports.CompleteOidcLoginOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
-	res, err := c.oidc.CompleteOidcLogin(ctx2, &identityv1.CompleteOidcLoginRequest{
+	res, err := c.oidc.CompleteOidcLogin(ctx, &identityv1.CompleteOidcLoginRequest{
 		Code:      in.Code,
 		State:     in.State,
 		Ip:        in.IP,
@@ -93,10 +89,8 @@ func (c *IdentityClient) RefreshSession(ctx context.Context, in ports.RefreshSes
 }
 
 func (c *IdentityClient) LogoutSession(ctx context.Context, in ports.LogoutSessionInput) (ports.LogoutSessionOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
-	res, err := c.oidc.LogoutSession(ctx2, &identityv1.LogoutSessionRequest{SessionId: in.SessionID})
+	res, err := c.oidc.LogoutSession(ctx, &identityv1.LogoutSessionRequest{SessionId: in.SessionID})
 	if err != nil {
 		return ports.LogoutSessionOutput{}, err
 	}
@@ -104,8 +98,6 @@ func (c *IdentityClient) LogoutSession(ctx context.Context, in ports.LogoutSessi
 }
 
 func (c *IdentityClient) GetSessionInfo(ctx context.Context, in ports.GetSessionInfoInput) (ports.GetSessionInfoOutput, error) {
-	//ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	//defer cancel()
 
 	res, err := c.oidc.GetSessionInfo(ctx, &identityv1.GetSessionInfoRequest{
 		SessionId: in.SessionID,
@@ -137,8 +129,6 @@ func (c *IdentityClient) GetSessionInfo(ctx context.Context, in ports.GetSession
 // ==========================
 
 func (c *IdentityClient) StartRegistration(ctx context.Context, in ports.StartRegistrationInput) (ports.StartRegistrationOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, 8*time.Second)
-	defer cancel()
 
 	req := &identityv1.StartRegistrationRequest{
 		Channel:             in.Channel,
@@ -153,7 +143,7 @@ func (c *IdentityClient) StartRegistration(ctx context.Context, in ports.StartRe
 		SelfieContentType:   strings.TrimSpace(in.SelfieContentType),
 	}
 
-	res, err := c.onboarding.StartRegistration(ctx2, req)
+	res, err := c.onboarding.StartRegistration(ctx, req)
 	if err != nil {
 		return ports.StartRegistrationOutput{}, err
 	}
@@ -190,8 +180,6 @@ func (c *IdentityClient) StartRegistration(ctx context.Context, in ports.StartRe
 }
 
 func (c *IdentityClient) ConfirmRegistrationKyc(ctx context.Context, in ports.ConfirmRegistrationKycInput) (ports.ConfirmRegistrationKycOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, 8*time.Second)
-	defer cancel()
 
 	objs := make([]*identityv1.UploadedObject, 0, len(in.Objects))
 	for _, o := range in.Objects {
@@ -205,7 +193,7 @@ func (c *IdentityClient) ConfirmRegistrationKyc(ctx context.Context, in ports.Co
 		})
 	}
 
-	res, err := c.onboarding.ConfirmRegistrationKyc(ctx2, &identityv1.ConfirmRegistrationKycRequest{
+	res, err := c.onboarding.ConfirmRegistrationKyc(ctx, &identityv1.ConfirmRegistrationKycRequest{
 		RegistrationId: in.RegistrationID,
 		Objects:        objs,
 		Channel:        in.Channel,
@@ -239,9 +227,7 @@ func (c *IdentityClient) ConfirmRegistrationKyc(ctx context.Context, in ports.Co
 }
 
 func (c *IdentityClient) ActivateRegistration(ctx context.Context, in ports.ActivateRegistrationInput) (ports.ActivateRegistrationOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, 8*time.Second)
-	defer cancel()
-	res, err := c.onboarding.ActivateRegistration(ctx2, &identityv1.ActivateRegistrationRequest{
+	res, err := c.onboarding.ActivateRegistration(ctx, &identityv1.ActivateRegistrationRequest{
 		RegistrationId: in.RegistrationID,
 		Channel:        in.Channel,
 		FullName:       in.FullName,

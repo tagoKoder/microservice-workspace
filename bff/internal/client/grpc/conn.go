@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/tagoKoder/bff/internal/config"
 	"google.golang.org/grpc"
@@ -20,8 +19,9 @@ func dial(addr string, cfg config.Config) (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx := context.Background()
+	//.WithTimeout(context.Background(), 5*time.Second)
+	//defer cancel()
 
 	opts = append(opts, grpc.WithBlock())
 	return grpc.DialContext(ctx, addr, opts...)

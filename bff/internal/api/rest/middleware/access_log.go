@@ -1,3 +1,4 @@
+// bff\internal\api\rest\middleware\access_log.go
 package middleware
 
 import (
@@ -23,16 +24,13 @@ func AccessLog() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sw := &statusWriter{ResponseWriter: w, status: 200}
 			start := time.Now()
-
-			next.ServeHTTP(sw, r)
-
+			cid := security.CorrelationID(r.Context())
 			rt := GetRouteTemplate(r.Context())
 			if rt == "" {
 				rt = r.URL.Path // fallback
 			}
-			cid := security.CorrelationID(r.Context())
-
 			log.Printf("cid=%s %s %s -> %d (%s)", cid, r.Method, rt, sw.status, time.Since(start))
+			next.ServeHTTP(sw, r)
 		})
 	}
 }
