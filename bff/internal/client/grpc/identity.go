@@ -72,10 +72,10 @@ func (c *IdentityClient) CompleteOidcLogin(ctx context.Context, in ports.Complet
 }
 
 func (c *IdentityClient) RefreshSession(ctx context.Context, in ports.RefreshSessionInput) (ports.RefreshSessionOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+	//ctx2, cancel := context.WithTimeout(ctx, c.timeout)
+	//defer cancel()
 
-	res, err := c.oidc.RefreshSession(ctx2, &identityv1.RefreshSessionRequest{
+	res, err := c.oidc.RefreshSession(ctx, &identityv1.RefreshSessionRequest{
 		SessionId: in.SessionID,
 		Ip:        in.IP,
 		UserAgent: in.UserAgent,

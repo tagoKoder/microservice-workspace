@@ -10,11 +10,13 @@ import com.tagokoder.identity.domain.port.in.RefreshSessionUseCase;
 import com.tagokoder.identity.domain.port.in.StartLoginUseCase;
 
 import bank.identity.v1.*;
-
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 
 @GrpcService
 public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImplBase {
@@ -37,6 +39,7 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
 
   @Override
   public void getSessionInfo(GetSessionInfoRequest request, StreamObserver<GetSessionInfoResponse> responseObserver) {
+    try {
       var sid = java.util.UUID.fromString(request.getSessionId());
       var info = getSessionInfoUseCase.get(sid, request.getIp(), request.getUserAgent());
 
@@ -57,6 +60,11 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
 
       responseObserver.onNext(resp);
       responseObserver.onCompleted();
+    } catch (IllegalStateException e) {
+        throw mapSessionException(e);
+    } catch (Exception e) {
+        throw Status.INTERNAL.withDescription("INTERNAL").asRuntimeException();
+    }
   }
 
 
@@ -116,6 +124,7 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   @Override
   public void refreshSession(RefreshSessionRequest request,
                              StreamObserver<RefreshSessionResponse> responseObserver) {
+    try {
     var sid = java.util.UUID.fromString(request.getSessionId());
     var refreshed = refreshSessionUseCase.refresh(sid, request.getIp(), request.getUserAgent());
     var resp = RefreshSessionResponse.newBuilder()
@@ -124,6 +133,11 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
         .build();
     responseObserver.onNext(resp);
     responseObserver.onCompleted();
+    } catch (IllegalStateException e) {
+        throw mapSessionException(e);
+    } catch (Exception e) {
+        throw Status.INTERNAL.withDescription("INTERNAL").asRuntimeException();
+    }
   }
 
   @Override
@@ -138,4 +152,21 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
     responseObserver.onNext(resp);
     responseObserver.onCompleted();
   }
+
+  private StatusRuntimeException mapSessionException(IllegalStateException e) {
+    String m = e.getMessage() == null ? "" : e.getMessage();
+
+    return switch (m) {
+        case "Session not found" ->
+            Status.NOT_FOUND.withDescription("SESSION_NOT_FOUND").asRuntimeException();
+        case "Session revoked" ->
+            Status.UNAUTHENTICATED.withDescription("SESSION_REVOKED").asRuntimeException();
+        case "Session expired" ->
+            Status.UNAUTHENTICATED.withDescription("SESSION_EXPIRED").asRuntimeException();
+        case "Session absolute expiry reached" ->
+            Status.FAILED_PRECONDITION.withDescription("SESSION_ABSOLUTE_EXPIRED").asRuntimeException();
+        default ->
+            Status.UNAUTHENTICATED.withDescription("SESSION_INVALID").asRuntimeException();
+    };
+}
 }

@@ -104,3 +104,17 @@ func (c *CookieManager) Clear(w http.ResponseWriter) {
 		})
 	}
 }
+
+func (cm *CookieManager) WriteSessionID(w http.ResponseWriter, sid string, ttlSeconds int64) {
+	c := &http.Cookie{
+		Name:     cm.cookieName, // ajusta al campo real
+		Value:    sid,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   cm.secure,   // true en https
+		SameSite: cm.sameSite, // Lax/Strict según tu CSRF
+		Expires:  time.Now().Add(time.Duration(ttlSeconds) * time.Second),
+		MaxAge:   int(ttlSeconds),
+	}
+	http.SetCookie(w, c)
+}
