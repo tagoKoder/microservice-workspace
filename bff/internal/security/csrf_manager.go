@@ -1,3 +1,4 @@
+// bff\internal\security\csrf_manager.go
 package security
 
 import (

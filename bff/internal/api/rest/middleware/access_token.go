@@ -35,6 +35,11 @@ func AccessToken(deps AccessTokenDeps, oas *OpenAPISecurity) func(http.Handler) 
 				return
 			}
 
+			if t := security.AccessToken(r.Context()); t != "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			out, err := deps.Tokens.Ensure(r.Context(), sid, util.GetClientIP(r), r.UserAgent())
 			if err != nil {
 				// invalida estado local y borra cookie

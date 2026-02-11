@@ -1,3 +1,4 @@
+// bff\internal\security\access_token_provider.go
 package security
 
 import (
@@ -101,5 +102,16 @@ func (p *AccessTokenProvider) Ensure(ctx context.Context, sessionID, ip, ua stri
 func (p *AccessTokenProvider) Invalidate(sessionID string) {
 	p.mu.Lock()
 	delete(p.cache, sessionID)
+	p.mu.Unlock()
+}
+
+func (p *AccessTokenProvider) Store(sessionID string, sessExp time.Time, accessToken string, accessExp time.Time) {
+	p.mu.Lock()
+	p.cache[sessionID] = tokenEntry{
+		sessionID:        sessionID,
+		sessionExpiresAt: sessExp,
+		accessToken:      accessToken,
+		accessExp:        accessExp,
+	}
 	p.mu.Unlock()
 }

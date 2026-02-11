@@ -6,6 +6,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/tagoKoder/bff/internal/client/ports"
 	"github.com/tagoKoder/bff/internal/config"
@@ -30,6 +31,7 @@ type AuthDeps struct {
 	Config   config.Config
 	Identity ports.IdentityPort
 	Cookies  *security.CookieManager
+	Tokens   *security.AccessTokenProvider
 }
 
 func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Handler {
@@ -59,6 +61,8 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 				// getSessionInfoWithRefresh ya escribió la respuesta (401/503/etc)
 				return
 			}
+			ctx = security.WithSessionID(ctx, newSid)
+			ctx = security.WithAccessToken(ctx, accessTok)
 
 			// si refrescó, actualiza ctx con el nuevo sid
 			if newSid != "" && newSid != sid {
@@ -131,6 +135,14 @@ func getSessionInfoWithRefresh(
 				deps.Cookies.Clear(w)
 				w.WriteHeader(http.StatusUnauthorized)
 				return ports.GetSessionInfoOutput{}, "", "", rerr
+			}
+
+			now := time.Now()
+			sessExp := now.Add(time.Duration(ref.SessionExpiresIn) * time.Second)
+			atExp := now.Add(time.Duration(ref.AccessTokenExpiresIn) * time.Second)
+
+			if deps.Tokens != nil && ref.AccessToken != "" {
+				deps.Tokens.Store(ref.SessionID, sessExp, ref.AccessToken, atExp)
 			}
 
 			// set-cookie con nuevo sid (rotación)

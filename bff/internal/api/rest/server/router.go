@@ -51,6 +51,7 @@ func NewRouter(deps RouterDeps, swagger *openapi3.T, swaggerValidator func(http.
 	r.Use(middleware.AuthSession(middleware.AuthDeps{
 		Identity: deps.Server.deps.Clients.Identity,
 		Cookies:  deps.Server.deps.Cookies,
+		Tokens:   deps.Server.deps.Tokens,
 	}, oas))
 
 	r.Use(middleware.AccessToken(

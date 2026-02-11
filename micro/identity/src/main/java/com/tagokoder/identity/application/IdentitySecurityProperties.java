@@ -8,4 +8,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class IdentitySecurityProperties {
     private String refreshTokenPepper;
     private String refreshTokenEncKeyB64;
+    private String accessTokenEncKeyB64;
 }

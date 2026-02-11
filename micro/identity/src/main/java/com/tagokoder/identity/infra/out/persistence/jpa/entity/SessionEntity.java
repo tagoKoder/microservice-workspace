@@ -48,6 +48,11 @@ public class SessionEntity {
 
     @Column(name = "rotated_to_session_id")
     private UUID rotatedToSessionId;
+    @Column(name = "access_token_enc", columnDefinition = "text")
+    private String accessTokenEnc;
+
+    @Column(name = "access_token_expires_at")
+    private LocalDateTime accessTokenExpiresAt;
     @Column(name = "ip", columnDefinition = "text")
     private String ip; 
     @Column(name = "ua", columnDefinition = "text")

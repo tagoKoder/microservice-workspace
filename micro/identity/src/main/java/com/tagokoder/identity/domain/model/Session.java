@@ -25,6 +25,8 @@ public class Session {
     private Instant revokedAt;
     private Instant absoluteExpiresAt;
     private UUID rotatedToSessionId;
+    private String accessTokenEnc;
+    private Instant accessTokenExpiresAt;
     private String ip;
     private String ua;
 

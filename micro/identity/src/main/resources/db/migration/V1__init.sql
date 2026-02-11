@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   absolute_expires_at     timestamptz NULL,
 
   rotated_to_session_id   uuid NULL,
+  access_token_enc TEXT NULL,
+  access_token_expires_at TIMESTAMP NULL,
 
   ip                      text NULL,
   ua                      text NULL,

@@ -144,9 +144,8 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
       var resp = RefreshSessionResponse.newBuilder()
           .setSessionId(refreshed.sessionId().toString())
           .setSessionExpiresIn(refreshed.expiresInSeconds())
-          // 👇 si tu caso de uso lo retorna, setéalos (tu proto los tiene)
-          // .setAccessToken(refreshed.accessToken())
-          // .setAccessTokenExpiresIn(refreshed.accessTokenExpiresIn())
+          .setAccessToken(refreshed.accessToken())
+          .setAccessTokenExpiresIn(refreshed.accessTokenExpiresIn())
           .build();
 
       responseObserver.onNext(resp);

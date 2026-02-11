@@ -1,5 +1,6 @@
 package com.tagokoder.identity.application.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -31,6 +32,8 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
     private final TokenCrypto crypto;
     private final IdentityRepositoryPort identities;
     private final IdentityLinkRepositoryPort identityLinks;
+    private final TokenCrypto refreshCrypto;
+    private final TokenCrypto accessCrypto;
 
     public SessionService(SessionRepositoryPort sessions,
                           OidcIdpClientPort idp,
@@ -45,6 +48,8 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         this.crypto = new TokenCrypto(secProps.getRefreshTokenEncKeyB64());
         this.identities = identities;
         this.identityLinks = identityLinks;
+        this.refreshCrypto = new TokenCrypto(secProps.getRefreshTokenEncKeyB64());
+        this.accessCrypto  = new TokenCrypto(secProps.getAccessTokenEncKeyB64());
     }
 
     @Override
@@ -58,9 +63,20 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
             throw new IllegalStateException("Session absolute expiry reached");
 
         var identity = identities.findById(s.getIdentityId()).orElseThrow(() -> new IllegalStateException("Identity not found"));
-        long expiresIn = java.time.Duration.between(now, s.getExpiresAt()).getSeconds();
+        long expiresIn = Duration.between(now, s.getExpiresAt()).getSeconds();
         if (expiresIn < 0) expiresIn = 0;
         String customerId = identityLinks.findCustomerIdByIdentityId(identity.getId()).orElse("");
+
+        String at = "";
+        long atExpIn = 0;
+
+        if (s.getAccessTokenEnc() != null && s.getAccessTokenExpiresAt() != null) {
+        long sec = Duration.between(now, s.getAccessTokenExpiresAt()).getSeconds();
+        if (sec > 0) {
+            at = accessCrypto.decrypt(s.getAccessTokenEnc());
+            atExpIn = sec;
+        }
+        }
 
         return new SessionInfo(
                 identity.getId(),
@@ -68,7 +84,9 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
                 identity.getProvider(),
                 identity.getUserStatus().name(),
                 expiresIn,
-                customerId
+                customerId,
+                at,
+                atExpIn
         );
     }
 
@@ -76,6 +94,8 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
     @Transactional
     public CreatedSession createSession(Identity identity,
                                         String refreshToken,
+                                        String accessToken,
+                                        long accessTokenExpiresIn,
                                         String ip,
                                         String ua) {
         UUID sid = UUID.randomUUID();
@@ -93,7 +113,9 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         s.setUa(ua);
 
         s.setRefreshTokenHash(hasher.hmacSha256(refreshToken));
-        s.setRefreshTokenEnc(crypto.encrypt(refreshToken));
+        s.setRefreshTokenEnc(refreshCrypto.encrypt(refreshToken));
+        s.setAccessTokenEnc(accessCrypto.encrypt(accessToken));
+        s.setAccessTokenExpiresAt(now.plusSeconds(accessTokenExpiresIn));
 
         sessions.save(s);
 
@@ -108,7 +130,6 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
 
         Instant now = Instant.now();
         if (cur.getRevokedAt() != null) throw new IllegalStateException("Session revoked");
-        if (cur.getExpiresAt() != null && cur.getExpiresAt().isBefore(now)) throw new IllegalStateException("Session expired");
         if (cur.getAbsoluteExpiresAt() != null && cur.getAbsoluteExpiresAt().isBefore(now))
             throw new IllegalStateException("Session absolute expiry reached");
 
@@ -136,6 +157,8 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         next.setRotatedToSessionId(null);
         next.setRefreshTokenHash(hasher.hmacSha256(newRefresh));
         next.setRefreshTokenEnc(crypto.encrypt(newRefresh));
+        next.setAccessTokenEnc(accessCrypto.encrypt(token.accessToken));
+        next.setAccessTokenExpiresAt(now.plusSeconds(token.expiresIn));
 
         // ✅ 1) INSERT primero (para satisfacer la FK)
         sessions.save(next);

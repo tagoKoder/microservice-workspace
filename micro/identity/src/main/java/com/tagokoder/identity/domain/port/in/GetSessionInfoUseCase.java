@@ -11,6 +11,8 @@ public interface GetSessionInfoUseCase {
             String provider,
             String userStatus,
             long expiresInSeconds,
-            String customerId
+            String customerId,
+            String accessToken,
+            long accessTokenExpiresIn
     ) {}
 }
