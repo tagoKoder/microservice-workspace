@@ -160,10 +160,10 @@ public class SessionService implements CreateSessionUseCase, RefreshSessionUseCa
         next.setAccessTokenEnc(accessCrypto.encrypt(token.accessToken));
         next.setAccessTokenExpiresAt(now.plusSeconds(token.expiresIn));
 
-        // ✅ 1) INSERT primero (para satisfacer la FK)
+        // 1) INSERT primero (para satisfacer la FK)
         sessions.save(next);
 
-        // ✅ 2) UPDATE después (ya existe newSid)
+        // 2) UPDATE después (ya existe newSid)
         cur.setRevokedAt(now);
         cur.setRotatedToSessionId(newSid);
         sessions.save(cur);
