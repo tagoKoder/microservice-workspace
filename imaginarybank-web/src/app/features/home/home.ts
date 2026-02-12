@@ -20,12 +20,15 @@ import { MessageService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 
 import { AuthService } from '../../core/auth/auth.service';
-import { AccountsApi, AccountsOverviewResponseDto, AccountItemDto } from '../../api/bff';
+import { AccountsApi, AccountsOverviewResponseDto, AccountItemDto, PaymentsApi, SessionApi, CreatePaymentRequestDto, CreatePaymentResponseDto } from '../../api/bff';
 
 type RecentTx = {
   when: Date;
+  memo?: string | null;
+  journalId?: string;   // para entries de actividad
+  paymentId?: string;   // para pagos creados
   type: 'transfer' | 'credit' | 'debit';
-  amount: number;
+  amount: number | null; // null cuando no existe monto en el contrato
   currency: string;
   status: 'posted' | 'pending';
 };
@@ -78,42 +81,34 @@ export class Home {
   constructor(
     private auth: AuthService,
     private accountsApi: AccountsApi,
-    private http: HttpClient,
+    private sessionApi: SessionApi,
+    private paymentsApi: PaymentsApi,
     private msg: MessageService
   ) {
     this.session$ = this.auth.getSession();
     this.accounts$ = this.accountsApi.getAccountsOverview().pipe(
-  tap(res => {
-    this.accountsCache = res.accounts || [];
-    // set defaults...
-  }),
-  shareReplay({ bufferSize: 1, refCount: true }),
-  catchError(err => {
-    this.toastError('Error', 'No se pudieron cargar las cuentas.');
-    return of({ accounts: [] } as AccountsOverviewResponseDto);
-  })
-);
+      tap(res => {
+        this.accountsCache = res.accounts || [];
+        if (!this.selectedAccountId && this.accountsCache.length > 0) {
+          const first = this.accountsCache[0];
+          this.selectedAccountId = first.id;
+          this.transferFromId = first.id;
+          this.transferToId = this.accountsCache.length > 1 ? this.accountsCache[1].id : first.id;
+          void this.loadActivity(first.id);
+        }
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
+      catchError(err => {
+        this.toastError('Error', 'No se pudieron cargar las cuentas.');
+        return of({ accounts: [] } as AccountsOverviewResponseDto);
+      })
+    );
   }
 
   async logout(): Promise<void> {
     await this.auth.logout();
   }
 
-  private async hydrateAccountsCache(): Promise<void> {
-    try {
-      const res: AccountsOverviewResponseDto = await firstValueFrom(this.accounts$);
-      this.accountsCache = res.accounts || [];
-
-      if (this.accountsCache.length > 0) {
-        const first = this.accountsCache[0];
-        this.selectedAccountId = first.id;
-        this.transferFromId = first.id;
-        this.transferToId = this.accountsCache.length > 1 ? this.accountsCache[1].id : first.id;
-      }
-    } catch {
-      this.toastError('Error', 'No se pudieron cargar las cuentas.');
-    }
-  }
 
   onCarouselPage(e: any) {
     this.carouselIndex = e?.page ?? 0;
@@ -184,40 +179,80 @@ export class Home {
     return true;
   }
 
+  private async getCsrf(): Promise<string> {
+    const r = await firstValueFrom(this.sessionApi.getWebCsrfToken());
+    return r.csrf_token;
+  }
+
+
   async submitTransfer(): Promise<void> {
     const from = this.accountsCache.find(a => a.id === this.transferFromId);
     const to = this.accountsCache.find(a => a.id === this.transferToId);
     if (!from || !to) return;
 
-    const payload = {
-      source_account_id: this.transferFromId,
-      destination_account_id: this.transferToId,
-      amount: String(this.transferAmount), // 👈 mejor enviar string decimal si tu backend usa decimal
-      currency: from.currency,
+    const csrf = await this.getCsrf();
+    const idem = crypto.randomUUID();
+
+    const payload: CreatePaymentRequestDto = {
+      source_account: this.transferFromId!,
+      destination_account: this.transferToId!,
+      currency: (from.currency || 'USD').toUpperCase(),
+      amount: Number(this.transferAmount).toFixed(2),
       memo: this.transferMemo || null
     };
 
     try {
-      await firstValueFrom(this.http.post('/api/v1/transfers', payload));
+      // Firma típica del cliente generado por OpenAPI:
+      // executePayment(idempotencyKey, xCsrfToken, body)
+      const res: CreatePaymentResponseDto = await firstValueFrom(
+        this.paymentsApi.executePayment({
+          idempotencyKey: idem,
+          xCSRFToken: csrf,
+          createPaymentRequestDto: payload
+        })
+      );
 
       this.recentTx.unshift({
         when: new Date(),
         type: 'transfer',
         amount: Number(this.transferAmount),
         currency: from.currency,
-        status: 'pending'
+        status: res.status === 'posted' ? 'posted' : 'pending'
       });
 
-      this.toastSuccess('Transferencia enviada', 'La operación fue enviada al BFF para procesamiento.');
+      this.toastSuccess('Transferencia enviada', `Payment ID: ${this.maskId(res.payment_id)}`);
       this.transferOpen = false;
     } catch (e: any) {
-      const msg =
-        e?.status === 404
-          ? 'El endpoint /api/v1/transfers no existe en el BFF. Ajusta la ruta o implementa el handler.'
-          : 'No se pudo enviar la transferencia. Revisa logs del BFF/microservicios.';
-      this.toastError('Error', msg);
+      this.toastError('Error', 'No se pudo enviar la transferencia. Revisa logs del BFF/microservicios.');
     }
   }
+
+
+  async loadActivity(accountId: string): Promise<void> {
+    try {
+      const res = await firstValueFrom(
+        this.accountsApi.getAccountActivity({
+          id: accountId,
+          page: 1,
+          size: 20
+        })
+      );
+
+      // res.items trae journal_id, booked_at, memo (según tu schema actual)
+      // Aquí solo puedes mostrar fecha + memo (monto/tipo no existen aún en el contrato)
+      this.recentTx = (res.items || []).map(it => ({
+        when: new Date(it.booked_at!),
+        type: 'debit',      // placeholder: tu contrato aún no trae direction
+        amount: 0,          // placeholder: tu contrato aún no trae amount
+        currency: this.getSelectedAccount()?.currency || 'USD',
+        status: 'posted'
+      }));
+    } catch (e: any) {
+      this.toastError('Error', 'No se pudieron cargar los movimientos.');
+    }
+  }
+
+
 
   scrollToMovements() {
     const el = document.getElementById('movements');
