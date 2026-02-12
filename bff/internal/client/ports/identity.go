@@ -60,13 +60,15 @@ type GetSessionInfoInput struct {
 	UserAgent string
 }
 type GetSessionInfoOutput struct {
-	IdentityID       string
-	SubjectIDOidc    string
-	Provider         string
-	User             OidcUser
-	CustomerID       string
-	UserStatus       string // ACTIVE|LOCKED|DISABLED
-	SessionExpiresIn int64
+	IdentityID           string
+	SubjectIDOidc        string
+	Provider             string
+	User                 OidcUser
+	CustomerID           string
+	UserStatus           string // ACTIVE|LOCKED|DISABLED
+	SessionExpiresIn     int64
+	AccessToken          string
+	AccessTokenExpiresIn int64
 }
 
 // ==========================

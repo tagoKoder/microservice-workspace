@@ -1,13 +1,30 @@
 package com.tagokoder.identity.infra.in.grpc;
 
-import bank.identity.v1.*;
-import com.tagokoder.identity.domain.port.in.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.tagokoder.identity.domain.port.in.CompleteLoginUseCase;
+import com.tagokoder.identity.domain.port.in.GetSessionInfoUseCase;
+import com.tagokoder.identity.domain.port.in.LogoutSessionUseCase;
+import com.tagokoder.identity.domain.port.in.RefreshSessionUseCase;
+import com.tagokoder.identity.domain.port.in.StartLoginUseCase;
+
+import bank.identity.v1.CompleteOidcLoginRequest;
+import bank.identity.v1.CompleteOidcLoginResponse;
+import bank.identity.v1.GetSessionInfoRequest;
+import bank.identity.v1.GetSessionInfoResponse;
+import bank.identity.v1.LogoutSessionRequest;
+import bank.identity.v1.LogoutSessionResponse;
+import bank.identity.v1.OidcAuthServiceGrpc;
+import bank.identity.v1.OidcUser;
+import bank.identity.v1.RefreshSessionRequest;
+import bank.identity.v1.RefreshSessionResponse;
+import bank.identity.v1.StartOidcLoginRequest;
+import bank.identity.v1.StartOidcLoginResponse;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @GrpcService
 public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImplBase {
@@ -55,6 +72,8 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
           .setSessionExpiresIn(info.expiresInSeconds())
           .setUser(user)
           .setCustomerId(info.customerId() != null ? info.customerId() : "")
+          .setAccessToken(info.accessToken() != null ? info.accessToken() : "")
+          .setAccessTokenExpiresIn(info.accessTokenExpiresIn())
           .build();
 
       responseObserver.onNext(resp);
@@ -65,7 +84,7 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
       responseObserver.onError(Status.INVALID_ARGUMENT.withDescription("INVALID_ARGUMENT").asRuntimeException());
 
     } catch (IllegalStateException e) {
-      // ✅ aquí estaba el problema: NO throw
+      // aquí estaba el problema: NO throw
       responseObserver.onError(mapSessionException(e));
 
     } catch (Exception e) {
@@ -99,7 +118,7 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   @Override
   public void completeOidcLogin(CompleteOidcLoginRequest request, StreamObserver<CompleteOidcLoginResponse> responseObserver) {
     try {
-      // ⚠️ evita loggear IP cruda en prod; si quieres, loggea hash.
+      // evita loggear IP cruda en prod; si quieres, loggea hash.
       // log.info("IDENTITY COMPLETE AUTH ip={}", request.getIp());
 
       var res = completeLogin.complete(new CompleteLoginUseCase.CompleteLoginCommand(

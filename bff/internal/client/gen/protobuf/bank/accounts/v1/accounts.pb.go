@@ -1599,11 +1599,13 @@ func (x *HoldRequest) GetReason() *wrapperspb.StringValue {
 }
 
 type ReserveHoldRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // uuid (path param) - account_id
-	Hold          *HoldRequest           `protobuf:"bytes,2,opt,name=hold,proto3" json:"hold,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // uuid (path param) - account_id
+	Hold           *HoldRequest           `protobuf:"bytes,2,opt,name=hold,proto3" json:"hold,omitempty"`
+	HoldId         string                 `protobuf:"bytes,3,opt,name=hold_id,json=holdId,proto3" json:"hold_id,omitempty"`                         // UUID: idealmente payment_id o generated por ledger
+	IdempotencyKey string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"` // required para reintentos seguros
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ReserveHoldRequest) Reset() {
@@ -1650,12 +1652,28 @@ func (x *ReserveHoldRequest) GetHold() *HoldRequest {
 	return nil
 }
 
+func (x *ReserveHoldRequest) GetHoldId() string {
+	if x != nil {
+		return x.HoldId
+	}
+	return ""
+}
+
+func (x *ReserveHoldRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
 type ReleaseHoldRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // uuid (path param) - account_id
-	Hold          *HoldRequest           `protobuf:"bytes,2,opt,name=hold,proto3" json:"hold,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // uuid (path param) - account_id
+	Hold           *HoldRequest           `protobuf:"bytes,2,opt,name=hold,proto3" json:"hold,omitempty"`
+	HoldId         string                 `protobuf:"bytes,3,opt,name=hold_id,json=holdId,proto3" json:"hold_id,omitempty"`                         // referencia exacta de lo reservado
+	IdempotencyKey string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"` // required
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ReleaseHoldRequest) Reset() {
@@ -1702,10 +1720,26 @@ func (x *ReleaseHoldRequest) GetHold() *HoldRequest {
 	return nil
 }
 
+func (x *ReleaseHoldRequest) GetHoldId() string {
+	if x != nil {
+		return x.HoldId
+	}
+	return ""
+}
+
+func (x *ReleaseHoldRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
 type ReserveHoldResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	NewHold       float64                `protobuf:"fixed64,2,opt,name=new_hold,json=newHold,proto3" json:"new_hold,omitempty"`
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Ok            bool                    `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	NewHold       float64                 `protobuf:"fixed64,2,opt,name=new_hold,json=newHold,proto3" json:"new_hold,omitempty"`
+	HoldId        string                  `protobuf:"bytes,3,opt,name=hold_id,json=holdId,proto3" json:"hold_id,omitempty"`
+	Status        *wrapperspb.StringValue `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"` // reserved|duplicate|failed
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1754,10 +1788,25 @@ func (x *ReserveHoldResponse) GetNewHold() float64 {
 	return 0
 }
 
+func (x *ReserveHoldResponse) GetHoldId() string {
+	if x != nil {
+		return x.HoldId
+	}
+	return ""
+}
+
+func (x *ReserveHoldResponse) GetStatus() *wrapperspb.StringValue {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 type ReleaseHoldResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	NewHold       float64                `protobuf:"fixed64,2,opt,name=new_hold,json=newHold,proto3" json:"new_hold,omitempty"`
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Ok            bool                    `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	NewHold       float64                 `protobuf:"fixed64,2,opt,name=new_hold,json=newHold,proto3" json:"new_hold,omitempty"`
+	Status        *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"` // released|duplicate|failed
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1804,6 +1853,13 @@ func (x *ReleaseHoldResponse) GetNewHold() float64 {
 		return x.NewHold
 	}
 	return 0
+}
+
+func (x *ReleaseHoldResponse) GetStatus() *wrapperspb.StringValue {
+	if x != nil {
+		return x.Status
+	}
+	return nil
 }
 
 var File_bank_accounts_v1_accounts_proto protoreflect.FileDescriptor
@@ -1911,19 +1967,26 @@ const file_bank_accounts_v1_accounts_proto_rawDesc = "" +
 	"\vHoldRequest\x12\x1a\n" +
 	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x01R\x06amount\x124\n" +
-	"\x06reason\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\x06reason\"W\n" +
+	"\x06reason\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\x06reason\"\x99\x01\n" +
 	"\x12ReserveHoldRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x121\n" +
-	"\x04hold\x18\x02 \x01(\v2\x1d.bank.accounts.v1.HoldRequestR\x04hold\"W\n" +
+	"\x04hold\x18\x02 \x01(\v2\x1d.bank.accounts.v1.HoldRequestR\x04hold\x12\x17\n" +
+	"\ahold_id\x18\x03 \x01(\tR\x06holdId\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\"\x99\x01\n" +
 	"\x12ReleaseHoldRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x121\n" +
-	"\x04hold\x18\x02 \x01(\v2\x1d.bank.accounts.v1.HoldRequestR\x04hold\"@\n" +
+	"\x04hold\x18\x02 \x01(\v2\x1d.bank.accounts.v1.HoldRequestR\x04hold\x12\x17\n" +
+	"\ahold_id\x18\x03 \x01(\tR\x06holdId\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\"\x8f\x01\n" +
 	"\x13ReserveHoldResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x19\n" +
-	"\bnew_hold\x18\x02 \x01(\x01R\anewHold\"@\n" +
+	"\bnew_hold\x18\x02 \x01(\x01R\anewHold\x12\x17\n" +
+	"\ahold_id\x18\x03 \x01(\tR\x06holdId\x124\n" +
+	"\x06status\x18\x04 \x01(\v2\x1c.google.protobuf.StringValueR\x06status\"v\n" +
 	"\x13ReleaseHoldResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x19\n" +
-	"\bnew_hold\x18\x02 \x01(\x01R\anewHold*q\n" +
+	"\bnew_hold\x18\x02 \x01(\x01R\anewHold\x124\n" +
+	"\x06status\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\x06status*q\n" +
 	"\vRiskSegment\x12\x1c\n" +
 	"\x18RISK_SEGMENT_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10RISK_SEGMENT_LOW\x10\x01\x12\x17\n" +
@@ -2034,29 +2097,31 @@ var file_bank_accounts_v1_accounts_proto_depIdxs = []int32{
 	31, // 23: bank.accounts.v1.HoldRequest.reason:type_name -> google.protobuf.StringValue
 	26, // 24: bank.accounts.v1.ReserveHoldRequest.hold:type_name -> bank.accounts.v1.HoldRequest
 	26, // 25: bank.accounts.v1.ReleaseHoldRequest.hold:type_name -> bank.accounts.v1.HoldRequest
-	4,  // 26: bank.accounts.v1.CustomersService.CreateCustomer:input_type -> bank.accounts.v1.CreateCustomerRequest
-	7,  // 27: bank.accounts.v1.CustomersService.PatchCustomer:input_type -> bank.accounts.v1.PatchCustomerRequest
-	16, // 28: bank.accounts.v1.AccountsService.ListAccounts:input_type -> bank.accounts.v1.ListAccountsRequest
-	14, // 29: bank.accounts.v1.AccountsService.CreateAccount:input_type -> bank.accounts.v1.CreateAccountRequest
-	20, // 30: bank.accounts.v1.AccountsService.GetAccountBalances:input_type -> bank.accounts.v1.GetAccountBalancesRequest
-	22, // 31: bank.accounts.v1.AccountsService.PatchAccountLimits:input_type -> bank.accounts.v1.PatchAccountLimitsRequest
-	24, // 32: bank.accounts.v1.InternalAccountsService.ValidateAccountsAndLimits:input_type -> bank.accounts.v1.ValidateAccountsAndLimitsRequest
-	27, // 33: bank.accounts.v1.InternalAccountsService.ReserveHold:input_type -> bank.accounts.v1.ReserveHoldRequest
-	28, // 34: bank.accounts.v1.InternalAccountsService.ReleaseHold:input_type -> bank.accounts.v1.ReleaseHoldRequest
-	6,  // 35: bank.accounts.v1.CustomersService.CreateCustomer:output_type -> bank.accounts.v1.CreateCustomerResponse
-	13, // 36: bank.accounts.v1.CustomersService.PatchCustomer:output_type -> bank.accounts.v1.PatchCustomerResponse
-	17, // 37: bank.accounts.v1.AccountsService.ListAccounts:output_type -> bank.accounts.v1.ListAccountsResponse
-	15, // 38: bank.accounts.v1.AccountsService.CreateAccount:output_type -> bank.accounts.v1.CreateAccountResponse
-	21, // 39: bank.accounts.v1.AccountsService.GetAccountBalances:output_type -> bank.accounts.v1.GetAccountBalancesResponse
-	23, // 40: bank.accounts.v1.AccountsService.PatchAccountLimits:output_type -> bank.accounts.v1.PatchAccountLimitsResponse
-	25, // 41: bank.accounts.v1.InternalAccountsService.ValidateAccountsAndLimits:output_type -> bank.accounts.v1.ValidateAccountsAndLimitsResponse
-	29, // 42: bank.accounts.v1.InternalAccountsService.ReserveHold:output_type -> bank.accounts.v1.ReserveHoldResponse
-	30, // 43: bank.accounts.v1.InternalAccountsService.ReleaseHold:output_type -> bank.accounts.v1.ReleaseHoldResponse
-	35, // [35:44] is the sub-list for method output_type
-	26, // [26:35] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	31, // 26: bank.accounts.v1.ReserveHoldResponse.status:type_name -> google.protobuf.StringValue
+	31, // 27: bank.accounts.v1.ReleaseHoldResponse.status:type_name -> google.protobuf.StringValue
+	4,  // 28: bank.accounts.v1.CustomersService.CreateCustomer:input_type -> bank.accounts.v1.CreateCustomerRequest
+	7,  // 29: bank.accounts.v1.CustomersService.PatchCustomer:input_type -> bank.accounts.v1.PatchCustomerRequest
+	16, // 30: bank.accounts.v1.AccountsService.ListAccounts:input_type -> bank.accounts.v1.ListAccountsRequest
+	14, // 31: bank.accounts.v1.AccountsService.CreateAccount:input_type -> bank.accounts.v1.CreateAccountRequest
+	20, // 32: bank.accounts.v1.AccountsService.GetAccountBalances:input_type -> bank.accounts.v1.GetAccountBalancesRequest
+	22, // 33: bank.accounts.v1.AccountsService.PatchAccountLimits:input_type -> bank.accounts.v1.PatchAccountLimitsRequest
+	24, // 34: bank.accounts.v1.InternalAccountsService.ValidateAccountsAndLimits:input_type -> bank.accounts.v1.ValidateAccountsAndLimitsRequest
+	27, // 35: bank.accounts.v1.InternalAccountsService.ReserveHold:input_type -> bank.accounts.v1.ReserveHoldRequest
+	28, // 36: bank.accounts.v1.InternalAccountsService.ReleaseHold:input_type -> bank.accounts.v1.ReleaseHoldRequest
+	6,  // 37: bank.accounts.v1.CustomersService.CreateCustomer:output_type -> bank.accounts.v1.CreateCustomerResponse
+	13, // 38: bank.accounts.v1.CustomersService.PatchCustomer:output_type -> bank.accounts.v1.PatchCustomerResponse
+	17, // 39: bank.accounts.v1.AccountsService.ListAccounts:output_type -> bank.accounts.v1.ListAccountsResponse
+	15, // 40: bank.accounts.v1.AccountsService.CreateAccount:output_type -> bank.accounts.v1.CreateAccountResponse
+	21, // 41: bank.accounts.v1.AccountsService.GetAccountBalances:output_type -> bank.accounts.v1.GetAccountBalancesResponse
+	23, // 42: bank.accounts.v1.AccountsService.PatchAccountLimits:output_type -> bank.accounts.v1.PatchAccountLimitsResponse
+	25, // 43: bank.accounts.v1.InternalAccountsService.ValidateAccountsAndLimits:output_type -> bank.accounts.v1.ValidateAccountsAndLimitsResponse
+	29, // 44: bank.accounts.v1.InternalAccountsService.ReserveHold:output_type -> bank.accounts.v1.ReserveHoldResponse
+	30, // 45: bank.accounts.v1.InternalAccountsService.ReleaseHold:output_type -> bank.accounts.v1.ReleaseHoldResponse
+	37, // [37:46] is the sub-list for method output_type
+	28, // [28:37] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_bank_accounts_v1_accounts_proto_init() }

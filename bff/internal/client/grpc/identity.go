@@ -114,13 +114,15 @@ func (c *IdentityClient) GetSessionInfo(ctx context.Context, in ports.GetSession
 	}
 
 	return ports.GetSessionInfoOutput{
-		IdentityID:       res.IdentityId,
-		SubjectIDOidc:    res.SubjectIdOidc,
-		Provider:         res.Provider,
-		User:             u,
-		CustomerID:       res.CustomerId,
-		UserStatus:       res.UserStatus,
-		SessionExpiresIn: res.SessionExpiresIn,
+		IdentityID:           res.IdentityId,
+		SubjectIDOidc:        res.SubjectIdOidc,
+		Provider:             res.Provider,
+		User:                 u,
+		CustomerID:           res.CustomerId,
+		UserStatus:           res.UserStatus,
+		SessionExpiresIn:     res.SessionExpiresIn,
+		AccessToken:          res.AccessToken,
+		AccessTokenExpiresIn: res.AccessTokenExpiresIn,
 	}, nil
 }
 

@@ -1,1 +1,1 @@
-buf.build/imaginarybank/bank:v0.0.14
+buf.build/imaginarybank/bank:v0.0.16

@@ -1777,16 +1777,18 @@ func (x *GetSessionInfoRequest) GetUserAgent() string {
 }
 
 type GetSessionInfoResponse struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	IdentityId       string                 `protobuf:"bytes,1,opt,name=identity_id,json=identityId,proto3" json:"identity_id,omitempty"` // uuid
-	SubjectIdOidc    string                 `protobuf:"bytes,2,opt,name=subject_id_oidc,json=subjectIdOidc,proto3" json:"subject_id_oidc,omitempty"`
-	Provider         string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`                       // example: cognito
-	User             *OidcUser              `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`                               // roles here
-	CustomerId       string                 `protobuf:"bytes,5,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"` // optional if linked
-	UserStatus       string                 `protobuf:"bytes,6,opt,name=user_status,json=userStatus,proto3" json:"user_status,omitempty"` // ACTIVE|LOCKED|DISABLED
-	SessionExpiresIn int64                  `protobuf:"varint,7,opt,name=session_expires_in,json=sessionExpiresIn,proto3" json:"session_expires_in,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	IdentityId           string                 `protobuf:"bytes,1,opt,name=identity_id,json=identityId,proto3" json:"identity_id,omitempty"` // uuid
+	SubjectIdOidc        string                 `protobuf:"bytes,2,opt,name=subject_id_oidc,json=subjectIdOidc,proto3" json:"subject_id_oidc,omitempty"`
+	Provider             string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`                       // example: cognito
+	User                 *OidcUser              `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`                               // roles here
+	CustomerId           string                 `protobuf:"bytes,5,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"` // optional if linked
+	UserStatus           string                 `protobuf:"bytes,6,opt,name=user_status,json=userStatus,proto3" json:"user_status,omitempty"` // ACTIVE|LOCKED|DISABLED
+	SessionExpiresIn     int64                  `protobuf:"varint,7,opt,name=session_expires_in,json=sessionExpiresIn,proto3" json:"session_expires_in,omitempty"`
+	AccessToken          string                 `protobuf:"bytes,8,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	AccessTokenExpiresIn int64                  `protobuf:"varint,9,opt,name=access_token_expires_in,json=accessTokenExpiresIn,proto3" json:"access_token_expires_in,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GetSessionInfoResponse) Reset() {
@@ -1864,6 +1866,20 @@ func (x *GetSessionInfoResponse) GetUserStatus() string {
 func (x *GetSessionInfoResponse) GetSessionExpiresIn() int64 {
 	if x != nil {
 		return x.SessionExpiresIn
+	}
+	return 0
+}
+
+func (x *GetSessionInfoResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *GetSessionInfoResponse) GetAccessTokenExpiresIn() int64 {
+	if x != nil {
+		return x.AccessTokenExpiresIn
 	}
 	return 0
 }
@@ -2005,7 +2021,7 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x0e\n" +
 	"\x02ip\x18\x02 \x01(\tR\x02ip\x12\x1d\n" +
 	"\n" +
-	"user_agent\x18\x03 \x01(\tR\tuserAgent\"\x9d\x02\n" +
+	"user_agent\x18\x03 \x01(\tR\tuserAgent\"\xf7\x02\n" +
 	"\x16GetSessionInfoResponse\x12\x1f\n" +
 	"\videntity_id\x18\x01 \x01(\tR\n" +
 	"identityId\x12&\n" +
@@ -2016,7 +2032,9 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"customerId\x12\x1f\n" +
 	"\vuser_status\x18\x06 \x01(\tR\n" +
 	"userStatus\x12,\n" +
-	"\x12session_expires_in\x18\a \x01(\x03R\x10sessionExpiresIn*\xcc\x01\n" +
+	"\x12session_expires_in\x18\a \x01(\x03R\x10sessionExpiresIn\x12!\n" +
+	"\faccess_token\x18\b \x01(\tR\vaccessToken\x125\n" +
+	"\x17access_token_expires_in\x18\t \x01(\x03R\x14accessTokenExpiresIn*\xcc\x01\n" +
 	"\x0eOccupationType\x12\x1f\n" +
 	"\x1bOCCUPATION_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17OCCUPATION_TYPE_STUDENT\x10\x01\x12\x1c\n" +

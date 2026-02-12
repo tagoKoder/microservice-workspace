@@ -38,7 +38,7 @@
 
             <!-- Carousel -->
             <p-carousel
-              [value]="(accountsCache?.length ? accountsCache : accRes.accounts)"
+              [value]="(accountsCache.length ? accountsCache : accRes.accounts)"
               [numVisible]="1"
               [numScroll]="1"
               [circular]="true"
@@ -94,7 +94,7 @@
                   [(ngModel)]="selectedAccountId"
                   (change)="onSelectAccountChange()">
                   <option
-                    *ngFor="let a of (accountsCache?.length ? accountsCache : accRes.accounts)"
+                    *ngFor="let a of (accountsCache.length ? accountsCache : accRes.accounts)"
                     [value]="a.id">
                     {{ a.product_type }} · {{ a.currency }} · {{ maskId(a.id) }}
                   </option>
@@ -247,14 +247,14 @@
     [style]="{ width: '560px' }"
     [breakpoints]="{ '960px': '95vw' }">
 
-    <div class="grid" *ngIf="accountsCache?.length">
+    <div class="grid" *ngIf="accountsCache.length">
       <div class="col-12">
         <div class="text-600 text-sm mb-1">Desde</div>
 
         <!-- ✅ select nativo -->
         <select class="bank-select w-full" [(ngModel)]="transferFromId">
           <option *ngFor="let a of accountsCache" [value]="a.id">
-            {{ a.product_type }} · {{ a.currency }} · Disp: {{ formatMoney(a.balances?.available, a.currency) }}
+            {{ a.product_type }} · {{ a.currency }} · Disp: {{ formatMoney(a.balances.available, a.currency) }}
           </option>
         </select>
       </div>
@@ -310,7 +310,7 @@
       </div>
     </div>
 
-    <div *ngIf="!accountsCache?.length" class="empty">
+    <div *ngIf="!accountsCache.length" class="empty">
       <i class="pi pi-wallet empty__icon"></i>
       <div class="empty__title">No hay cuentas</div>
       <div class="empty__text">Necesitas al menos una cuenta para transferir.</div>

@@ -274,13 +274,12 @@ type GetPaymentResponse struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	PaymentId            string                 `protobuf:"bytes,1,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
 	Status               string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	IdempotencyKey       string                 `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	SourceAccountId      string                 `protobuf:"bytes,4,opt,name=source_account_id,json=sourceAccountId,proto3" json:"source_account_id,omitempty"`
-	DestinationAccountId string                 `protobuf:"bytes,5,opt,name=destination_account_id,json=destinationAccountId,proto3" json:"destination_account_id,omitempty"`
-	Currency             string                 `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency,omitempty"`
-	Amount               string                 `protobuf:"bytes,7,opt,name=amount,proto3" json:"amount,omitempty"`
-	Steps                []*PaymentStep         `protobuf:"bytes,8,rep,name=steps,proto3" json:"steps,omitempty"`
-	CreatedAt            *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	SourceAccountId      string                 `protobuf:"bytes,3,opt,name=source_account_id,json=sourceAccountId,proto3" json:"source_account_id,omitempty"`
+	DestinationAccountId string                 `protobuf:"bytes,4,opt,name=destination_account_id,json=destinationAccountId,proto3" json:"destination_account_id,omitempty"`
+	Currency             string                 `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
+	Amount               string                 `protobuf:"bytes,6,opt,name=amount,proto3" json:"amount,omitempty"`
+	Steps                []*PaymentStep         `protobuf:"bytes,7,rep,name=steps,proto3" json:"steps,omitempty"`
+	CreatedAt            *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -325,13 +324,6 @@ func (x *GetPaymentResponse) GetPaymentId() string {
 func (x *GetPaymentResponse) GetStatus() string {
 	if x != nil {
 		return x.Status
-	}
-	return ""
-}
-
-func (x *GetPaymentResponse) GetIdempotencyKey() string {
-	if x != nil {
-		return x.IdempotencyKey
 	}
 	return ""
 }
@@ -841,19 +833,18 @@ const file_bank_ledgerpayments_v1_ledgerpayments_proto_rawDesc = "" +
 	"\x04step\x18\x01 \x01(\tR\x04step\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12!\n" +
 	"\fdetails_json\x18\x03 \x01(\tR\vdetailsJson\x12=\n" +
-	"\fattempted_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vattemptedAt\"\x80\x03\n" +
+	"\fattempted_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vattemptedAt\"\xd7\x02\n" +
 	"\x12GetPaymentResponse\x12\x1d\n" +
 	"\n" +
 	"payment_id\x18\x01 \x01(\tR\tpaymentId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12'\n" +
-	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\x12*\n" +
-	"\x11source_account_id\x18\x04 \x01(\tR\x0fsourceAccountId\x124\n" +
-	"\x16destination_account_id\x18\x05 \x01(\tR\x14destinationAccountId\x12\x1a\n" +
-	"\bcurrency\x18\x06 \x01(\tR\bcurrency\x12\x16\n" +
-	"\x06amount\x18\a \x01(\tR\x06amount\x129\n" +
-	"\x05steps\x18\b \x03(\v2#.bank.ledgerpayments.v1.PaymentStepR\x05steps\x129\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12*\n" +
+	"\x11source_account_id\x18\x03 \x01(\tR\x0fsourceAccountId\x124\n" +
+	"\x16destination_account_id\x18\x04 \x01(\tR\x14destinationAccountId\x12\x1a\n" +
+	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x12\x16\n" +
+	"\x06amount\x18\x06 \x01(\tR\x06amount\x129\n" +
+	"\x05steps\x18\a \x03(\v2#.bank.ledgerpayments.v1.PaymentStepR\x05steps\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x91\x02\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x91\x02\n" +
 	"\x14CreditAccountRequest\x12'\n" +
 	"\x0fidempotency_key\x18\x01 \x01(\tR\x0eidempotencyKey\x12\x1d\n" +
 	"\n" +

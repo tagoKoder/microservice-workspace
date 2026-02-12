@@ -53,9 +53,9 @@ func (c *LedgerPaymentsClient) GetPayment(ctx context.Context, in ports.GetPayme
 	}
 
 	out := ports.GetPaymentOutput{
-		PaymentID:            res.PaymentId,
-		Status:               res.Status,
-		IdempotencyKey:       res.IdempotencyKey,
+		PaymentID: res.PaymentId,
+		Status:    res.Status,
+		//IdempotencyKey:       res.IdempotencyKey,
 		SourceAccountID:      res.SourceAccountId,
 		DestinationAccountID: res.DestinationAccountId,
 		Currency:             res.Currency,

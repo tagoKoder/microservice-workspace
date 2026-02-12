@@ -44,7 +44,39 @@ func main() {
 	cookies := security.NewCookieManager(cfg)
 	csrf := security.NewCSRFManager(cfg)
 	redirect := security.NewRedirectPolicy(cfg.RedirectAllowlist)
-	tokens := security.NewAccessTokenProvider(clients.Identity)
+
+	// --- Redis TokenCache (opcional)
+	/*
+		var tokenCache security.TokenCache = security.NoopTokenCache{}
+		var rdb *redis.Client
+
+		if cfg.RedisEnabled {
+			opt := &redis.Options{
+				Addr:     cfg.RedisAddr,
+				Password: cfg.RedisPassword,
+				DB:       cfg.RedisDB,
+			}
+			if cfg.RedisTLS {
+				opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+			}
+
+			rdb = redis.NewClient(opt)
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+
+			if err := rdb.Ping(ctx).Err(); err != nil {
+				log.Fatalf("redis ping: %v", err)
+			}
+			defer func() { _ = rdb.Close() }()
+
+			tokenCache = security.NewRedisTokenCacheWithOptions(
+				rdb,
+				cfg.TokenCachePrefix,
+				time.Duration(cfg.TokenCacheSkewSeconds)*time.Second,
+			)
+
+			log.Printf("Redis enabled addr=%s db=%d tls=%v", cfg.RedisAddr, cfg.RedisDB, cfg.RedisTLS)
+		}*/
 
 	srv := restserver.New(restserver.Dependencies{
 		Config:   cfg,
@@ -52,7 +84,7 @@ func main() {
 		Cookies:  cookies,
 		CSRF:     csrf,
 		Redirect: redirect,
-		Tokens:   tokens,
+		//TokenCache: tokenCache,
 	})
 
 	router := restserver.NewRouter(

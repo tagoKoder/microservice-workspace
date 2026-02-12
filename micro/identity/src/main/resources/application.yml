@@ -110,6 +110,7 @@ identity:
   security:
     refreshTokenPepper: ${IDENTITY_REFRESH_TOKEN_PEPPER:change-me}
     refreshTokenEncKeyB64: ${IDENTITY_REFRESH_TOKEN_ENC_KEY_B64:} # requerido (32 bytes en base64)
+    accessTokenEncKeyB64: ${IDENTITY_ACCESS_TOKEN_ENC_KEY_B64:}
 
   session:
     ttlSeconds: ${IDENTITY_SESSION_TTL_SECONDS:1800}

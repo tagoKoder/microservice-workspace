@@ -26,6 +26,16 @@ type Config struct {
 	GRPCCACertPath     string
 	GRPCClientCertPath string
 	GRPCClientKeyPath  string
+
+	// --- Redis (opcional)
+	RedisEnabled  bool
+	RedisAddr     string
+	RedisPassword string
+	RedisDB       int
+	RedisTLS      bool
+
+	TokenCachePrefix      string
+	TokenCacheSkewSeconds int
 }
 
 func Load() Config {
@@ -48,6 +58,15 @@ func Load() Config {
 		GRPCCACertPath:     getenv("GRPC_CA_CERT", ""),
 		GRPCClientCertPath: getenv("GRPC_CLIENT_CERT", ""),
 		GRPCClientKeyPath:  getenv("GRPC_CLIENT_KEY", ""),
+
+		RedisEnabled:  getenv("REDIS_ENABLED", "false") == "true",
+		RedisAddr:     getenv("REDIS_ADDR", "redis:6379"),
+		RedisPassword: getenv("REDIS_PASSWORD", ""),
+		RedisDB:       mustInt(getenv("REDIS_DB", "0")),
+		RedisTLS:      getenv("REDIS_TLS", "false") == "true",
+
+		TokenCachePrefix:      getenv("TOKEN_CACHE_PREFIX", "bff:tok:"),
+		TokenCacheSkewSeconds: mustInt(getenv("TOKEN_CACHE_SKEW_SECONDS", "30")),
 	}
 }
 

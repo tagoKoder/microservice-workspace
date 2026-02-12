@@ -22,7 +22,7 @@ type Dependencies struct {
 	Cookies  *security.CookieManager
 	CSRF     *security.CSRFManager
 	Redirect *security.RedirectPolicy
-	Tokens   *security.AccessTokenProvider
+	//TokenCache security.TokenCache
 }
 
 type Server struct {

@@ -153,7 +153,13 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
         identity = identityRepo.save(identity);
         linkIdentityToCustomerIfPossible(identity.getId(), email);
         // 3) Sesión server-side: guardas refresh token cifrado + hash
-        var created = createSessionUseCase.createSession(identity, token.refreshToken, command.ip(), command.userAgent());
+        var created = createSessionUseCase.createSession(
+            identity, 
+            token.refreshToken, 
+            token.accessToken,
+            token.expiresIn,
+            command.ip(), 
+            command.userAgent());
 
         return new CompleteLoginResponse(
                 identity.getId(),

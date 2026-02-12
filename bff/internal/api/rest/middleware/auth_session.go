@@ -6,7 +6,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/tagoKoder/bff/internal/client/ports"
 	"github.com/tagoKoder/bff/internal/config"
@@ -31,7 +30,7 @@ type AuthDeps struct {
 	Config   config.Config
 	Identity ports.IdentityPort
 	Cookies  *security.CookieManager
-	Tokens   *security.AccessTokenProvider
+	//TokenCache security.TokenCache
 }
 
 func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Handler {
@@ -68,9 +67,9 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 			if newSid != "" && newSid != sid {
 				ctx = security.WithSessionID(ctx, newSid)
 				// opcional: guardar access token en ctx para interceptores que propaguen Bearer
-				if accessTok != "" {
+				/*if accessTok != "" {
 					ctx = context.WithValue(ctx, CtxAccessToken, accessTok)
-				}
+				}*/
 				sid = newSid
 			}
 
@@ -104,14 +103,66 @@ func getSessionInfoWithRefresh(
 	w http.ResponseWriter,
 ) (ports.GetSessionInfoOutput, string, string, error) {
 
-	// 1) intento normal
+	const skewSeconds int64 = 30
+
+	// 1) intento normal: GetSessionInfo
 	info, err := deps.Identity.GetSessionInfo(ctx, ports.GetSessionInfoInput{
 		SessionID: sid,
 		IP:        ip,
 		UserAgent: ua,
 	})
 	if err == nil {
-		return info, "", "", nil
+		// Si Identity ya te da access token vigente -> úsalo.
+		if info.AccessToken != "" && info.AccessTokenExpiresIn > skewSeconds {
+			return info, "", info.AccessToken, nil
+		}
+		// 2) fallback: si token viene vacío o corto, intenta Redis (NO valida sesión)
+		/*
+			if tok, expAt, ok := deps.TokenCache.Get(ctx, sid); ok {
+				sec := int64(time.Until(expAt).Seconds())
+				if sec > skewSeconds {
+					info.AccessToken = tok
+					info.AccessTokenExpiresIn = sec
+					return info, "", tok, nil
+				}
+			}
+		*/
+
+		// Si token falta o está por expirar -> refresh (rota sid)
+		ref, rerr := deps.Identity.RefreshSession(ctx, ports.RefreshSessionInput{
+			SessionID: sid,
+			IP:        ip,
+			UserAgent: ua,
+		})
+		if rerr != nil {
+			deps.Cookies.Clear(w)
+			w.WriteHeader(http.StatusUnauthorized)
+			return ports.GetSessionInfoOutput{}, "", "", rerr
+		}
+		/*
+			if deps.TokenCache != nil && ref.AccessToken != "" && ref.AccessTokenExpiresIn > 0 {
+				expAt := time.Now().Add(time.Duration(ref.AccessTokenExpiresIn) * time.Second)
+				_ = deps.TokenCache.Set(ctx, ref.SessionID, ref.AccessToken, expAt)
+				_ = deps.TokenCache.Del(ctx, sid)
+			}
+		*/
+
+		// rota cookie
+		deps.Cookies.WriteSessionID(w, ref.SessionID, ref.SessionExpiresIn)
+
+		// re-pide info para roles/status/customer_id coherentes con el nuevo sid
+		info2, err2 := deps.Identity.GetSessionInfo(ctx, ports.GetSessionInfoInput{
+			SessionID: ref.SessionID,
+			IP:        ip,
+			UserAgent: ua,
+		})
+		if err2 != nil {
+			deps.Cookies.Clear(w)
+			w.WriteHeader(http.StatusUnauthorized)
+			return ports.GetSessionInfoOutput{}, "", "", err2
+		}
+
+		return info2, ref.SessionID, ref.AccessToken, nil
 	}
 
 	// 2) clasifica error gRPC
@@ -123,7 +174,7 @@ func getSessionInfoWithRefresh(
 
 	switch st.Code() {
 	case codes.Unauthenticated:
-		// si es EXPIRED -> intentamos refresh UNA sola vez
+		// solo refresca si es SESSION_EXPIRED (idle TTL venció, pero absolute TTL puede seguir vivo)
 		if st.Message() == "SESSION_EXPIRED" {
 			ref, rerr := deps.Identity.RefreshSession(ctx, ports.RefreshSessionInput{
 				SessionID: sid,
@@ -131,24 +182,13 @@ func getSessionInfoWithRefresh(
 				UserAgent: ua,
 			})
 			if rerr != nil {
-				// si refresh falla, tratamos como sesión inválida (limpia cookie)
 				deps.Cookies.Clear(w)
 				w.WriteHeader(http.StatusUnauthorized)
 				return ports.GetSessionInfoOutput{}, "", "", rerr
 			}
 
-			now := time.Now()
-			sessExp := now.Add(time.Duration(ref.SessionExpiresIn) * time.Second)
-			atExp := now.Add(time.Duration(ref.AccessTokenExpiresIn) * time.Second)
-
-			if deps.Tokens != nil && ref.AccessToken != "" {
-				deps.Tokens.Store(ref.SessionID, sessExp, ref.AccessToken, atExp)
-			}
-
-			// set-cookie con nuevo sid (rotación)
 			deps.Cookies.WriteSessionID(w, ref.SessionID, ref.SessionExpiresIn)
 
-			// reintenta GetSessionInfo con el nuevo sid
 			info2, err2 := deps.Identity.GetSessionInfo(ctx, ports.GetSessionInfoInput{
 				SessionID: ref.SessionID,
 				IP:        ip,
@@ -163,19 +203,18 @@ func getSessionInfoWithRefresh(
 			return info2, ref.SessionID, ref.AccessToken, nil
 		}
 
-		// revocada / refresh revocado / etc => invalida
+		// revoked / invalid -> limpiar cookie
 		deps.Cookies.Clear(w)
 		w.WriteHeader(http.StatusUnauthorized)
 		return ports.GetSessionInfoOutput{}, "", "", err
 
 	case codes.NotFound, codes.FailedPrecondition:
-		// Sesión inexistente / expiración absoluta / estado inconsistente => NO refresh
+		// no existe / absolute expired -> no refresh
 		deps.Cookies.Clear(w)
 		w.WriteHeader(http.StatusUnauthorized)
 		return ports.GetSessionInfoOutput{}, "", "", err
 
 	case codes.Unavailable, codes.DeadlineExceeded:
-		// Infra temporal: NO borrar cookie
 		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
 		return ports.GetSessionInfoOutput{}, "", "", err
 
