@@ -93,12 +93,11 @@ func (r *JournalRepo) ListActivityByAccount(ctx context.Context, accountID uuid.
 	// (en tu diseño original es "counterparty_ref text"; aquí guardamos el UUID string del account)
 	var js []entity.JournalEntryEntity
 	err := r.db.WithContext(ctx).
+		Model(&entity.JournalEntryEntity{}).
+		Distinct("journal_entries.id, journal_entries.external_ref, journal_entries.booked_at, journal_entries.created_by, journal_entries.status, journal_entries.currency").
 		Joins("JOIN entry_lines el ON el.journal_id = journal_entries.id").
-		Where(`
-			el.counterparty_ref = ?
-			AND journal_entries.booked_at >= ?
-			AND journal_entries.booked_at <= ?
-		`, accountID.String(), from, to).
+		Where(`el.counterparty_ref = ? AND journal_entries.booked_at >= ? AND journal_entries.booked_at <= ?`,
+			accountID.String(), from, to).
 		Order("journal_entries.booked_at desc").
 		Limit(size).Offset(offset).
 		Preload("Lines").
