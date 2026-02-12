@@ -22,8 +22,6 @@ const (
 	CtxCustomer  ctxKey = "customer_id"
 	CtxUserState ctxKey = "user_status"
 	CtxIdentity  ctxKey = "identity_id"
-	// opcional: si luego quieres propagar Bearer a micros
-	CtxAccessToken ctxKey = "access_token"
 )
 
 type AuthDeps struct {
