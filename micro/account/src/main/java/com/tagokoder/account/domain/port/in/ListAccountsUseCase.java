@@ -9,6 +9,7 @@ public interface ListAccountsUseCase {
     record AccountView(
             UUID id,
             UUID customerId,
+            String accountNumber,
             String productType,
             String currency,
             String status,

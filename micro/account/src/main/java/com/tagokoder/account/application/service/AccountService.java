@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tagokoder.account.application.AccountNumberFmt;
 import com.tagokoder.account.domain.model.Account;
 import com.tagokoder.account.domain.port.in.BatchGetAccountSummariesUseCase;
 import com.tagokoder.account.domain.port.in.CreateAccountUseCase;
@@ -255,7 +256,7 @@ public class AccountService implements
             String displayName = namesByCustomerId.getOrDefault(a.getCustomerId(), "");
             ok.add(new BatchGetAccountSummariesUseCase.AccountSummaryView(
                     a.getId(),
-                    toDemoAccountNumber(a.getId()),
+                    AccountNumberFmt.fmt12(a.getAccountNumber()),
                     safe(a.getProductType()),
                     safe(a.getCurrency()),
                     status,
@@ -273,13 +274,5 @@ public class AccountService implements
 
     private static String safe(String s) {
         return s == null ? "" : s;
-    }
-
-    // demo sin BD: número de cuenta determinístico de 12 dígitos basado en UUID
-    private static String toDemoAccountNumber(UUID id) {
-        long x = id.getMostSignificantBits() ^ id.getLeastSignificantBits();
-        if (x < 0) x = -x;
-        long mod = x % 1_000_000_000_000L; // 12 dígitos
-        return String.format("%012d", mod);
     }
 }

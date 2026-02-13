@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class Account {
     private UUID id;
     private UUID customerId;
+    private Long accountNumber;
     private String productType; // checking/savings
     private String currency;    // USD
     private String status;      // active/frozen

@@ -18,6 +18,8 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.GenerationTime;
 
 @Entity
 @Table(name = "accounts")
@@ -31,6 +33,9 @@ public class AccountEntity {
 
     @Column(name = "customer_id", nullable = false)
     private UUID customerId;
+    @Column(name="account_number", nullable=false, unique=true, updatable=false, insertable=false)
+    @Generated(GenerationTime.INSERT)
+    private Long accountNumber;
 
     @Column(name = "product_type")
     private String productType;

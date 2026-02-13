@@ -1,15 +1,16 @@
 package com.tagokoder.account.infra.out.persistence.jpa.adapter;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.stereotype.Component;
+
 import com.tagokoder.account.domain.model.Account;
 import com.tagokoder.account.domain.port.out.AccountRepositoryPort;
 import com.tagokoder.account.infra.out.persistence.jpa.SpringDataAccountJpa;
 import com.tagokoder.account.infra.out.persistence.jpa.SpringDataCustomerJpa;
 import com.tagokoder.account.infra.out.persistence.jpa.mapper.AccountJpaMapper;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Component
 public class AccountRepositoryAdapter implements AccountRepositoryPort {
@@ -29,7 +30,7 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
     @Override
     public Account save(Account account) {
         var entity = mapper.fromDomain(account);
-        var saved = accountJpa.save(entity);
+        var saved = accountJpa.saveAndFlush(entity);
         return mapper.toDomain(saved);
     }
 
