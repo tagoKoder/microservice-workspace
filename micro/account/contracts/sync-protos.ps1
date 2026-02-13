@@ -1,17 +1,14 @@
-$ErrorActionPreference = "Stop"
+$ref = Get-Content "$PSScriptRoot\proto.ref.txt" -Raw
+$ref = $ref.Trim()
 
-$REF = Get-Content "$PSScriptRoot\proto.ref.txt" -Raw
-$REF = $REF.Trim()
-$OUT = Join-Path $PSScriptRoot "..\src\main\proto"
+Write-Host "==> Exportando protos desde: $ref"
 
-Write-Host "==> Exportando protos desde: $REF"
-Write-Host "==> Destino: $OUT"
+$dest = Join-Path $PSScriptRoot "..\src\main\proto"
+Write-Host "==> Destino: $dest"
 
-# Limpia solo lo que vas a exportar (opcional)
-# Remove-Item -Recurse -Force (Join-Path $OUT "bank\accounts") -ErrorAction SilentlyContinue
+if (!(Test-Path $dest)) { New-Item -ItemType Directory -Force -Path $dest | Out-Null }
 
-buf export $REF --output $OUT --path bank/accounts/v1
+# Exporta TODO y compilas solo identity.proto (más simple)
+buf export $ref --output $dest
 
 Write-Host "DONE (protos exportados)."
-
-

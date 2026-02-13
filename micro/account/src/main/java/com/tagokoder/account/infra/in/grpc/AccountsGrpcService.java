@@ -3,15 +3,15 @@ package com.tagokoder.account.infra.in.grpc;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-
 import com.google.protobuf.Timestamp;
 import com.tagokoder.account.application.service.IdempotencyService;
 import com.tagokoder.account.domain.port.in.CreateAccountUseCase;
 import com.tagokoder.account.domain.port.in.GetAccountBalancesUseCase;
 import com.tagokoder.account.domain.port.in.ListAccountsUseCase;
+import com.tagokoder.account.domain.port.in.OpenAccountWithOpeningBonusUseCase;
 import com.tagokoder.account.domain.port.in.PatchAccountLimitsUseCase;
+import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
 import com.tagokoder.account.infra.security.grpc.IdempotencyKeyInterceptor;
-import net.devh.boot.grpc.server.service.GrpcService;
 
 // si usas java_package recomendado
 import bank.accounts.v1.AccountBalances;
@@ -26,7 +26,7 @@ import bank.accounts.v1.ListAccountsResponse;
 import bank.accounts.v1.PatchAccountLimitsRequest;
 import bank.accounts.v1.PatchAccountLimitsResponse;
 import io.grpc.stub.StreamObserver;
-import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
+import net.devh.boot.grpc.server.service.GrpcService;
 // si NO defines java_package, cambia a: import bank.accounts.v1.*;
 @GrpcService
 public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImplBase {
@@ -36,19 +36,22 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
     private final GetAccountBalancesUseCase getBalances;
     private final PatchAccountLimitsUseCase patchLimits;
     private final IdempotencyService idem;
+    private final OpenAccountWithOpeningBonusUseCase openAccountWithBonus;
 
     public AccountsGrpcService(
             ListAccountsUseCase listAccounts,
             CreateAccountUseCase createAccount,
             GetAccountBalancesUseCase getBalances,
             PatchAccountLimitsUseCase patchLimits,
-                IdempotencyService idem
+            IdempotencyService idem,
+            OpenAccountWithOpeningBonusUseCase openAccountWithBonus
     ) {
         this.listAccounts = listAccounts;
         this.createAccount = createAccount;
         this.getBalances = getBalances;
         this.patchLimits = patchLimits;
         this.idem = idem;
+        this.openAccountWithBonus = openAccountWithBonus;
     }
 
         @Override
@@ -79,12 +82,16 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
         responseObserver.onCompleted();
         }
 
+
     @Override
     public void createAccount(CreateAccountRequest request, StreamObserver<CreateAccountResponse> responseObserver) {
-        var res = createAccount.create(new CreateAccountUseCase.Command(
+
+        var res = openAccountWithBonus.open(new OpenAccountWithOpeningBonusUseCase.Command(
                 UUID.fromString(request.getCustomerId()),
-                ProtoEnumMapper.mapProductType(request.getProductType()), // tu dominio esperaba string
-                request.getCurrency()
+                ProtoEnumMapper.mapProductType(request.getProductType()),
+                request.getCurrency(),
+                request.getIdempotencyKey(),
+                "system"
         ));
 
         responseObserver.onNext(CreateAccountResponse.newBuilder()

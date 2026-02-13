@@ -11,5 +11,6 @@ public interface AccountBalanceRepositoryPort {
 
     BigDecimal incrementHold(UUID accountId, BigDecimal amount);
     BigDecimal decrementHold(UUID accountId, BigDecimal amount);
+    BigDecimal applyCredit(UUID accountId, BigDecimal amount); // retorna newAvailable o newLedger, como prefieras
     record BalancesRow(BigDecimal ledger, BigDecimal available, BigDecimal hold) {}
 }

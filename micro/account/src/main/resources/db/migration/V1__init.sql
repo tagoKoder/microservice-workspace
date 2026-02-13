@@ -102,3 +102,12 @@ create table if not exists inbox_events (
   status text not null default 'received',
   error text null
 );
+
+create table if not exists account_opening_bonus_grants (
+  idempotency_key text primary key,
+  account_id uuid not null,
+  journal_id text not null,
+  amount numeric(20,6) not null,
+  currency char(3) not null,
+  created_at timestamptz not null default now()
+);

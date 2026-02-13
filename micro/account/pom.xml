@@ -254,7 +254,9 @@
 
           <!-- Para compilar solo accounts.proto (si quieres) -->
           <includes>
+            <include>bank/identity/v1/identity.proto</include>
             <include>bank/accounts/v1/accounts.proto</include>
+            <include>bank/ledgerpayments/v1/ledgerpayments.proto</include>
           </includes>
         </configuration>
 

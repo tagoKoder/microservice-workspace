@@ -70,8 +70,8 @@ public class AccountService implements
         a.setUpdatedAt(Instant.now());
         
         Account saved = accountRepo.save(a);
-        BigDecimal bonus = new BigDecimal("50.00");
-        balanceRepo.init(saved.getId(), bonus, bonus, BigDecimal.ZERO);
+        //BigDecimal bonus = new BigDecimal("50.00");
+        balanceRepo.init(saved.getId(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         //balanceRepo.initZero(saved.getId());
         
         limitsRepo.patch(saved.getId(), BigDecimal.ZERO, BigDecimal.ZERO);
@@ -148,7 +148,7 @@ public class AccountService implements
         boolean isCredit = c.sourceAccountId().equals(c.destinationAccountId());
 
         if (isCredit) {
-            // ✅ CREDIT: NO validar available.
+            // CREDIT: NO validar available.
             // (opcional) validar dailyIn sobre DESTINO
             var limOpt = limitsRepo.findByAccountId(dst.getId());
             if (limOpt.isPresent()) {
@@ -160,7 +160,7 @@ public class AccountService implements
             return new ValidateAccountsAndLimitsUseCase.Result(true, null);
         }
 
-        // ✅ DEBIT/TRANSFER: validar available y dailyOut (como ya tienes)
+        // DEBIT/TRANSFER: validar available y dailyOut (como ya tienes)
         var bal = balanceRepo.findByAccountId(src.getId())
             .orElse(new AccountBalanceRepositoryPort.BalancesRow(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
 
@@ -264,6 +264,11 @@ public class AccountService implements
         }
 
         return new BatchGetAccountSummariesUseCase.Result(ok, missing);
+    }
+
+    @Transactional
+    public void applyOpeningBonus(UUID accountId, BigDecimal amount) {
+        balanceRepo.applyCredit(accountId, amount);
     }
 
     private static String safe(String s) {

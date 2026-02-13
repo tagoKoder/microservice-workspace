@@ -88,6 +88,8 @@ app:
     hashSalt: ${SECURITY_HASH_SALT:change-me}
     channel: ${SECURITY_CHANNEL:web}
 
+clients:
+  ledger-target: "${LEDGER_GRPC_TARGET:ledger:9093}"
 
 messaging:
   sqs:
