@@ -11,5 +11,5 @@ public interface AccountRepositoryPort {
     Optional<Account> findById(UUID id);
     List<Account> findByCustomerId(UUID customerId);
     boolean existsCustomer(UUID customerId);
-
+    List<Account> findByIds(List<UUID> accountIds);
 }

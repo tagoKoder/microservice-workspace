@@ -47,4 +47,10 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
     public boolean existsCustomer(UUID customerId) {
         return customerJpa.existsById(customerId);
     }
+
+    @Override
+    public List<Account> findByIds(List<UUID> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) return List.of();
+        return accountJpa.findByIdIn(accountIds).stream().map(mapper::toDomain).toList();
+    }
 }

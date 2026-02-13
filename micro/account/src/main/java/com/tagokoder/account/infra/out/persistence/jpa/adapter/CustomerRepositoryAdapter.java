@@ -11,8 +11,11 @@ import com.tagokoder.account.infra.out.persistence.jpa.mapper.CustomerJpaMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 public class CustomerRepositoryAdapter implements CustomerRepositoryPort {
@@ -89,5 +92,17 @@ public class CustomerRepositoryAdapter implements CustomerRepositoryPort {
         if (optInOrNull != null) p.setOptIn(optInOrNull);
 
         preferenceJpa.save(p);
+    }
+
+    @Override
+    public Map<UUID, String> findFullNamesByIds(List<UUID> customerIds) {
+        if (customerIds == null || customerIds.isEmpty()) return Map.of();
+
+        return customerJpa.findAllById(customerIds).stream()
+                .collect(Collectors.toMap(
+                        e -> e.getId(),
+                        e -> e.getFullname(),
+                        (a, b) -> a
+                ));
     }
 }

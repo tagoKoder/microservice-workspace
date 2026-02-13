@@ -3,13 +3,19 @@ package com.tagokoder.account.application.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tagokoder.account.domain.model.Account;
+import com.tagokoder.account.domain.port.in.BatchGetAccountSummariesUseCase;
 import com.tagokoder.account.domain.port.in.CreateAccountUseCase;
 import com.tagokoder.account.domain.port.in.GetAccountBalancesUseCase;
 import com.tagokoder.account.domain.port.in.ListAccountsUseCase;
@@ -20,6 +26,7 @@ import com.tagokoder.account.domain.port.in.ValidateAccountsAndLimitsUseCase;
 import com.tagokoder.account.domain.port.out.AccountBalanceRepositoryPort;
 import com.tagokoder.account.domain.port.out.AccountLimitsRepositoryPort;
 import com.tagokoder.account.domain.port.out.AccountRepositoryPort;
+import com.tagokoder.account.domain.port.out.CustomerRepositoryPort;
 
 @Service
 public class AccountService implements
@@ -29,18 +36,22 @@ public class AccountService implements
         PatchAccountLimitsUseCase,
         ValidateAccountsAndLimitsUseCase,
         ReserveHoldUseCase,
-        ReleaseHoldUseCase {
+        ReleaseHoldUseCase,
+        BatchGetAccountSummariesUseCase {
 
     private final AccountRepositoryPort accountRepo;
     private final AccountBalanceRepositoryPort balanceRepo;
     private final AccountLimitsRepositoryPort limitsRepo;
+    private final CustomerRepositoryPort customerRepo;
 
     public AccountService(AccountRepositoryPort accountRepo,
                           AccountBalanceRepositoryPort balanceRepo,
-                          AccountLimitsRepositoryPort limitsRepo) {
+                          AccountLimitsRepositoryPort limitsRepo,
+                          CustomerRepositoryPort customerRepo) {
         this.accountRepo = accountRepo;
         this.balanceRepo = balanceRepo;
         this.limitsRepo = limitsRepo;
+        this.customerRepo = customerRepo;
     }
 
     @Override
@@ -194,5 +205,76 @@ public class AccountService implements
 
         var newHold = balanceRepo.decrementHold(c.accountId(), c.amount());
         return new ReleaseHoldUseCase.Result(true, newHold);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BatchGetAccountSummariesUseCase.Result batchGetSummaries(BatchGetAccountSummariesUseCase.Command c) {
+        List<UUID> requested = (c.accountIds() == null) ? List.of() : c.accountIds();
+
+        // dedup pero preservando orden
+        LinkedHashSet<UUID> orderedSet = new LinkedHashSet<>(requested);
+        List<UUID> ids = new ArrayList<>(orderedSet);
+
+        if (ids.isEmpty()) {
+            return new BatchGetAccountSummariesUseCase.Result(List.of(), List.of());
+        }
+
+        // batch load accounts
+        List<Account> accounts = accountRepo.findByIds(ids);
+        Map<UUID, Account> byId = accounts.stream()
+                .collect(Collectors.toMap(Account::getId, a -> a, (a, b) -> a));
+
+        // batch load customer names
+        List<UUID> customerIds = accounts.stream()
+                .map(Account::getCustomerId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<UUID, String> namesByCustomerId = customerRepo.findFullNamesByIds(customerIds);
+
+        boolean includeInactive = c.includeInactive();
+
+        List<BatchGetAccountSummariesUseCase.AccountSummaryView> ok = new ArrayList<>();
+        List<BatchGetAccountSummariesUseCase.Missing> missing = new ArrayList<>();
+
+        for (UUID id : ids) {
+            Account a = byId.get(id);
+            if (a == null) {
+                missing.add(new BatchGetAccountSummariesUseCase.Missing(id, "not_found"));
+                continue;
+            }
+
+            String status = safe(a.getStatus());
+            if (!includeInactive && !"active".equalsIgnoreCase(status)) {
+                missing.add(new BatchGetAccountSummariesUseCase.Missing(id, "inactive"));
+                continue;
+            }
+
+            String displayName = namesByCustomerId.getOrDefault(a.getCustomerId(), "");
+            ok.add(new BatchGetAccountSummariesUseCase.AccountSummaryView(
+                    a.getId(),
+                    toDemoAccountNumber(a.getId()),
+                    safe(a.getProductType()),
+                    safe(a.getCurrency()),
+                    status,
+                    displayName
+            ));
+        }
+
+        return new BatchGetAccountSummariesUseCase.Result(ok, missing);
+    }
+
+    private static String safe(String s) {
+        return s == null ? "" : s;
+    }
+
+    // demo sin BD: número de cuenta determinístico de 12 dígitos basado en UUID
+    private static String toDemoAccountNumber(UUID id) {
+        long x = id.getMostSignificantBits() ^ id.getLeastSignificantBits();
+        if (x < 0) x = -x;
+        long mod = x % 1_000_000_000_000L; // 12 dígitos
+        return String.format("%012d", mod);
     }
 }

@@ -390,6 +390,7 @@ const (
 	InternalAccountsService_ValidateAccountsAndLimits_FullMethodName = "/bank.accounts.v1.InternalAccountsService/ValidateAccountsAndLimits"
 	InternalAccountsService_ReserveHold_FullMethodName               = "/bank.accounts.v1.InternalAccountsService/ReserveHold"
 	InternalAccountsService_ReleaseHold_FullMethodName               = "/bank.accounts.v1.InternalAccountsService/ReleaseHold"
+	InternalAccountsService_BatchGetAccountSummaries_FullMethodName  = "/bank.accounts.v1.InternalAccountsService/BatchGetAccountSummaries"
 )
 
 // InternalAccountsServiceClient is the client API for InternalAccountsService service.
@@ -404,6 +405,7 @@ type InternalAccountsServiceClient interface {
 	ReserveHold(ctx context.Context, in *ReserveHoldRequest, opts ...grpc.CallOption) (*ReserveHoldResponse, error)
 	// POST /internal/accounts/{id}/hold/release
 	ReleaseHold(ctx context.Context, in *ReleaseHoldRequest, opts ...grpc.CallOption) (*ReleaseHoldResponse, error)
+	BatchGetAccountSummaries(ctx context.Context, in *BatchGetAccountSummariesRequest, opts ...grpc.CallOption) (*BatchGetAccountSummariesResponse, error)
 }
 
 type internalAccountsServiceClient struct {
@@ -444,6 +446,16 @@ func (c *internalAccountsServiceClient) ReleaseHold(ctx context.Context, in *Rel
 	return out, nil
 }
 
+func (c *internalAccountsServiceClient) BatchGetAccountSummaries(ctx context.Context, in *BatchGetAccountSummariesRequest, opts ...grpc.CallOption) (*BatchGetAccountSummariesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetAccountSummariesResponse)
+	err := c.cc.Invoke(ctx, InternalAccountsService_BatchGetAccountSummaries_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InternalAccountsServiceServer is the server API for InternalAccountsService service.
 // All implementations must embed UnimplementedInternalAccountsServiceServer
 // for forward compatibility.
@@ -456,6 +468,7 @@ type InternalAccountsServiceServer interface {
 	ReserveHold(context.Context, *ReserveHoldRequest) (*ReserveHoldResponse, error)
 	// POST /internal/accounts/{id}/hold/release
 	ReleaseHold(context.Context, *ReleaseHoldRequest) (*ReleaseHoldResponse, error)
+	BatchGetAccountSummaries(context.Context, *BatchGetAccountSummariesRequest) (*BatchGetAccountSummariesResponse, error)
 	mustEmbedUnimplementedInternalAccountsServiceServer()
 }
 
@@ -474,6 +487,9 @@ func (UnimplementedInternalAccountsServiceServer) ReserveHold(context.Context, *
 }
 func (UnimplementedInternalAccountsServiceServer) ReleaseHold(context.Context, *ReleaseHoldRequest) (*ReleaseHoldResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReleaseHold not implemented")
+}
+func (UnimplementedInternalAccountsServiceServer) BatchGetAccountSummaries(context.Context, *BatchGetAccountSummariesRequest) (*BatchGetAccountSummariesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchGetAccountSummaries not implemented")
 }
 func (UnimplementedInternalAccountsServiceServer) mustEmbedUnimplementedInternalAccountsServiceServer() {
 }
@@ -551,6 +567,24 @@ func _InternalAccountsService_ReleaseHold_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InternalAccountsService_BatchGetAccountSummaries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetAccountSummariesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalAccountsServiceServer).BatchGetAccountSummaries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InternalAccountsService_BatchGetAccountSummaries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalAccountsServiceServer).BatchGetAccountSummaries(ctx, req.(*BatchGetAccountSummariesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InternalAccountsService_ServiceDesc is the grpc.ServiceDesc for InternalAccountsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -569,6 +603,10 @@ var InternalAccountsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReleaseHold",
 			Handler:    _InternalAccountsService_ReleaseHold_Handler,
+		},
+		{
+			MethodName: "BatchGetAccountSummaries",
+			Handler:    _InternalAccountsService_BatchGetAccountSummaries_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

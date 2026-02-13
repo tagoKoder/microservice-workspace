@@ -9,6 +9,7 @@ import (
 type LedgerAppService interface {
 	CreditAccountUseCase
 	ListAccountJournalEntriesUseCase
+	ListAccountStatementUseCase
 }
 
 type CreditAccountUseCase interface {

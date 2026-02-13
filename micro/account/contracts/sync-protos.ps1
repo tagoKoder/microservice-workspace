@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$REF = "buf.build/imaginarybank/bank:v0.0.4"
+$REF = Get-Content "$PSScriptRoot\proto.ref.txt" -Raw
+$REF = $REF.Trim()
 $OUT = Join-Path $PSScriptRoot "..\src\main\proto"
 
 Write-Host "==> Exportando protos desde: $REF"
@@ -12,3 +13,5 @@ Write-Host "==> Destino: $OUT"
 buf export $REF --output $OUT --path bank/accounts/v1
 
 Write-Host "DONE (protos exportados)."
+
+

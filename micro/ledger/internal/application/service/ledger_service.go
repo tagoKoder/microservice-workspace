@@ -354,7 +354,7 @@ func (s *ledgerAppService) ListAccountStatement(ctx context.Context, q in.ListAc
 					AccountID:     a.AccountId,
 					AccountNumber: a.AccountNumber,
 					DisplayName:   a.DisplayName,
-					AccountType:   a.AccountType,
+					AccountType:   a.ProductType.String(),
 				}
 			}
 		}

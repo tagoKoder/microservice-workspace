@@ -79,14 +79,15 @@ public class AccountsGrpcClientAdapter implements AccountsClientPort {
     CreateAccountResponse resp = stub.createAccount(req);
     return resp.getAccountId();
   }
-    private ProductType mapProductType(String productType) {
-        if (productType == null) return ProductType.PRODUCT_TYPE_UNSPECIFIED;
-    
-        String s = productType.toUpperCase();
-        return switch (s) {
-        case "CHECKING", "PRODUCT_TYPE_CHECKING" -> ProductType.PRODUCT_TYPE_CHECKING;
-        case "SAVINGS", "PRODUCT_TYPE_SAVINGS" -> ProductType.PRODUCT_TYPE_SAVINGS;
-        default -> ProductType.PRODUCT_TYPE_UNSPECIFIED;
-        };
-    }
+  
+  private ProductType mapProductType(String productType) {
+      if (productType == null) return ProductType.PRODUCT_TYPE_UNSPECIFIED;
+  
+      String s = productType.toUpperCase();
+      return switch (s) {
+      case "CHECKING", "PRODUCT_TYPE_CHECKING" -> ProductType.PRODUCT_TYPE_CHECKING;
+      case "SAVINGS", "PRODUCT_TYPE_SAVINGS" -> ProductType.PRODUCT_TYPE_SAVINGS;
+      default -> ProductType.PRODUCT_TYPE_UNSPECIFIED;
+      };
+  }
 }

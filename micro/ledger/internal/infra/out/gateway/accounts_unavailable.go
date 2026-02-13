@@ -29,3 +29,7 @@ func (g *UnavailableAccountsGateway) ReserveHold(ctx context.Context, req *accou
 func (g *UnavailableAccountsGateway) ReleaseHold(ctx context.Context, req *accountsv1.ReleaseHoldRequest) (*accountsv1.ReleaseHoldResponse, error) {
 	return nil, status.Error(codes.Unavailable, g.msg)
 }
+
+func (g *UnavailableAccountsGateway) BatchGetAccountSummaries(ctx context.Context, req *accountsv1.BatchGetAccountSummariesRequest) (*accountsv1.BatchGetAccountSummariesResponse, error) {
+	return nil, status.Error(codes.Unavailable, g.msg)
+}

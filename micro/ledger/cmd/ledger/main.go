@@ -100,7 +100,7 @@ func main() {
 
 	// gRPC handlers
 	payH := handler.NewPaymentsHandler(paySvc, paySvc)
-	ledH := handler.NewLedgerHandler(ledSvc, ledSvc)
+	ledH := handler.NewLedgerHandler(ledSvc, ledSvc, ledSvc)
 
 	// Outbox worker
 	outboxWorker := messaging.NewOutboxWorker(uow, pub, cfg.OutboxBatchSize, cfg.OutboxPollInterval)

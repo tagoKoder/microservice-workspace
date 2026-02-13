@@ -49,6 +49,9 @@ service InternalAccountsService {
 
   // POST /internal/accounts/{id}/hold/release
   rpc ReleaseHold(ReleaseHoldRequest) returns (ReleaseHoldResponse);
+
+  rpc BatchGetAccountSummaries(BatchGetAccountSummariesRequest) returns (BatchGetAccountSummariesResponse);
+
 }
 
 // =========================================================
@@ -95,6 +98,9 @@ message CreateCustomerRequest {
   string email = 5;
   string phone = 6;
   CustomerAddressCreate address = 7; // opcional
+
+  string idempotency_key = 8;  // recomendado
+  string external_ref = 9;     // ej: registration_id
 }
 
 message CustomerAddressCreate {
@@ -160,6 +166,8 @@ message CreateAccountRequest {
   ProductType product_type = 2;
   // OpenAPI: currency minLength=3 maxLength=3 (ISO-4217)
   string currency = 3;
+  string idempotency_key = 4;
+  string external_ref = 5; // ej: registration_id + product_type
 }
 
 message CreateAccountResponse {
@@ -240,20 +248,61 @@ message HoldRequest {
 message ReserveHoldRequest {
   string id = 1; // uuid (path param) - account_id
   HoldRequest hold = 2;
+  string hold_id = 3;         // UUID: idealmente payment_id o generated por ledger
+  string idempotency_key = 4; // required para reintentos seguros
 }
 
 message ReleaseHoldRequest {
   string id = 1; // uuid (path param) - account_id
   HoldRequest hold = 2;
+  string hold_id = 3;         // referencia exacta de lo reservado
+  string idempotency_key = 4; // required
 }
 
 message ReserveHoldResponse {
   bool ok = 1;
   double new_hold = 2;
+  string hold_id = 3;
+  google.protobuf.StringValue status = 4; // reserved|duplicate|failed
 }
 
 
 message ReleaseHoldResponse {
   bool ok = 1;
   double new_hold = 2;
+  google.protobuf.StringValue status = 3; // released|duplicate|failed
+}
+
+// ----------------------------------------------------
+// Batch account summaries (for ledger enrichment)
+// ----------------------------------------------------
+
+message BatchGetAccountSummariesRequest {
+  // lista de account_id (uuid). Para demo, puedes aceptar 1..200 por request.
+  repeated string account_ids = 1;
+
+  // opcional: si quieres retornar cuentas aunque estén "closed"/"blocked" etc.
+  // Para demo puedes ignorarlo en server y siempre retornar si existe.
+  google.protobuf.BoolValue include_inactive = 2;
+}
+
+message AccountSummary {
+  string account_id = 1;        // uuid
+  string account_number = 2;    // "000123..." (demo)
+  ProductType product_type = 3; // CHECKING|SAVINGS
+  string currency = 4;          // ISO-4217
+  string status = 5;            // active|blocked|closed (string por simplicidad)
+  string display_name = 6;      // nombre del titular (demo)
+}
+
+message MissingAccount {
+  string account_id = 1;
+  google.protobuf.StringValue reason = 2; // not_found|forbidden|inactive|...
+}
+
+message BatchGetAccountSummariesResponse {
+  repeated AccountSummary accounts = 1;
+
+  // Para que ledger pueda saber cuáles no se pudieron resolver sin fallar el call.
+  repeated MissingAccount missing = 2;
 }

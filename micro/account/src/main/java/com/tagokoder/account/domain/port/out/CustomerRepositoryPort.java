@@ -1,9 +1,11 @@
 package com.tagokoder.account.domain.port.out;
 
-import com.tagokoder.account.domain.model.Customer;
-
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.tagokoder.account.domain.model.Customer;
 
 public interface CustomerRepositoryPort {
 
@@ -15,4 +17,6 @@ public interface CustomerRepositoryPort {
 
     void upsertContact(UUID customerId, String emailOrNull, String phoneOrNull);
     void upsertPreference(UUID customerId, String channelOrNull, Boolean optInOrNull);
+
+    Map<UUID, String> findFullNamesByIds(List<UUID> customerIds);
 }

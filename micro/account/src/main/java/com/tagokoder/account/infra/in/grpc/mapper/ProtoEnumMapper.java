@@ -43,4 +43,15 @@ public final class ProtoEnumMapper {
     case PRODUCT_TYPE_UNSPECIFIED, UNRECOGNIZED -> throw new IllegalArgumentException("product_type required");
   };
 }
+
+    public static ProductType mapProductTypeToEnum(String productType) {
+        if (productType == null) return ProductType.PRODUCT_TYPE_UNSPECIFIED;
+
+        String p = productType.trim().toLowerCase();
+        return switch (p) {
+            case "checking", "current", "corriente" -> ProductType.PRODUCT_TYPE_CHECKING;
+            case "savings", "ahorros" -> ProductType.PRODUCT_TYPE_SAVINGS;
+            default -> ProductType.PRODUCT_TYPE_UNSPECIFIED;
+        };
+    }
 }
