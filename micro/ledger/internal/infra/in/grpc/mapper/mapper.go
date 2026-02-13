@@ -134,3 +134,59 @@ func ToListAccountJournalEntriesResponse(res *in.ListAccountJournalEntriesResult
 	}
 	return out
 }
+
+func ToListAccountStatementQuery(req *ledgerpb.ListAccountStatementRequest) (in.ListAccountStatementQuery, error) {
+	acc, err := uuid.Parse(req.GetAccountId())
+	if err != nil {
+		return in.ListAccountStatementQuery{}, err
+	}
+
+	from := time.Time{}
+	to := time.Time{}
+	if req.From != nil {
+		from = req.From.AsTime().UTC()
+	}
+	if req.To != nil {
+		to = req.To.AsTime().UTC()
+	}
+
+	return in.ListAccountStatementQuery{
+		AccountID:           acc,
+		From:                from,
+		To:                  to,
+		Page:                int(req.GetPage()),
+		Size:                int(req.GetSize()),
+		IncludeCounterparty: req.GetIncludeCounterparty(),
+	}, nil
+}
+
+func ToListAccountStatementResponse(res *in.ListAccountStatementResult) *ledgerpb.ListAccountStatementResponse {
+	out := &ledgerpb.ListAccountStatementResponse{
+		Page: int32(res.Page),
+		Size: int32(res.Size),
+	}
+
+	for _, it := range res.Items {
+		pbIt := &ledgerpb.StatementItem{
+			JournalId:             it.JournalID,
+			BookedAt:              timestamppb.New(it.BookedAt),
+			Currency:              it.Currency,
+			Direction:             it.Direction,
+			Amount:                it.Amount,
+			Kind:                  it.Kind,
+			Memo:                  it.Memo,
+			CounterpartyAccountId: it.CounterpartyAccountID,
+		}
+		if it.Counterparty != nil {
+			pbIt.Counterparty = &ledgerpb.CounterpartyView{
+				AccountId:     it.Counterparty.AccountID,
+				AccountNumber: it.Counterparty.AccountNumber,
+				DisplayName:   it.Counterparty.DisplayName,
+				AccountType:   it.Counterparty.AccountType,
+			}
+		}
+		out.Items = append(out.Items, pbIt)
+	}
+
+	return out
+}

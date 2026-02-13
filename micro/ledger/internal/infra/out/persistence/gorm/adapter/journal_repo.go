@@ -80,17 +80,17 @@ func (r *JournalRepo) GetJournalByID(ctx context.Context, id uuid.UUID) (*dm.Jou
 	return j, nil
 }
 
+// ListActivityByAccount devuelve journals donde exista al menos una línea con counterparty_ref = accountID
 func (r *JournalRepo) ListActivityByAccount(ctx context.Context, accountID uuid.UUID, from, to time.Time, page, size int) ([]dm.JournalEntry, error) {
 	if size <= 0 {
 		size = 20
 	}
-	if page < 0 {
-		page = 0
+	// 1-based
+	if page <= 0 {
+		page = 1
 	}
-	offset := page * size
+	offset := (page - 1) * size
 
-	// Heurística: match por counterparty_ref = accountID
-	// (en tu diseño original es "counterparty_ref text"; aquí guardamos el UUID string del account)
 	var js []entity.JournalEntryEntity
 	err := r.db.WithContext(ctx).
 		Model(&entity.JournalEntryEntity{}).

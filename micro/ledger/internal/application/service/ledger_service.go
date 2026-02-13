@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -235,4 +236,153 @@ func (s *ledgerAppService) ListAccountJournalEntries(ctx context.Context, q in.L
 	}
 
 	return &in.ListAccountJournalEntriesResult{Entries: views, Page: q.Page, Size: q.Size}, nil
+}
+
+func (s *ledgerAppService) ListAccountStatement(ctx context.Context, q in.ListAccountStatementQuery) (*in.ListAccountStatementResult, error) {
+	// defaults
+	from := q.From
+	if from.IsZero() {
+		from = time.Time{}
+	}
+	to := q.To
+	if to.IsZero() {
+		to = time.Now().UTC()
+	}
+	page := q.Page
+	if page <= 0 {
+		page = 1
+	}
+	size := q.Size
+	if size <= 0 {
+		size = 20
+	}
+
+	var entries []dm.JournalEntry
+	err := s.uow.DoRead(ctx, func(r uow.ReadRepos) error {
+		var e error
+		entries, e = r.Journals().ListActivityByAccount(ctx, q.AccountID, from, to, page, size)
+		return e
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	accStr := q.AccountID.String()
+
+	// 1) construir proyección base
+	items := make([]in.StatementItemView, 0, len(entries))
+	counterpartyIDsSet := map[string]struct{}{}
+
+	for _, je := range entries {
+		totalCredit := decimal.Zero
+		totalDebit := decimal.Zero
+		counterpartyOther := ""
+
+		for _, l := range je.Lines {
+			cp := ""
+			if l.CounterpartyRef != nil {
+				cp = *l.CounterpartyRef
+			}
+
+			// suma neta SOLO sobre líneas pertenecientes a esta cuenta
+			if cp == accStr {
+				totalCredit = totalCredit.Add(l.Credit)
+				totalDebit = totalDebit.Add(l.Debit)
+				continue
+			}
+
+			// detecta contraparte (otra cuenta del journal)
+			if cp != "" && cp != accStr && counterpartyOther == "" {
+				counterpartyOther = cp
+			}
+		}
+
+		net := totalCredit.Sub(totalDebit)
+		direction := "credit"
+		amt := net
+		if net.IsNegative() {
+			direction = "debit"
+			amt = net.Abs()
+		}
+
+		kind := "other"
+		memo := je.ExternalRef
+		if strings.HasPrefix(memo, "payment:") {
+			kind = "transfer"
+		} else if strings.HasPrefix(memo, "bonus:") || strings.Contains(memo, "registration_bonus") {
+			kind = "bonus"
+		}
+
+		it := in.StatementItemView{
+			JournalID:             je.ID.String(),
+			BookedAt:              je.BookedAt.UTC(),
+			Currency:              je.Currency,
+			Direction:             direction,
+			Amount:                amt.StringFixed(6),
+			Kind:                  kind,
+			Memo:                  memo,
+			CounterpartyAccountID: counterpartyOther,
+		}
+
+		if counterpartyOther != "" {
+			counterpartyIDsSet[counterpartyOther] = struct{}{}
+		}
+
+		items = append(items, it)
+	}
+
+	// 2) enrichment opcional (1 llamada batch por página)
+	if q.IncludeCounterparty && len(counterpartyIDsSet) > 0 {
+		ids := make([]string, 0, len(counterpartyIDsSet))
+		for id := range counterpartyIDsSet {
+			ids = append(ids, id)
+		}
+
+		resp, err := s.accounts.BatchGetAccountSummaries(ctx, &accountsv1.BatchGetAccountSummariesRequest{
+			AccountIds: ids,
+		})
+		if err != nil {
+			// en demo: puedes decidir si fallar o degradar.
+			// Recomendación para UX: degradar (devuelve statement sin counterparty)
+			resp = nil
+		}
+
+		lookup := map[string]*in.CounterpartyView{}
+		if resp != nil {
+			for _, a := range resp.Accounts {
+				lookup[a.AccountId] = &in.CounterpartyView{
+					AccountID:     a.AccountId,
+					AccountNumber: a.AccountNumber,
+					DisplayName:   a.DisplayName,
+					AccountType:   a.AccountType,
+				}
+			}
+		}
+
+		for i := range items {
+			cpID := items[i].CounterpartyAccountID
+			if cpID == "" {
+				continue
+			}
+			if v, ok := lookup[cpID]; ok {
+				items[i].Counterparty = v
+			}
+		}
+	}
+
+	// opcional: auditoría best-effort (alineado ASVS)
+	now := time.Now().UTC()
+	_ = s.audit.Record(ctx, "ledger.statement", q.AccountID.String(), now, map[string]any{
+		"from":                 from.Format(time.RFC3339Nano),
+		"to":                   to.Format(time.RFC3339Nano),
+		"page":                 page,
+		"size":                 size,
+		"include_counterparty": q.IncludeCounterparty,
+	})
+
+	return &in.ListAccountStatementResult{
+		Items: items,
+		Page:  page,
+		Size:  size,
+	}, nil
 }

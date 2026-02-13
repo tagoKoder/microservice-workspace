@@ -3,7 +3,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -118,6 +117,10 @@ func (g *AccountsGRPCGateway) withOutgoingMetaAndTimeout(ctx context.Context) (c
 	return context.WithTimeout(outCtx, g.timeout)
 }
 
+func (g *AccountsGRPCGateway) BatchGetAccountSummaries(ctx context.Context, req *accountsv1.BatchGetAccountSummariesRequest) (*accountsv1.BatchGetAccountSummariesResponse, error) {
+	return g.client.BatchGetAccountSummaries(ctx, req)
+}
+
 func sanitizeMetadataKey(k string) string {
 	k = strings.TrimSpace(strings.ToLower(k))
 	k = strings.ReplaceAll(k, "_", "-")
@@ -131,9 +134,4 @@ func sanitizeMetadataKey(k string) string {
 		}
 	}
 	return k
-}
-
-func fmtReason(v any) string {
-	// helper por si luego quieres formatear wrappers de reason/status
-	return fmt.Sprintf("%v", v)
 }

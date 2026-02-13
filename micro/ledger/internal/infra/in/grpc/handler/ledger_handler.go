@@ -11,12 +11,13 @@ import (
 
 type LedgerHandler struct {
 	ledgerpb.UnimplementedLedgerServiceServer
-	creaAcc in.CreditAccountUseCase
-	listAcc in.ListAccountJournalEntriesUseCase
+	creaAcc  in.CreditAccountUseCase
+	listAcc  in.ListAccountJournalEntriesUseCase
+	listStmt in.ListAccountStatementUseCase
 }
 
-func NewLedgerHandler(creaAcc in.CreditAccountUseCase, listAcc in.ListAccountJournalEntriesUseCase) *LedgerHandler {
-	return &LedgerHandler{creaAcc: creaAcc, listAcc: listAcc}
+func NewLedgerHandler(creaAcc in.CreditAccountUseCase, listAcc in.ListAccountJournalEntriesUseCase, listStmt in.ListAccountStatementUseCase) *LedgerHandler {
+	return &LedgerHandler{creaAcc: creaAcc, listAcc: listAcc, listStmt: listStmt}
 }
 
 func (h *LedgerHandler) CreditAccount(ctx context.Context, req *ledgerpb.CreditAccountRequest) (*ledgerpb.CreditAccountResponse, error) {
@@ -45,4 +46,18 @@ func (h *LedgerHandler) ListAccountJournalEntries(ctx context.Context, req *ledg
 	}
 
 	return mapper.ToListAccountJournalEntriesResponse(res), nil
+}
+
+func (h *LedgerHandler) ListAccountStatement(ctx context.Context, req *ledgerpb.ListAccountStatementRequest) (*ledgerpb.ListAccountStatementResponse, error) {
+	q, err := mapper.ToListAccountStatementQuery(req)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := h.listStmt.ListAccountStatement(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapper.ToListAccountStatementResponse(res), nil
 }
