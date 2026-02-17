@@ -54,4 +54,9 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
         if (accountIds == null || accountIds.isEmpty()) return List.of();
         return accountJpa.findByIdIn(accountIds).stream().map(mapper::toDomain).toList();
     }
+
+    @Override
+    public Optional<Account> findByAccountNumber(long accountNumber) {
+    return accountJpa.findByAccountNumber(accountNumber).map(mapper::toDomain);
+    }
 }

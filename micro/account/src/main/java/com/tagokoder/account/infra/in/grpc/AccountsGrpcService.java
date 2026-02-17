@@ -5,34 +5,22 @@ import java.util.UUID;
 
 import com.google.protobuf.Timestamp;
 import com.tagokoder.account.application.service.IdempotencyService;
-import com.tagokoder.account.domain.port.in.CreateAccountUseCase;
 import com.tagokoder.account.domain.port.in.GetAccountBalancesUseCase;
+import com.tagokoder.account.domain.port.in.GetAccountByNumberUseCase;
 import com.tagokoder.account.domain.port.in.ListAccountsUseCase;
 import com.tagokoder.account.domain.port.in.OpenAccountWithOpeningBonusUseCase;
 import com.tagokoder.account.domain.port.in.PatchAccountLimitsUseCase;
 import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
 import com.tagokoder.account.infra.security.grpc.IdempotencyKeyInterceptor;
 
-// si usas java_package recomendado
-import bank.accounts.v1.AccountBalances;
-import bank.accounts.v1.AccountView;
-import bank.accounts.v1.AccountsServiceGrpc;
-import bank.accounts.v1.CreateAccountRequest;
-import bank.accounts.v1.CreateAccountResponse;
-import bank.accounts.v1.GetAccountBalancesRequest;
-import bank.accounts.v1.GetAccountBalancesResponse;
-import bank.accounts.v1.ListAccountsRequest;
-import bank.accounts.v1.ListAccountsResponse;
-import bank.accounts.v1.PatchAccountLimitsRequest;
-import bank.accounts.v1.PatchAccountLimitsResponse;
+import bank.accounts.v1.*;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-// si NO defines java_package, cambia a: import bank.accounts.v1.*;
 @GrpcService
 public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImplBase {
 
     private final ListAccountsUseCase listAccounts;
-    private final CreateAccountUseCase createAccount;
+    private final GetAccountByNumberUseCase getByNumber;
     private final GetAccountBalancesUseCase getBalances;
     private final PatchAccountLimitsUseCase patchLimits;
     private final IdempotencyService idem;
@@ -40,14 +28,14 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
 
     public AccountsGrpcService(
             ListAccountsUseCase listAccounts,
-            CreateAccountUseCase createAccount,
+            GetAccountByNumberUseCase getByNumber,
             GetAccountBalancesUseCase getBalances,
             PatchAccountLimitsUseCase patchLimits,
             IdempotencyService idem,
             OpenAccountWithOpeningBonusUseCase openAccountWithBonus
     ) {
         this.listAccounts = listAccounts;
-        this.createAccount = createAccount;
+        this.getByNumber = getByNumber;
         this.getBalances = getBalances;
         this.patchLimits = patchLimits;
         this.idem = idem;
@@ -74,7 +62,6 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
                 .setAvailable(GrpcMoney.dbl(a.balances().available()))
                 .setHold(GrpcMoney.dbl(a.balances().hold()))
                 .build());
-
         out.addAccounts(view.build());
         });
 
@@ -82,6 +69,34 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
         responseObserver.onCompleted();
         }
 
+
+    @Override
+    public void getAccountByNumber(GetAccountByNumberRequest request,
+                                StreamObserver<GetAccountByNumberResponse> responseObserver) {
+
+        boolean includeInactive = request.hasIncludeInactive() && request.getIncludeInactive().getValue();
+
+        var res = getByNumber.getByNumber(new GetAccountByNumberUseCase.Command(
+                request.getAccountNumber(),
+                includeInactive
+        ));
+
+        var a = res.account();
+
+        responseObserver.onNext(GetAccountByNumberResponse.newBuilder()
+                .setAccount(AccountLookup.newBuilder()
+                        .setAccountId(a.accountId().toString())
+                        .setCustomerId(a.customerId().toString())
+                        .setAccountNumber(a.accountNumber())
+                        .setDisplayName(a.displayName())
+                        .setCurrency(a.currency())
+                        .setStatus(a.status())
+                        .setProductType(ProtoEnumMapper.mapProductTypeToEnum(a.productType()))
+                        .build())
+                .build());
+
+        responseObserver.onCompleted();
+    }
 
     @Override
     public void createAccount(CreateAccountRequest request, StreamObserver<CreateAccountResponse> responseObserver) {
@@ -96,6 +111,7 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
 
         responseObserver.onNext(CreateAccountResponse.newBuilder()
                 .setAccountId(res.accountId().toString())
+                .setAccountNumber(res.accountNumber() == null ? "" : res.accountNumber())
                 .build());
         responseObserver.onCompleted();
     }

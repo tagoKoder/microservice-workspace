@@ -104,10 +104,14 @@ create table if not exists inbox_events (
 );
 
 create table if not exists account_opening_bonus_grants (
-  idempotency_key text primary key,
+  id uuid primary key default gen_random_uuid(),
+  idempotency_key text,
   account_id uuid not null,
   journal_id text not null,
   amount numeric(20,6) not null,
-  currency char(3) not null,
+  currency varchar(3) not null,
   created_at timestamptz not null default now()
 );
+
+create unique index if not exists uq_opening_bonus_grants_idempotency_key
+on account_opening_bonus_grants (idempotency_key);

@@ -1,3 +1,4 @@
+// bff\internal\client\grpc\ledgerpayments.go
 package grpc
 
 import (
@@ -7,6 +8,7 @@ import (
 	ledgerpaymentsv1 "github.com/tagoKoder/bff/internal/client/gen/protobuf/bank/ledgerpayments/v1"
 	"github.com/tagoKoder/bff/internal/client/ports"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ ports.LedgerPaymentsPort = (*LedgerPaymentsClient)(nil)
@@ -142,5 +144,84 @@ func (c *LedgerPaymentsClient) ListAccountJournalEntries(ctx context.Context, in
 		}
 		out.Entries = append(out.Entries, ev)
 	}
+	return out, nil
+}
+
+func (c *LedgerPaymentsClient) ListAccountStatement(ctx context.Context, in ports.ListAccountStatementInput) (ports.ListAccountStatementOutput, error) {
+	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	req := &ledgerpaymentsv1.ListAccountStatementRequest{
+		AccountId:           in.AccountID,
+		Page:                in.Page,
+		Size:                in.Size,
+		IncludeCounterparty: in.IncludeCounterparty,
+	}
+
+	if in.FromRFC3339 != nil {
+		t, err := time.Parse(time.RFC3339, *in.FromRFC3339)
+		if err == nil {
+			req.From = timestamppb.New(t)
+		}
+	}
+	if in.ToRFC3339 != nil {
+		t, err := time.Parse(time.RFC3339, *in.ToRFC3339)
+		if err == nil {
+			req.To = timestamppb.New(t)
+		}
+	}
+
+	res, err := c.ledger.ListAccountStatement(ctx2, req)
+	if err != nil {
+		return ports.ListAccountStatementOutput{}, err
+	}
+
+	out := ports.ListAccountStatementOutput{
+		Items: make([]ports.StatementItem, 0, len(res.Items)),
+		Page:  res.Page,
+		Size:  res.Size,
+	}
+
+	for _, it := range res.Items {
+		var booked string
+		if it.BookedAt != nil {
+			booked = it.BookedAt.AsTime().Format(time.RFC3339)
+		}
+
+		var memo *string
+		if it.Memo != "" {
+			s := it.Memo
+			memo = &s
+		}
+
+		var cpAccID *string
+		if it.CounterpartyAccountId != "" {
+			s := it.CounterpartyAccountId
+			cpAccID = &s
+		}
+
+		var cp *ports.CounterpartyView
+		if it.Counterparty != nil {
+			cp = &ports.CounterpartyView{
+				AccountID:     it.Counterparty.AccountId,
+				AccountNumber: it.Counterparty.AccountNumber,
+				DisplayName:   it.Counterparty.DisplayName,
+				AccountType:   it.Counterparty.AccountType,
+			}
+		}
+
+		out.Items = append(out.Items, ports.StatementItem{
+			JournalID:             it.JournalId,
+			BookedAtRFC3339:       booked,
+			Currency:              it.Currency,
+			Direction:             it.Direction,
+			Amount:                it.Amount,
+			Kind:                  it.Kind,
+			Memo:                  memo,
+			CounterpartyAccountID: cpAccID,
+			Counterparty:          cp,
+		})
+	}
+
 	return out, nil
 }

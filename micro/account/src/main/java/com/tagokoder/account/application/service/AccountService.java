@@ -10,15 +10,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import com.tagokoder.account.application.AccountNumberFmt;
 import com.tagokoder.account.domain.model.Account;
 import com.tagokoder.account.domain.port.in.BatchGetAccountSummariesUseCase;
 import com.tagokoder.account.domain.port.in.CreateAccountUseCase;
 import com.tagokoder.account.domain.port.in.GetAccountBalancesUseCase;
+import com.tagokoder.account.domain.port.in.GetAccountByNumberUseCase;
 import com.tagokoder.account.domain.port.in.ListAccountsUseCase;
 import com.tagokoder.account.domain.port.in.PatchAccountLimitsUseCase;
 import com.tagokoder.account.domain.port.in.ReleaseHoldUseCase;
@@ -38,6 +37,7 @@ public class AccountService implements
         ValidateAccountsAndLimitsUseCase,
         ReserveHoldUseCase,
         ReleaseHoldUseCase,
+        GetAccountByNumberUseCase,
         BatchGetAccountSummariesUseCase {
 
     private final AccountRepositoryPort accountRepo;
@@ -77,7 +77,44 @@ public class AccountService implements
         
         limitsRepo.patch(saved.getId(), BigDecimal.ZERO, BigDecimal.ZERO);
 
-        return new CreateAccountUseCase.Result(saved.getId());
+        return new CreateAccountUseCase.Result(saved.getId(), saved.getAccountNumber());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetAccountByNumberUseCase.Result getByNumber(GetAccountByNumberUseCase.Command c) {
+        if (c == null || c.accountNumber() == null || c.accountNumber().isBlank()) {
+            throw new IllegalArgumentException("accountNumber is required");
+        }
+
+        String raw = c.accountNumber().trim();
+        if (!raw.matches("^\\d{1,12}$")) {
+            throw new IllegalArgumentException("accountNumber must be numeric up to 12 digits");
+        }
+
+        long n = Long.parseLong(raw);
+
+        var acc = accountRepo.findByAccountNumber(n)
+                .orElseThrow(() -> new IllegalArgumentException("account not found"));
+
+        if (!c.includeInactive() && !"active".equalsIgnoreCase(acc.getStatus())) {
+            throw new IllegalArgumentException("account is inactive");
+        }
+
+        String displayName = customerRepo.findFullNamesByIds(java.util.List.of(acc.getCustomerId()))
+                .getOrDefault(acc.getCustomerId(), "");
+
+        var view = new GetAccountByNumberUseCase.AccountLookupView(
+                acc.getId(),
+                acc.getCustomerId(),
+                AccountNumberFmt.fmt12(acc.getAccountNumber()),
+                displayName,
+                safe(acc.getCurrency()),
+                safe(acc.getStatus()),
+                safe(acc.getProductType())
+        );
+
+        return new GetAccountByNumberUseCase.Result(view);
     }
 
     @Override
@@ -91,6 +128,7 @@ public class AccountService implements
             return new ListAccountsUseCase.AccountView(
                     a.getId(),
                     a.getCustomerId(),
+                    AccountNumberFmt.fmt12(a.getAccountNumber()),
                     a.getProductType(),
                     a.getCurrency(),
                     a.getStatus(),

@@ -1,3 +1,4 @@
+// bff\internal\client\grpc\accounts.go
 package grpc
 
 import (
@@ -103,11 +104,12 @@ func (c *AccountsClient) ListAccounts(ctx context.Context, in ports.ListAccounts
 	out := ports.ListAccountsOutput{Accounts: make([]ports.AccountView, 0, len(res.Accounts))}
 	for _, a := range res.Accounts {
 		v := ports.AccountView{
-			ID:          a.Id,
-			CustomerID:  a.CustomerId,
-			ProductType: a.ProductType,
-			Currency:    a.Currency,
-			Status:      a.Status,
+			ID:            a.Id,
+			CustomerID:    a.CustomerId,
+			AccountNumber: a.AccountNumber,
+			ProductType:   a.ProductType,
+			Currency:      a.Currency,
+			Status:        a.Status,
 		}
 		if a.OpenedAt != nil {
 			v.OpenedAtRFC3339 = a.OpenedAt.AsTime().Format(time.RFC3339)
@@ -240,6 +242,46 @@ func (c *AccountsClient) ReleaseHold(ctx context.Context, in ports.ReleaseHoldIn
 		return ports.ReleaseHoldOutput{}, err
 	}
 	return ports.ReleaseHoldOutput{OK: res.Ok, NewHold: res.NewHold}, nil
+}
+
+func (c *AccountsClient) GetAccountByNumber(ctx context.Context, in ports.GetAccountByNumberInput) (ports.GetAccountByNumberOutput, error) {
+	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	req := &accountsv1.GetAccountByNumberRequest{
+		AccountNumber: in.AccountNumber,
+	}
+	if in.IncludeInactive != nil {
+		req.IncludeInactive = wrapperspb.Bool(*in.IncludeInactive)
+	}
+
+	res, err := c.accounts.GetAccountByNumber(ctx2, req)
+	if err != nil {
+		return ports.GetAccountByNumberOutput{}, err
+	}
+	if res.Account == nil {
+		return ports.GetAccountByNumberOutput{}, err
+	}
+
+	// product_type es enum => lo pasamos como string consistente con tu OpenAPI
+	pt := res.Account.ProductType.String()
+	// opcional: normalizar a "CHECKING"/"SAVINGS"
+	if pt == "PRODUCT_TYPE_CHECKING" {
+		pt = "CHECKING"
+	} else if pt == "PRODUCT_TYPE_SAVINGS" {
+		pt = "SAVINGS"
+	}
+
+	return ports.GetAccountByNumberOutput{
+		Account: ports.AccountLookupView{
+			AccountID:     res.Account.AccountId,
+			AccountNumber: res.Account.AccountNumber,
+			DisplayName:   res.Account.DisplayName,
+			ProductType:   pt,
+			Currency:      res.Account.Currency,
+			Status:        res.Account.Status,
+		},
+	}, nil
 }
 
 // helpers

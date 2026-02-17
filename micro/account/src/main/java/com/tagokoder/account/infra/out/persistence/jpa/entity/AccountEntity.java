@@ -3,6 +3,8 @@ package com.tagokoder.account.infra.out.persistence.jpa.entity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.CascadeType;
@@ -18,8 +20,6 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Generated;
-import org.hibernate.annotations.GenerationTime;
 
 @Entity
 @Table(name = "accounts")
@@ -33,8 +33,9 @@ public class AccountEntity {
 
     @Column(name = "customer_id", nullable = false)
     private UUID customerId;
+    
+    @Generated(event = EventType.INSERT)
     @Column(name="account_number", nullable=false, unique=true, updatable=false, insertable=false)
-    @Generated(GenerationTime.INSERT)
     private Long accountNumber;
 
     @Column(name = "product_type")

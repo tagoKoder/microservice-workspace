@@ -5,7 +5,7 @@ spring:
   task:
     scheduling:
       pool:
-        size: ${SCHED_POOL_SIZE:2}
+        size: ${SCHED_POOL_SIZE:1}
 
   security:
     oauth2:

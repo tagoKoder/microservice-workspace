@@ -53,15 +53,6 @@ func NewRouter(deps RouterDeps, swagger *openapi3.T, swaggerValidator func(http.
 		Cookies:  deps.Server.deps.Cookies,
 	}, oas))
 
-	/*
-		r.Use(middleware.AccessToken(
-		middleware.AccessTokenDeps{
-			Tokens:  deps.Server.deps.Tokens,
-			Cookies: deps.Server.deps.Cookies,
-		},
-		oas))
-	*/
-
 	// 7) CSRF (OpenAPI-driven)
 	r.Use(middleware.CSRF(deps.Server.deps.CSRF, oas))
 

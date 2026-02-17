@@ -60,7 +60,6 @@ public class CognitoOidcIdpClient implements OidcIdpClientPort {
                 .with("redirect_uri", redirectUri)
                 .with("code_verifier", codeVerifier);
 
-        // Si el client tiene secret, usa Basic Auth (evitas secret en body/logs)
         WebClient.RequestHeadersSpec<?> req = client.post()
                 .uri(meta.token_endpoint())
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -133,7 +132,6 @@ public class CognitoOidcIdpClient implements OidcIdpClientPort {
                 .bodyToMono(UserInfoResponse.class)
                 .block();
 
-        // Cognito userInfo normalmente trae sub/email/username; grupos suelen venir en token claim.
         return new UserInfoResult(
                 resp.sub(),
                 resp.email(),

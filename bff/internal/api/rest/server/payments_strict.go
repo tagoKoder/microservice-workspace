@@ -1,3 +1,4 @@
+// bff\internal\api\rest\server\payments_strict.go
 package server
 
 import (

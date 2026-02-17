@@ -13,15 +13,17 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
-model/accountActivityItem.ts
-model/accountActivityResponse.ts
 model/accountBalances.ts
 model/accountItem.ts
+model/accountLookupItem.ts
+model/accountLookupResponse.ts
+model/accountStatementResponse.ts
 model/accountsOverviewResponse.ts
 model/activateRequest.ts
 model/activateResponse.ts
 model/confirmKycRequest.ts
 model/confirmKycResponse.ts
+model/counterpartyView.ts
 model/createBeneficiaryRequest.ts
 model/createBeneficiaryResponse.ts
 model/createPaymentRequest.ts
@@ -47,6 +49,7 @@ model/presignedUpload.ts
 model/refreshSessionResponse.ts
 model/registrationState.ts
 model/simpleStatusResponse.ts
+model/statementItem.ts
 model/uploadedObject.ts
 model/whoamiResponse.ts
 param.ts

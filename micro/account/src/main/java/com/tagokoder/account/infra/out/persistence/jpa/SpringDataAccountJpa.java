@@ -5,9 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface SpringDataAccountJpa extends JpaRepository<AccountEntity, UUID> {
     List<AccountEntity> findByCustomerId(UUID customerId);
     List<AccountEntity> findByIdIn(Collection<UUID> ids);
+    Optional<AccountEntity> findByAccountNumber(long accountNumber);
 }

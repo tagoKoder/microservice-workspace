@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,8 @@ import com.tagokoder.account.infra.out.persistence.jpa.SpringDataAccountBalanceJ
 
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 //@ConditionalOnProperty(name = "messaging.sqs.enabled", havingValue = "true", matchIfMissing = false)
@@ -27,6 +30,7 @@ public class LedgerPostedConsumer {
   private final InboxRepositoryPort inbox;
   private final SpringDataAccountBalanceJpa balances;
   private final ObjectMapper om = new ObjectMapper();
+  private static final Logger log = LoggerFactory.getLogger(LedgerPostedConsumer.class);
 
   public LedgerPostedConsumer(
     SqsClient sqs,
@@ -49,7 +53,7 @@ public class LedgerPostedConsumer {
       .waitTimeSeconds(20)
       .maxNumberOfMessages(10)
     );
-
+    log.info("Polling messages resp: "+resp);
     for (Message m : resp.messages()) {
       try {
         LedgerPostedDetail detail = unwrapEventBridgeDetail(m.body());
@@ -79,6 +83,7 @@ public class LedgerPostedConsumer {
 
       } catch (Exception e) {
         inbox.markFailedSafe(extractEventIdSafe(m.body()), "ledger.journal.posted", e.toString());
+        log.warn("SQS poll failed: {}", e.toString());
         throw e; // rollback como pediste
       }
     }

@@ -1,8 +1,8 @@
 -- 1) sequence
 create sequence if not exists account_number_seq
-  start 1
-  increment 1
+  increment by 1
   minvalue 11234
+  start with 11234
   maxvalue 999999999999
   cache 50;
 
@@ -23,8 +23,12 @@ alter table accounts
 -- 5) unique
 create unique index if not exists uq_accounts_account_number on accounts(account_number);
 
--- 6) ajustar setval para que la secuencia quede "después" del máximo real
+-- 6) ajustar secuencia para que el siguiente nextval sea:
+--    max(account_number)+1, o 11234 si no hay registros
 select setval(
   'account_number_seq',
-  (select greatest(coalesce(max(account_number), 0), 0) from accounts)
+  (select greatest(coalesce(max(account_number), 11234), 11234) from accounts),
+  false
 );
+
+

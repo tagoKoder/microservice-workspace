@@ -1,3 +1,4 @@
+// bff\internal\client\ports\accounts.go
 package ports
 
 import "context"
@@ -95,6 +96,7 @@ type Balances struct {
 type AccountView struct {
 	ID               string
 	CustomerID       string
+	AccountNumber    string
 	ProductType      string
 	Currency         string
 	Status           string
@@ -167,6 +169,24 @@ type ReleaseHoldOutput struct {
 	NewHold float64
 }
 
+type GetAccountByNumberInput struct {
+	AccountNumber   string
+	IncludeInactive *bool
+}
+
+type AccountLookupView struct {
+	AccountID     string
+	AccountNumber string
+	DisplayName   string
+	ProductType   string
+	Currency      string
+	Status        string
+}
+
+type GetAccountByNumberOutput struct {
+	Account AccountLookupView
+}
+
 type AccountsPort interface {
 	CreateCustomer(ctx context.Context, in CreateCustomerInput) (CreateCustomerOutput, error)
 	PatchCustomer(ctx context.Context, in PatchCustomerInput) (PatchCustomerOutput, error)
@@ -179,4 +199,5 @@ type AccountsPort interface {
 	ValidateAccountsAndLimits(ctx context.Context, in ValidateAccountsAndLimitsInput) (ValidateAccountsAndLimitsOutput, error)
 	ReserveHold(ctx context.Context, in ReserveHoldInput) (ReserveHoldOutput, error)
 	ReleaseHold(ctx context.Context, in ReleaseHoldInput) (ReleaseHoldOutput, error)
+	GetAccountByNumber(ctx context.Context, in GetAccountByNumberInput) (GetAccountByNumberOutput, error)
 }

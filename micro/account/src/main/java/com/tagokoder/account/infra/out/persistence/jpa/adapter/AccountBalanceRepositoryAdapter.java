@@ -11,6 +11,7 @@ import com.tagokoder.account.domain.port.out.AccountBalanceRepositoryPort;
 import com.tagokoder.account.infra.out.persistence.jpa.SpringDataAccountBalanceJpa;
 import com.tagokoder.account.infra.out.persistence.jpa.entity.AccountBalanceEntity;
 import com.tagokoder.account.infra.out.persistence.jpa.entity.AccountEntity;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -69,6 +70,24 @@ public class AccountBalanceRepositoryAdapter implements AccountBalanceRepository
     int updated = jpa.releaseHoldAtomic(accountId, amount);
     if (updated != 1) throw new IllegalArgumentException("insufficient hold or balances not found");
     return jpa.findById(accountId).orElseThrow().getHold();
+  }
+
+  @Override
+  @Transactional
+  public BigDecimal applyCredit(UUID accountId, BigDecimal amount) {
+      if (accountId == null) throw new IllegalArgumentException("accountId is required");
+      if (amount == null) throw new IllegalArgumentException("amount is required");
+      if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("amount must be > 0");
+
+      int updated = jpa.applyDeltas(
+              accountId,
+              amount,               // dLedger
+              amount,               // dAvailable
+              BigDecimal.ZERO       // dHold
+      );
+
+      if (updated != 1) throw new IllegalArgumentException("balances not found");
+      return jpa.findById(accountId).orElseThrow().getAvailable();
   }
 
 }

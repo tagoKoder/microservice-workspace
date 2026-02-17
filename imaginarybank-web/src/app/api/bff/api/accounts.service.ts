@@ -17,7 +17,9 @@ import { Observable }                                        from 'rxjs';
 import { OpenApiHttpParams, QueryParamStyle } from '../query.params';
 
 // @ts-ignore
-import { AccountActivityResponseDto } from '../model/accountActivityResponse';
+import { AccountLookupResponseDto } from '../model/accountLookupResponse';
+// @ts-ignore
+import { AccountStatementResponseDto } from '../model/accountStatementResponse';
 // @ts-ignore
 import { AccountsOverviewResponseDto } from '../model/accountsOverviewResponse';
 // @ts-ignore
@@ -33,10 +35,21 @@ import { Configuration }                                     from '../configurat
 import { BaseService } from '../api.base.service';
 
 
-export interface GetAccountActivityRequestParams {
+export interface GetAccountStatementRequestParams {
     id: string;
+    /** Inicio del rango (RFC3339). */
+    from?: string;
+    /** Fin del rango (RFC3339). */
+    to?: string;
     page?: number;
     size?: number;
+    /** Si true, devuelve counterparty enriquecido. */
+    includeCounterparty?: boolean;
+}
+
+export interface LookupAccountByNumberRequestParams {
+    /** Número de cuenta (1..12 dígitos). Puede venir con ceros a la izquierda. */
+    accountNumber: string;
 }
 
 export interface PatchAccountLimitsRequestParams {
@@ -57,26 +70,47 @@ export class AccountsApi extends BaseService {
     }
 
     /**
-     * Actividad (journal entries) de una cuenta
-     * Orquestación: - BFF verifica autorización de lectura sobre la cuenta. - Ledger.ListAccountJournalEntries(account_id, from/to, page/size). 
-     * @endpoint get /api/v1/accounts/{id}/activity
+     * Estado de cuenta / movimientos (statement)
+     * Orquestación (BFF): - BFF verifica autorización/ownership del account_id (policy/AVP y/o Accounts). - BFF llama a Accounts.ListAccountStatement(...). Orquestación (Accounts, interno): - Accounts consulta a LedgerService.ListAccountStatement para obtener movimientos. - Si include_counterparty&#x3D;true, Ledger puede enriquecer con InternalAccountsService.BatchGetAccountSummaries. 
+     * @endpoint get /api/v1/accounts/{id}/statement
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public getAccountActivity(requestParameters: GetAccountActivityRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AccountActivityResponseDto>;
-    public getAccountActivity(requestParameters: GetAccountActivityRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AccountActivityResponseDto>>;
-    public getAccountActivity(requestParameters: GetAccountActivityRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AccountActivityResponseDto>>;
-    public getAccountActivity(requestParameters: GetAccountActivityRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getAccountStatement(requestParameters: GetAccountStatementRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AccountStatementResponseDto>;
+    public getAccountStatement(requestParameters: GetAccountStatementRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AccountStatementResponseDto>>;
+    public getAccountStatement(requestParameters: GetAccountStatementRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AccountStatementResponseDto>>;
+    public getAccountStatement(requestParameters: GetAccountStatementRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         const id = requestParameters?.id;
         if (id === null || id === undefined) {
-            throw new Error('Required parameter id was null or undefined when calling getAccountActivity.');
+            throw new Error('Required parameter id was null or undefined when calling getAccountStatement.');
         }
+        const from = requestParameters?.from;
+        const to = requestParameters?.to;
         const page = requestParameters?.page;
         const size = requestParameters?.size;
+        const includeCounterparty = requestParameters?.includeCounterparty;
 
         let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'from',
+            <any>from,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'to',
+            <any>to,
+            QueryParamStyle.Form,
+            true,
+        );
+
 
         localVarQueryParameters = this.addToHttpParams(
             localVarQueryParameters,
@@ -91,6 +125,15 @@ export class AccountsApi extends BaseService {
             localVarQueryParameters,
             'size',
             <any>size,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'include_counterparty',
+            <any>includeCounterparty,
             QueryParamStyle.Form,
             true,
         );
@@ -123,9 +166,9 @@ export class AccountsApi extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/accounts/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/activity`;
+        let localVarPath = `/api/v1/accounts/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/statement`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<AccountActivityResponseDto>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<AccountStatementResponseDto>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 params: localVarQueryParameters.toHttpParams(),
@@ -184,6 +227,78 @@ export class AccountsApi extends BaseService {
         return this.httpClient.request<AccountsOverviewResponseDto>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Consulta cuenta por número de cuenta (account_number)
+     * Uso típico: - Validar destinatario antes de crear un pago/transferencia. Orquestación: - (Condicional) RefreshSession para access_token downstream. - Accounts.GetAccountByNumber(account_number, include_inactive). 
+     * @endpoint get /api/v1/accounts/lookup
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public lookupAccountByNumber(requestParameters: LookupAccountByNumberRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AccountLookupResponseDto>;
+    public lookupAccountByNumber(requestParameters: LookupAccountByNumberRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AccountLookupResponseDto>>;
+    public lookupAccountByNumber(requestParameters: LookupAccountByNumberRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AccountLookupResponseDto>>;
+    public lookupAccountByNumber(requestParameters: LookupAccountByNumberRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const accountNumber = requestParameters?.accountNumber;
+        if (accountNumber === null || accountNumber === undefined) {
+            throw new Error('Required parameter accountNumber was null or undefined when calling lookupAccountByNumber.');
+        }
+
+        let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'account_number',
+            <any>accountNumber,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (cookieAuth) required
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/accounts/lookup`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<AccountLookupResponseDto>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                params: localVarQueryParameters.toHttpParams(),
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

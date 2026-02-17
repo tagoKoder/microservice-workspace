@@ -64,17 +64,11 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 			// si refrescó, actualiza ctx con el nuevo sid
 			if newSid != "" && newSid != sid {
 				ctx = security.WithSessionID(ctx, newSid)
-				// opcional: guardar access token en ctx para interceptores que propaguen Bearer
-				/*if accessTok != "" {
-					ctx = context.WithValue(ctx, CtxAccessToken, accessTok)
-				}*/
 				sid = newSid
 			}
 
 			// control de estado de usuario
 			if info.UserStatus != "" && info.UserStatus != "ACTIVE" {
-				// recomendación: si el user está LOCKED/DISABLED, también podrías limpiar cookie.
-				// deps.Cookies.Clear(w)
 				w.WriteHeader(http.StatusForbidden)
 				return
 			}

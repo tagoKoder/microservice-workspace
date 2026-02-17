@@ -41,8 +41,6 @@ func GetHTTPResponseWriter(ctx context.Context) (http.ResponseWriter, bool) {
 	return w, ok && w != nil
 }
 
-// WithHTTPMiddleware (opcional) — si ya lo tenías en otro archivo, puedes eliminarlo de ahí
-// y dejar solo esta versión para no duplicar symbols.
 func WithHTTPMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := WithHTTP(r.Context(), w, r)

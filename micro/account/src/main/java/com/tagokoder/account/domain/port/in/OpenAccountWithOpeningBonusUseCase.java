@@ -14,6 +14,7 @@ public interface OpenAccountWithOpeningBonusUseCase {
 
     record Result(
             UUID accountId,
+            String accountNumber,
             String bonusJournalId, // journal_id de ledger
             String status          // "opened"
     ) {}

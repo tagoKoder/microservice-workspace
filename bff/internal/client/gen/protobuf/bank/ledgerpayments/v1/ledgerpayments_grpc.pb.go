@@ -161,6 +161,7 @@ var PaymentsService_ServiceDesc = grpc.ServiceDesc{
 const (
 	LedgerService_CreditAccount_FullMethodName             = "/bank.ledgerpayments.v1.LedgerService/CreditAccount"
 	LedgerService_ListAccountJournalEntries_FullMethodName = "/bank.ledgerpayments.v1.LedgerService/ListAccountJournalEntries"
+	LedgerService_ListAccountStatement_FullMethodName      = "/bank.ledgerpayments.v1.LedgerService/ListAccountStatement"
 )
 
 // LedgerServiceClient is the client API for LedgerService service.
@@ -169,6 +170,8 @@ const (
 type LedgerServiceClient interface {
 	CreditAccount(ctx context.Context, in *CreditAccountRequest, opts ...grpc.CallOption) (*CreditAccountResponse, error)
 	ListAccountJournalEntries(ctx context.Context, in *ListAccountJournalEntriesRequest, opts ...grpc.CallOption) (*ListAccountJournalEntriesResponse, error)
+	// NUEVO: Estado de cuenta / Movimientos
+	ListAccountStatement(ctx context.Context, in *ListAccountStatementRequest, opts ...grpc.CallOption) (*ListAccountStatementResponse, error)
 }
 
 type ledgerServiceClient struct {
@@ -199,12 +202,24 @@ func (c *ledgerServiceClient) ListAccountJournalEntries(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *ledgerServiceClient) ListAccountStatement(ctx context.Context, in *ListAccountStatementRequest, opts ...grpc.CallOption) (*ListAccountStatementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAccountStatementResponse)
+	err := c.cc.Invoke(ctx, LedgerService_ListAccountStatement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LedgerServiceServer is the server API for LedgerService service.
 // All implementations must embed UnimplementedLedgerServiceServer
 // for forward compatibility.
 type LedgerServiceServer interface {
 	CreditAccount(context.Context, *CreditAccountRequest) (*CreditAccountResponse, error)
 	ListAccountJournalEntries(context.Context, *ListAccountJournalEntriesRequest) (*ListAccountJournalEntriesResponse, error)
+	// NUEVO: Estado de cuenta / Movimientos
+	ListAccountStatement(context.Context, *ListAccountStatementRequest) (*ListAccountStatementResponse, error)
 	mustEmbedUnimplementedLedgerServiceServer()
 }
 
@@ -220,6 +235,9 @@ func (UnimplementedLedgerServiceServer) CreditAccount(context.Context, *CreditAc
 }
 func (UnimplementedLedgerServiceServer) ListAccountJournalEntries(context.Context, *ListAccountJournalEntriesRequest) (*ListAccountJournalEntriesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAccountJournalEntries not implemented")
+}
+func (UnimplementedLedgerServiceServer) ListAccountStatement(context.Context, *ListAccountStatementRequest) (*ListAccountStatementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAccountStatement not implemented")
 }
 func (UnimplementedLedgerServiceServer) mustEmbedUnimplementedLedgerServiceServer() {}
 func (UnimplementedLedgerServiceServer) testEmbeddedByValue()                       {}
@@ -278,6 +296,24 @@ func _LedgerService_ListAccountJournalEntries_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LedgerService_ListAccountStatement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAccountStatementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LedgerServiceServer).ListAccountStatement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LedgerService_ListAccountStatement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LedgerServiceServer).ListAccountStatement(ctx, req.(*ListAccountStatementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LedgerService_ServiceDesc is the grpc.ServiceDesc for LedgerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -292,6 +328,10 @@ var LedgerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAccountJournalEntries",
 			Handler:    _LedgerService_ListAccountJournalEntries_Handler,
+		},
+		{
+			MethodName: "ListAccountStatement",
+			Handler:    _LedgerService_ListAccountStatement_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

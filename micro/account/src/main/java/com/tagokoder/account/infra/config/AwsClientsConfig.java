@@ -37,6 +37,15 @@ public class AwsClientsConfig {
 
     @Bean
     SqsClient sqsClient(AppProps props, AwsCredentialsProvider creds) {
+
+        System.out.println("AWS region=" + props.aws().region());
+        System.out.println("QueueUrl=" + props.aws().ledgerEventsQueueUrl());
+        System.out.println("HTTPS_PROXY=" + System.getenv("HTTPS_PROXY"));
+        System.out.println("HTTP_PROXY=" + System.getenv("HTTP_PROXY"));
+
+        System.out.println("NO_PROXY=" + System.getenv("NO_PROXY"));
+        System.out.println("NO_PROXY=" + System.getenv("NO_PROXY"));
+
         return SqsClient.builder()
                 .region(Region.of(props.aws().region()))
                 .credentialsProvider(creds)

@@ -1,3 +1,4 @@
+// bff\internal\client\ports\ledgerpayments.go
 package ports
 
 import "context"
@@ -77,10 +78,45 @@ type ListAccountJournalEntriesOutput struct {
 	Size    int32
 }
 
+type CounterpartyView struct {
+	AccountID     string
+	AccountNumber string
+	DisplayName   string
+	AccountType   string
+}
+
+type StatementItem struct {
+	JournalID             string
+	BookedAtRFC3339       string
+	Currency              string
+	Direction             string
+	Amount                string
+	Kind                  string
+	Memo                  *string
+	CounterpartyAccountID *string
+	Counterparty          *CounterpartyView
+}
+
+type ListAccountStatementInput struct {
+	AccountID           string
+	FromRFC3339         *string
+	ToRFC3339           *string
+	Page                int32
+	Size                int32
+	IncludeCounterparty bool
+}
+
+type ListAccountStatementOutput struct {
+	Items []StatementItem
+	Page  int32
+	Size  int32
+}
+
 type LedgerPaymentsPort interface {
 	PostPayment(ctx context.Context, in PostPaymentInput) (PostPaymentOutput, error)
 	GetPayment(ctx context.Context, in GetPaymentInput) (GetPaymentOutput, error)
 
 	CreditAccount(ctx context.Context, in CreditAccountInput) (CreditAccountOutput, error)
 	ListAccountJournalEntries(ctx context.Context, in ListAccountJournalEntriesInput) (ListAccountJournalEntriesOutput, error)
+	ListAccountStatement(ctx context.Context, in ListAccountStatementInput) (ListAccountStatementOutput, error)
 }

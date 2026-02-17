@@ -17,18 +17,24 @@ import { AccordionModule } from 'primeng/accordion';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService } from 'primeng/api';
 
-import { HttpClient } from '@angular/common/http';
-
 import { AuthService } from '../../core/auth/auth.service';
-import { AccountsApi, AccountsOverviewResponseDto, AccountItemDto, PaymentsApi, SessionApi, CreatePaymentRequestDto, CreatePaymentResponseDto } from '../../api/bff';
+import {
+  AccountsApi,
+  AccountsOverviewResponseDto,
+  AccountItemDto,
+  PaymentsApi,
+  SessionApi,
+  CreatePaymentRequestDto,
+  CreatePaymentResponseDto
+} from '../../api/bff';
 
 type RecentTx = {
   when: Date;
   memo?: string | null;
-  journalId?: string;   // para entries de actividad
-  paymentId?: string;   // para pagos creados
+  journalId?: string;
+  paymentId?: string;
   type: 'transfer' | 'credit' | 'debit';
-  amount: number | null; // null cuando no existe monto en el contrato
+  amount: number | null;
   currency: string;
   status: 'posted' | 'pending';
 };
@@ -61,22 +67,24 @@ export class Home {
   session$;
   accounts$;
 
-  // cache para UI
   accountsCache: AccountItemDto[] = [];
 
-  // selección
   selectedAccountId: string | null = null;
   private carouselIndex = 0;
 
-  // transfer UI
   transferOpen = false;
   transferFromId: string | null = null;
   transferToId: string | null = null;
   transferAmount: number | null = null;
   transferMemo = '';
 
-  // movimientos (mock por ahora)
+  submittingTransfer = false;
+
   recentTx: RecentTx[] = [];
+
+  // ✅ defaults para statement
+  statementDaysBack = 30;
+  includeCounterparty = true;
 
   constructor(
     private auth: AuthService,
@@ -86,19 +94,22 @@ export class Home {
     private msg: MessageService
   ) {
     this.session$ = this.auth.getSession();
+
     this.accounts$ = this.accountsApi.getAccountsOverview().pipe(
       tap(res => {
         this.accountsCache = res.accounts || [];
+
         if (!this.selectedAccountId && this.accountsCache.length > 0) {
           const first = this.accountsCache[0];
           this.selectedAccountId = first.id;
           this.transferFromId = first.id;
           this.transferToId = this.accountsCache.length > 1 ? this.accountsCache[1].id : first.id;
-          void this.loadActivity(first.id);
+
+          void this.loadStatement(first.id); // ✅ statement
         }
       }),
       shareReplay({ bufferSize: 1, refCount: true }),
-      catchError(err => {
+      catchError(() => {
         this.toastError('Error', 'No se pudieron cargar las cuentas.');
         return of({ accounts: [] } as AccountsOverviewResponseDto);
       })
@@ -109,44 +120,52 @@ export class Home {
     await this.auth.logout();
   }
 
-
   onCarouselPage(e: any) {
     this.carouselIndex = e?.page ?? 0;
     const a = this.accountsCache?.[this.carouselIndex];
-    if (a) {
-      this.selectedAccountId = a.id;
-      if (!this.transferOpen) this.transferFromId = a.id;
-    }
+    if (!a) return;
+
+    this.selectedAccountId = a.id;
+    if (!this.transferOpen) this.transferFromId = a.id;
+
+    void this.loadStatement(a.id); // ✅ recarga statement al cambiar cuenta
   }
 
-  // select nativo: al cambiar, sincroniza "cuenta activa"
   onSelectAccountChange() {
     const idx = this.accountsCache.findIndex(a => a.id === this.selectedAccountId);
-    if (idx >= 0) {
-      this.carouselIndex = idx;
-      this.transferFromId = this.selectedAccountId;
-      // auto-ajuste de destino si quedó igual
-      if (this.transferToId === this.transferFromId) {
-        const alt = this.accountsCache.find(a => a.id !== this.transferFromId);
-        this.transferToId = alt ? alt.id : this.transferFromId;
-      }
+    if (idx < 0) return;
+
+    this.carouselIndex = idx;
+    this.transferFromId = this.selectedAccountId;
+
+    if (this.transferToId === this.transferFromId) {
+      const alt = this.accountsCache.find(a => a.id !== this.transferFromId);
+      this.transferToId = alt ? alt.id : this.transferFromId;
     }
+
+    void this.loadStatement(this.selectedAccountId!); // ✅
   }
 
   prevAccount() {
     const accounts = this.accountsCache;
     if (!accounts?.length) return;
+
     this.carouselIndex = (this.carouselIndex - 1 + accounts.length) % accounts.length;
     this.selectedAccountId = accounts[this.carouselIndex].id;
     this.transferFromId = this.selectedAccountId;
+
+    void this.loadStatement(this.selectedAccountId); // ✅
   }
 
   nextAccount() {
     const accounts = this.accountsCache;
     if (!accounts?.length) return;
+
     this.carouselIndex = (this.carouselIndex + 1) % accounts.length;
     this.selectedAccountId = accounts[this.carouselIndex].id;
     this.transferFromId = this.selectedAccountId;
+
+    void this.loadStatement(this.selectedAccountId); // ✅
   }
 
   openTransfer() {
@@ -172,7 +191,6 @@ export class Home {
 
     if ((from.currency || '').toUpperCase() !== (to.currency || '').toUpperCase()) return false;
 
-    // (opcional UI) validar que "available" sea suficiente (solo UI, el backend manda)
     const available = this.toNumber(from.balances?.available);
     if (available < Number(this.transferAmount)) return false;
 
@@ -184,14 +202,22 @@ export class Home {
     return r.csrf_token;
   }
 
+  private newIdempotencyKey(): string {
+    return (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`).toString();
+  }
 
   async submitTransfer(): Promise<void> {
+    if (this.submittingTransfer) return;
+    if (!this.canSubmitTransfer()) return;
+
     const from = this.accountsCache.find(a => a.id === this.transferFromId);
     const to = this.accountsCache.find(a => a.id === this.transferToId);
     if (!from || !to) return;
 
+    this.submittingTransfer = true;
+
     const csrf = await this.getCsrf();
-    const idem = crypto.randomUUID();
+    const idem = this.newIdempotencyKey();
 
     const payload: CreatePaymentRequestDto = {
       source_account: this.transferFromId!,
@@ -202,8 +228,6 @@ export class Home {
     };
 
     try {
-      // Firma típica del cliente generado por OpenAPI:
-      // executePayment(idempotencyKey, xCsrfToken, body)
       const res: CreatePaymentResponseDto = await firstValueFrom(
         this.paymentsApi.executePayment({
           idempotencyKey: idem,
@@ -212,51 +236,65 @@ export class Home {
         })
       );
 
-      this.recentTx.unshift({
-        when: new Date(),
-        type: 'transfer',
-        amount: Number(this.transferAmount),
-        currency: from.currency,
-        status: res.status === 'posted' ? 'posted' : 'pending'
-      });
+      // ✅ refresca statement para ver el movimiento real
+      await this.loadStatement(this.transferFromId!);
 
       this.toastSuccess('Transferencia enviada', `Payment ID: ${this.maskId(res.payment_id)}`);
       this.transferOpen = false;
     } catch (e: any) {
       this.toastError('Error', 'No se pudo enviar la transferencia. Revisa logs del BFF/microservicios.');
+    } finally {
+      this.submittingTransfer = false;
     }
   }
 
-
-  async loadActivity(accountId: string): Promise<void> {
+  // ✅ NUEVO: usa /accounts/{id}/statement con from/to/include_counterparty
+  async loadStatement(accountId: string): Promise<void> {
     try {
+      const to = new Date();
+      const from = new Date(Date.now() - this.statementDaysBack * 24 * 60 * 60 * 1000);
+
       const res = await firstValueFrom(
-        this.accountsApi.getAccountActivity({
+        this.accountsApi.getAccountStatement({
           id: accountId,
+          from: from.toISOString(), // RFC3339
+          to: to.toISOString(),     // RFC3339
           page: 1,
-          size: 20
+          size: 20,
+          includeCounterparty: this.includeCounterparty
         })
       );
 
-      // res.items trae journal_id, booked_at, memo (según tu schema actual)
-      // Aquí solo puedes mostrar fecha + memo (monto/tipo no existen aún en el contrato)
-      this.recentTx = (res.items || []).map(it => ({
-        when: new Date(it.booked_at!),
-        type: 'debit',      // placeholder: tu contrato aún no trae direction
-        amount: 0,          // placeholder: tu contrato aún no trae amount
-        currency: this.getSelectedAccount()?.currency || 'USD',
-        status: 'posted'
-      }));
-    } catch (e: any) {
-      this.toastError('Error', 'No se pudieron cargar los movimientos.');
+      this.recentTx = (res.items || []).map(it => {
+        const dir = String((it as any).direction || '').toLowerCase(); // debit|credit
+        const kind = String((it as any).kind || '').toLowerCase();     // transfer|...
+        const cur = ((it as any).currency || this.accountsCache.find(a => a.id === accountId)?.currency || 'USD').toUpperCase();
+
+        const amt = this.toNumber((it as any).amount);
+        const signedAmount = dir === 'debit' ? -amt : amt;
+
+        const cp = (it as any).counterparty;
+        const memo =
+          (it as any).memo ??
+          (cp?.display_name ? `${cp.display_name}${cp?.account_number ? ' · ' + cp.account_number : ''}` : null);
+
+        return {
+          when: new Date((it as any).booked_at),
+          journalId: (it as any).journal_id,
+          memo,
+          type: kind === 'transfer' ? 'transfer' : (dir === 'credit' ? 'credit' : 'debit'),
+          amount: Number.isFinite(signedAmount) ? signedAmount : null,
+          currency: cur,
+          status: 'posted'
+        } as RecentTx;
+      });
+    } catch {
+      this.toastError('Error', 'No se pudieron cargar los movimientos (statement).');
     }
   }
 
-
-
   scrollToMovements() {
-    const el = document.getElementById('movements');
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('movements')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   getSelectedAccount(): AccountItemDto | null {
@@ -264,7 +302,6 @@ export class Home {
     return this.accountsCache.find(a => a.id === this.selectedAccountId) || null;
   }
 
-  // DTO trae string decimal -> UI number
   private toNumber(v: any): number {
     if (v === null || v === undefined) return 0;
     const n = Number(String(v).replace(',', '.'));

@@ -12,4 +12,5 @@ public interface AccountRepositoryPort {
     List<Account> findByCustomerId(UUID customerId);
     boolean existsCustomer(UUID customerId);
     List<Account> findByIds(List<UUID> accountIds);
+    Optional<Account> findByAccountNumber(long accountNumber);
 }

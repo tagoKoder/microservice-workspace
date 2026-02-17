@@ -11,7 +11,7 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 			w.Header().Set("X-Frame-Options", "DENY")
 			w.Header().Set("Referrer-Policy", "no-referrer")
 			w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-			// CSP base (ajústala a tu frontend)
+			// CSP base
 			w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
 
 			if hsts {

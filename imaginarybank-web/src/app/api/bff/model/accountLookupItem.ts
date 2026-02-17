@@ -7,24 +7,20 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { AccountBalancesDto } from './accountBalances';
 
 
-export interface AccountItemDto { 
-    id: string;
+export interface AccountLookupItemDto { 
+    account_id: string;
     /**
      * Número de cuenta normalizado (12 dígitos).
      */
-    account_number?: string;
+    account_number: string;
     /**
-     * Ej: CHECKING | SAVINGS
+     * Nombre mostrado del titular (demo).
      */
+    display_name: string;
     product_type: string;
-    /**
-     * ISO-4217
-     */
     currency: string;
     status: string;
-    balances: AccountBalancesDto;
 }
 

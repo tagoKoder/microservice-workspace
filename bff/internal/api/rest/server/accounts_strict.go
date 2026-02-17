@@ -1,3 +1,4 @@
+// bff\internal\api\rest\server\accounts_strict.go
 package server
 
 import (
@@ -13,16 +14,25 @@ func (s *Server) GetAccountsOverview(
 	return s.accounts.OverviewStrict(ctx)
 }
 
-func (s *Server) GetAccountActivity(
-	ctx context.Context,
-	req openapi.GetAccountActivityRequestObject,
-) (openapi.GetAccountActivityResponseObject, error) {
-	return s.accounts.ActivityStrict(ctx, req.Id, req.Params)
-}
-
 func (s *Server) PatchAccountLimits(
 	ctx context.Context,
 	req openapi.PatchAccountLimitsRequestObject,
 ) (openapi.PatchAccountLimitsResponseObject, error) {
 	return s.accounts.PatchLimitsStrict(ctx, req.Id, req.Params, *req.Body)
+}
+
+// NUEVO: GET /api/v1/accounts/lookup?account_number=...
+func (s *Server) LookupAccountByNumber(
+	ctx context.Context,
+	req openapi.LookupAccountByNumberRequestObject,
+) (openapi.LookupAccountByNumberResponseObject, error) {
+	return s.accounts.LookupByNumberStrict(ctx, req.Params)
+}
+
+// NUEVO: GET /api/v1/accounts/{id}/statement
+func (s *Server) GetAccountStatement(
+	ctx context.Context,
+	req openapi.GetAccountStatementRequestObject,
+) (openapi.GetAccountStatementResponseObject, error) {
+	return s.accounts.StatementStrict(ctx, req.Id.String(), req.Params)
 }
