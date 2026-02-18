@@ -1,4 +1,3 @@
-// micro\ledger\internal\infra\in\grpc\handler\ledger_handler.go
 package handler
 
 import (
@@ -7,6 +6,7 @@ import (
 	in "github.com/tagoKoder/ledger/internal/domain/port/in"
 	ledgerpb "github.com/tagoKoder/ledger/internal/genproto/bank/ledgerpayments/v1"
 	"github.com/tagoKoder/ledger/internal/infra/in/grpc/mapper"
+	"github.com/tagoKoder/ledger/internal/infra/in/grpc/validation"
 )
 
 type LedgerHandler struct {
@@ -21,7 +21,7 @@ func NewLedgerHandler(creaAcc in.CreditAccountUseCase, listAcc in.ListAccountJou
 }
 
 func (h *LedgerHandler) CreditAccount(ctx context.Context, req *ledgerpb.CreditAccountRequest) (*ledgerpb.CreditAccountResponse, error) {
-	cmd, err := mapper.ToCreditAccountCommand(req)
+	cmd, err := validation.ToCreditAccountCommand(req)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (h *LedgerHandler) CreditAccount(ctx context.Context, req *ledgerpb.CreditA
 }
 
 func (h *LedgerHandler) ListAccountJournalEntries(ctx context.Context, req *ledgerpb.ListAccountJournalEntriesRequest) (*ledgerpb.ListAccountJournalEntriesResponse, error) {
-	q, err := mapper.ToListAccountJournalEntriesQuery(req)
+	q, err := validation.ToListAccountJournalEntriesQuery(req)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (h *LedgerHandler) ListAccountJournalEntries(ctx context.Context, req *ledg
 }
 
 func (h *LedgerHandler) ListAccountStatement(ctx context.Context, req *ledgerpb.ListAccountStatementRequest) (*ledgerpb.ListAccountStatementResponse, error) {
-	q, err := mapper.ToListAccountStatementQuery(req)
+	q, err := validation.ToListAccountStatementQuery(req)
 	if err != nil {
 		return nil, err
 	}

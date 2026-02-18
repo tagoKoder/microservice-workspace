@@ -1,4 +1,3 @@
-// micro\ledger\internal\infra\in\grpc\handler\payment_handler.go
 package handler
 
 import (
@@ -7,6 +6,7 @@ import (
 	in "github.com/tagoKoder/ledger/internal/domain/port/in"
 	ledgerpb "github.com/tagoKoder/ledger/internal/genproto/bank/ledgerpayments/v1"
 	"github.com/tagoKoder/ledger/internal/infra/in/grpc/mapper"
+	"github.com/tagoKoder/ledger/internal/infra/in/grpc/validation"
 )
 
 type PaymentsHandler struct {
@@ -20,7 +20,7 @@ func NewPaymentsHandler(post in.PostPaymentUseCase, get in.GetPaymentUseCase) *P
 }
 
 func (h *PaymentsHandler) PostPayment(ctx context.Context, req *ledgerpb.PostPaymentRequest) (*ledgerpb.PostPaymentResponse, error) {
-	cmd, err := mapper.ToPostPaymentCommand(req)
+	cmd, err := validation.ToPostPaymentCommand(req)
 	if err != nil {
 		return nil, err
 	}
@@ -34,12 +34,12 @@ func (h *PaymentsHandler) PostPayment(ctx context.Context, req *ledgerpb.PostPay
 }
 
 func (h *PaymentsHandler) GetPayment(ctx context.Context, req *ledgerpb.GetPaymentRequest) (*ledgerpb.GetPaymentResponse, error) {
-	id, err := mapper.ToGetPaymentID(req)
+	paymentID, err := validation.ToGetPaymentUUID(req)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := h.get.GetPayment(ctx, id)
+	res, err := h.get.GetPayment(ctx, paymentID)
 	if err != nil {
 		return nil, err
 	}
