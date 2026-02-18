@@ -2,6 +2,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -9,12 +10,14 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	openapi "github.com/tagoKoder/bff/internal/api/rest/gen/openapi"
+	"github.com/tagoKoder/bff/internal/api/rest/httperr"
 	"github.com/tagoKoder/bff/internal/api/rest/middleware"
 )
 
 type RouterDeps struct {
-	Server *Server
-	HSTS   bool
+	Server   *Server
+	HSTS     bool
+	DebugErr bool
 }
 
 func NewRouter(deps RouterDeps, swagger *openapi3.T, swaggerValidator func(http.Handler) http.Handler) chi.Router {
@@ -59,13 +62,22 @@ func NewRouter(deps RouterDeps, swagger *openapi3.T, swaggerValidator func(http.
 	// 8) OpenAPI STRICT handler
 	strict := openapi.NewStrictHandlerWithOptions(
 		deps.Server,
-		nil, // no strict middleware needed
+		nil,
 		openapi.StrictHTTPServerOptions{
 			RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				// Log interno con correlation-id (no lo devuelvas al cliente como “detalle”)
+				cid := r.Header.Get("X-Correlation-Id")
+				log.Printf("request_error cid=%s route=%s err=%v", cid, r.URL.Path, err)
+
+				// Sanitizado: BAD_REQUEST (sin err.Error al cliente)
+				httperr.Write(w, r, httperr.BadRequest().WithCause(err), deps.DebugErr)
 			},
 			ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				cid := r.Header.Get("X-Correlation-Id")
+				log.Printf("handler_error cid=%s route=%s err=%v", cid, r.URL.Path, err)
+
+				// Sanitizado + mapeo (gRPC -> HTTP si aplica)
+				httperr.Write(w, r, err, deps.DebugErr)
 			},
 		},
 	)
