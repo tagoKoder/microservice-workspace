@@ -25,6 +25,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
+import static com.tagokoder.identity.infra.in.grpc.validation.OidcAuthGrpcValidators.*;
 
 @GrpcService
 public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImplBase {
@@ -54,8 +55,8 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   @Override
   public void getSessionInfo(GetSessionInfoRequest request, StreamObserver<GetSessionInfoResponse> responseObserver) {
     try {
-      var sid = java.util.UUID.fromString(request.getSessionId());
-      var info = getSessionInfoUseCase.get(sid, request.getIp(), request.getUserAgent());
+        var in = toSessionClientIn(request);
+        var info = getSessionInfoUseCase.get(in.sessionId(), in.ip(), in.userAgent());
 
       var user = OidcUser.newBuilder()
           .setName("")
@@ -96,10 +97,8 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   @Override
   public void startOidcLogin(StartOidcLoginRequest request, StreamObserver<StartOidcLoginResponse> responseObserver) {
     try {
-      var res = startLogin.start(new StartLoginUseCase.StartLoginCommand(
-          request.getChannel(),
-          request.getRedirectAfterLogin()
-      ));
+        var cmd = toStartLoginCommand(request);
+      var res = startLogin.start(cmd);
 
       var response = StartOidcLoginResponse.newBuilder()
           .setAuthorizationUrl(res.authorizationUrl())
@@ -118,16 +117,8 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   @Override
   public void completeOidcLogin(CompleteOidcLoginRequest request, StreamObserver<CompleteOidcLoginResponse> responseObserver) {
     try {
-      // evita loggear IP cruda en prod; si quieres, loggea hash.
-      // log.info("IDENTITY COMPLETE AUTH ip={}", request.getIp());
-
-      var res = completeLogin.complete(new CompleteLoginUseCase.CompleteLoginCommand(
-          request.getCode(),
-          request.getState(),
-          request.getIp(),
-          request.getUserAgent(),
-          request.getChannel()
-      ));
+        var cmd = toCompleteLoginCommand(request);
+      var res = completeLogin.complete(cmd);
 
       var user = OidcUser.newBuilder()
           .setName(res.name() != null ? res.name() : "")
@@ -157,8 +148,8 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   @Override
   public void refreshSession(RefreshSessionRequest request, StreamObserver<RefreshSessionResponse> responseObserver) {
     try {
-      var sid = java.util.UUID.fromString(request.getSessionId());
-      var refreshed = refreshSessionUseCase.refresh(sid, request.getIp(), request.getUserAgent());
+        var in = toSessionClientIn(request);
+      var refreshed = refreshSessionUseCase.refresh(in.sessionId(), in.ip(), in.userAgent());
 
       var resp = RefreshSessionResponse.newBuilder()
           .setSessionId(refreshed.sessionId().toString())
@@ -185,7 +176,7 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
   @Override
   public void logoutSession(LogoutSessionRequest request, StreamObserver<LogoutSessionResponse> responseObserver) {
     try {
-      var sid = java.util.UUID.fromString(request.getSessionId());
+      var sid = toSessionId(request);
       logoutSessionUseCase.logout(sid);
 
       var resp = LogoutSessionResponse.newBuilder().setSuccess(true).build();

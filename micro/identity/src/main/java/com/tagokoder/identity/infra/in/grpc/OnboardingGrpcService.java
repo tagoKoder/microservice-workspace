@@ -1,22 +1,15 @@
 package com.tagokoder.identity.infra.in.grpc;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 import com.google.protobuf.Timestamp;
 import com.tagokoder.identity.domain.model.kyc.KycDocumentKind;
 import com.tagokoder.identity.domain.model.kyc.UploadHeader;
-import com.tagokoder.identity.domain.model.kyc.UploadedObject;
 import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase;
-import com.tagokoder.identity.domain.port.in.ActivateRegistrationUseCase.ActivateRegistrationCommand;
 import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase;
-import com.tagokoder.identity.domain.port.in.ConfirmRegistrationKycUseCase.ConfirmRegistrationKycCommand;
 import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase;
-import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase.StartRegistrationCommand;
 import com.tagokoder.identity.infra.security.grpc.CorrelationServerInterceptor;
 
 import bank.identity.v1.ActivateRegistrationRequest;
@@ -32,6 +25,7 @@ import bank.identity.v1.StartRegistrationRequest;
 import bank.identity.v1.StartRegistrationResponse;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
+import static com.tagokoder.identity.infra.in.grpc.validation.OnboardingGrpcValidators.*;
 
 @GrpcService
 public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServiceImplBase {
@@ -49,19 +43,8 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
   @Override
   public void startRegistration(StartRegistrationRequest request,
                                 StreamObserver<StartRegistrationResponse> responseObserver) {
-
-        var res = startRegistration.start(new StartRegistrationCommand(
-                request.getChannel(),
-                request.getNationalId(),
-                LocalDate.parse(request.getNationalIdIssueDate()),
-                request.getFingerprintCode(),
-                BigDecimal.valueOf(request.getMonthlyIncome()),
-                request.getOccupationType().name(),
-                request.getEmail(),
-                request.getPhone(),
-                request.getIdFrontContentType(),
-                request.getSelfieContentType()
-        ));
+        var cmd = toStartRegistrationCommand(request);
+        var res = startRegistration.start(cmd);
 
         StartRegistrationResponse.Builder b = StartRegistrationResponse.newBuilder()
                 .setRegistrationId(res.registrationId().toString())
@@ -90,13 +73,11 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
     public void confirmRegistrationKyc(ConfirmRegistrationKycRequest request,
                                        StreamObserver<ConfirmRegistrationKycResponse> responseObserver) {
 
-        UUID regId = UUID.fromString(request.getRegistrationId());
-
-        List<UploadedObject> objs = request.getObjectsList().stream()
-                .map(this::mapUploaded)
-                .toList();
-
-        var res = confirmKyc.confirm(new ConfirmRegistrationKycCommand(regId, objs));
+        var in = toConfirmKycInput(request);
+        var res = confirmKyc.confirm(new ConfirmRegistrationKycUseCase.ConfirmRegistrationKycCommand(
+            in.registrationId(),
+            in.objects()
+        ));
 
 
         ConfirmRegistrationKycResponse resp = ConfirmRegistrationKycResponse.newBuilder()
@@ -132,22 +113,9 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
     @Override
     public void activateRegistration(ActivateRegistrationRequest request,
         StreamObserver<ActivateRegistrationResponse> responseObserver) {
-        String corrId = CorrelationServerInterceptor.getCorrelationId();
-
-    var res = activateRegistrationUseCase.activate(
-        new ActivateRegistrationCommand(
-        UUID.fromString(request.getRegistrationId()),
-        request.getChannel(),
-        request.getFullName(),
-        request.getTin(),
-        LocalDate.parse(request.getBirthDate()),
-        request.getCountry(),
-        request.getEmail(),
-        request.getPhone(),
-        request.getAcceptedTerms(),
-        corrId
-        )
-    );
+    String corrId = CorrelationServerInterceptor.getCorrelationId();
+    var cmd = toActivateCommand(request, corrId);
+    var res = activateRegistrationUseCase.activate(cmd);
 
     var b = ActivateRegistrationResponse.newBuilder()
         .setRegistrationId(res.registrationId().toString())
@@ -170,29 +138,10 @@ public class OnboardingGrpcService extends OnboardingServiceGrpc.OnboardingServi
     responseObserver.onCompleted();
     }
 
-    
-    private UploadedObject mapUploaded(bank.identity.v1.UploadedObject o) {
-        return new UploadedObject(
-                fromProtoKind(o.getDocType()),
-                o.getBucket(),
-                o.getKey(),
-                o.getEtag(),
-                (o.getSizeBytes() > 0) ? o.getSizeBytes() : null,
-                o.getContentType()
-        );
-    }
-
       private bank.identity.v1.KycDocType toProtoKind(KycDocumentKind k) {
         return switch (k) {
             case ID_FRONT -> bank.identity.v1.KycDocType.KYC_DOC_TYPE_ID_FRONT;
             case SELFIE -> bank.identity.v1.KycDocType.KYC_DOC_TYPE_SELFIE;
-        };
-    }
-        private KycDocumentKind fromProtoKind(bank.identity.v1.KycDocType k) {
-        return switch (k) {
-            case KYC_DOC_TYPE_ID_FRONT -> KycDocumentKind.ID_FRONT;
-            case KYC_DOC_TYPE_SELFIE -> KycDocumentKind.SELFIE;
-            default -> KycDocumentKind.ID_FRONT;
         };
     }
 

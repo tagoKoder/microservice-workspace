@@ -23,6 +23,7 @@ import bank.accounts.v1.BatchGetAccountSummariesResponse;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import io.grpc.Status;
+import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.*;
 
 @GrpcService
 public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.InternalAccountsServiceImplBase {
@@ -47,13 +48,8 @@ public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.Int
         @Override
         public void validateAccountsAndLimits(ValidateAccountsAndLimitsRequest request,
                                         StreamObserver<ValidateAccountsAndLimitsResponse> responseObserver) {
-
-        var res = validateUC.validate(new ValidateAccountsAndLimitsUseCase.Command(
-        UUID.fromString(request.getSourceAccountId()),
-        UUID.fromString(request.getDestinationAccountId()),
-        request.getCurrency(),
-        GrpcMoney.bd(request.getAmount())
-        ));
+        var cmd = toValidateCommand(request);
+        var res = validateUC.validate(cmd);
 
         ValidateAccountsAndLimitsResponse.Builder out = ValidateAccountsAndLimitsResponse.newBuilder()
         .setOk(res.ok());
@@ -68,17 +64,8 @@ public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.Int
 
         @Override
         public void reserveHold(ReserveHoldRequest request, StreamObserver<ReserveHoldResponse> responseObserver) {
-        UUID id = UUID.fromString(request.getId());
-
-        String reason = null;
-        if (request.getHold().hasReason()) reason = request.getHold().getReason().getValue();
-
-        var res = reserveUC.reserve(new ReserveHoldUseCase.Command(
-        id,
-        request.getHold().getCurrency(),
-        GrpcMoney.bd(request.getHold().getAmount()),
-        reason
-        ));
+        var in = toReserveHoldInput(request);
+        var res = reserveUC.reserve(toReserveCommand(in));
 
         responseObserver.onNext(ReserveHoldResponse.newBuilder()
         .setOk(res.ok())
@@ -89,17 +76,9 @@ public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.Int
 
         @Override
         public void releaseHold(ReleaseHoldRequest request, StreamObserver<ReleaseHoldResponse> responseObserver) {
-        UUID id = UUID.fromString(request.getId());
+        var in = toReleaseHoldInput(request);  
 
-        String reason = null;
-        if (request.getHold().hasReason()) reason = request.getHold().getReason().getValue();
-
-        var res = releaseUC.release(new ReleaseHoldUseCase.Command(
-        id,
-        request.getHold().getCurrency(),
-        GrpcMoney.bd(request.getHold().getAmount()),
-        reason
-        ));
+        var res = releaseUC.release(toReleaseCommand(in));
 
         responseObserver.onNext(ReleaseHoldResponse.newBuilder()
         .setOk(res.ok())
@@ -112,36 +91,9 @@ public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.Int
     public void batchGetAccountSummaries(
             BatchGetAccountSummariesRequest request,
             StreamObserver<BatchGetAccountSummariesResponse> responseObserver) {
+        var in = toBatchIdsInput(request);
 
-        // guard simple (demo)
-        if (request.getAccountIdsCount() > 200) {
-            responseObserver.onError(
-                    Status.INVALID_ARGUMENT.withDescription("max 200 account_ids").asRuntimeException()
-            );
-            return;
-        }
-
-        boolean includeInactive = request.hasIncludeInactive() && request.getIncludeInactive().getValue();
-
-        // parse UUIDs (si alguno es inválido, lo mandamos a missing)
-        var ids = new java.util.ArrayList<java.util.UUID>();
-        var missingEarly = new java.util.ArrayList<MissingAccount>();
-
-        for (String raw : request.getAccountIdsList()) {
-            try {
-                ids.add(java.util.UUID.fromString(raw));
-            } catch (Exception ex) {
-                missingEarly.add(MissingAccount.newBuilder()
-                        .setAccountId(raw == null ? "" : raw)
-                        .setReason(StringValue.of("invalid_uuid"))
-                        .build());
-            }
-        }
-
-        var res = batchSummariesUC.batchGetSummaries(
-                new BatchGetAccountSummariesUseCase.Command(ids, includeInactive)
-        );
-
+        var res = batchSummariesUC.batchGetSummaries(new BatchGetAccountSummariesUseCase.Command(in.ids(), in.includeInactive()));
         BatchGetAccountSummariesResponse.Builder out = BatchGetAccountSummariesResponse.newBuilder();
 
         // accounts OK
@@ -155,9 +107,6 @@ public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.Int
                     .setDisplayName(a.displayName() == null ? "" : a.displayName())
                     .build());
         }
-
-        // missing (invalid_uuid + not_found/inactive)
-        for (var m : missingEarly) out.addMissing(m);
 
         for (var m : res.missing()) {
             MissingAccount.Builder mb = MissingAccount.newBuilder()

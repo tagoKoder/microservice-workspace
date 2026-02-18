@@ -16,6 +16,7 @@ import com.tagokoder.account.infra.security.grpc.IdempotencyKeyInterceptor;
 import bank.accounts.v1.*;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
+import static com.tagokoder.account.infra.in.grpc.validation.AccountsGrpcValidators.*;
 @GrpcService
 public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImplBase {
 
@@ -44,7 +45,7 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
 
         @Override
         public void listAccounts(ListAccountsRequest request, StreamObserver<ListAccountsResponse> responseObserver) {
-        UUID customerId = UUID.fromString(request.getCustomerId());
+        UUID customerId = resolveCustomerIdForList(request);
         var res = listAccounts.listByCustomer(customerId);
 
         ListAccountsResponse.Builder out = ListAccountsResponse.newBuilder();
@@ -73,13 +74,8 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
     @Override
     public void getAccountByNumber(GetAccountByNumberRequest request,
                                 StreamObserver<GetAccountByNumberResponse> responseObserver) {
-
-        boolean includeInactive = request.hasIncludeInactive() && request.getIncludeInactive().getValue();
-
-        var res = getByNumber.getByNumber(new GetAccountByNumberUseCase.Command(
-                request.getAccountNumber(),
-                includeInactive
-        ));
+        var cmd = toGetByNumberCommand(request);
+        var res = getByNumber.getByNumber(cmd);
 
         var a = res.account();
 
@@ -100,14 +96,8 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
 
     @Override
     public void createAccount(CreateAccountRequest request, StreamObserver<CreateAccountResponse> responseObserver) {
-
-        var res = openAccountWithBonus.open(new OpenAccountWithOpeningBonusUseCase.Command(
-                UUID.fromString(request.getCustomerId()),
-                ProtoEnumMapper.mapProductType(request.getProductType()),
-                request.getCurrency(),
-                request.getIdempotencyKey(),
-                "system"
-        ));
+        var cmd = toOpenWithBonusCommand(request);
+        var res = openAccountWithBonus.open(cmd);
 
         responseObserver.onNext(CreateAccountResponse.newBuilder()
                 .setAccountId(res.accountId().toString())
@@ -118,26 +108,26 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
 
         @Override
         public void getAccountBalances(GetAccountBalancesRequest request, StreamObserver<GetAccountBalancesResponse> responseObserver) {
-        var res = getBalances.get(UUID.fromString(request.getId()));
+            UUID accountId = toAccountId(request);
+            var res = getBalances.get(accountId);
 
-        responseObserver.onNext(GetAccountBalancesResponse.newBuilder()
-        .setAccountId(res.accountId().toString())
-        .setBalances(AccountBalances.newBuilder()
-        .setLedger(GrpcMoney.dbl(res.ledger()))
-        .setAvailable(GrpcMoney.dbl(res.available()))
-        .setHold(GrpcMoney.dbl(res.hold()))
-        .build())
-        .build());
-        responseObserver.onCompleted();
+            responseObserver.onNext(GetAccountBalancesResponse.newBuilder()
+            .setAccountId(res.accountId().toString())
+            .setBalances(AccountBalances.newBuilder()
+            .setLedger(GrpcMoney.dbl(res.ledger()))
+            .setAvailable(GrpcMoney.dbl(res.available()))
+            .setHold(GrpcMoney.dbl(res.hold()))
+            .build())
+            .build());
+            responseObserver.onCompleted();
         }
 
         @Override
         public void patchAccountLimits(PatchAccountLimitsRequest request, StreamObserver<PatchAccountLimitsResponse> responseObserver) {
-
-                String key = IdempotencyKeyInterceptor.IDEMPOTENCY_KEY.get(); // puede ser null
+                var in = toPatchLimitsInput(request, IdempotencyKeyInterceptor.IDEMPOTENCY_KEY.get());
 
                 // 1) si ya existe, responde lo mismo sin re-ejecutar
-                var cached = idem.tryGet(key, "accounts.patchLimits", PatchAccountLimitsUseCase.Result.class);
+                var cached = idem.tryGet(in.idempotencyKey(), "accounts.patchLimits", PatchAccountLimitsUseCase.Result.class);
                 if (cached.isPresent()) {
                 var res = cached.get();
                 responseObserver.onNext(PatchAccountLimitsResponse.newBuilder()
@@ -150,14 +140,10 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
                 }
 
                 // 2) ejecuta caso normal
-                var res = patchLimits.patch(new PatchAccountLimitsUseCase.Command(
-                UUID.fromString(request.getId()),
-                request.hasDailyOut() ? GrpcMoney.bd(request.getDailyOut().getValue()) : null,
-                request.hasDailyIn()  ? GrpcMoney.bd(request.getDailyIn().getValue())  : null
-                ));
+                var res = patchLimits.patch(in.command());
 
                 // 3) guarda respuesta idempotente
-                idem.save(key, "accounts.patchLimits", 200, res);
+                idem.save(in.idempotencyKey(), "accounts.patchLimits", 200, res);
 
                 responseObserver.onNext(PatchAccountLimitsResponse.newBuilder()
                 .setAccountId(res.accountId().toString())

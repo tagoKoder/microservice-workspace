@@ -10,7 +10,7 @@ import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
 import java.util.UUID;
 import java.time.LocalDate;
 import bank.accounts.v1.*;
-
+import static com.tagokoder.account.infra.in.grpc.validation.CustomersGrpcValidators.*;
 
 @GrpcService
 public class CustomersGrpcService extends CustomersServiceGrpc.CustomersServiceImplBase {
@@ -25,23 +25,9 @@ public class CustomersGrpcService extends CustomersServiceGrpc.CustomersServiceI
 
     @Override
     public void createCustomer(CreateCustomerRequest request, StreamObserver<CreateCustomerResponse> responseObserver) {
-        CreateCustomerUseCase.Address addr = null;
-        if (request.hasAddress()) {
-            var a = request.getAddress();
-            addr = new CreateCustomerUseCase.Address(
-                    a.getCountry(), a.getLine1(), a.getLine2(), a.getCity(), a.getProvince(), a.getPostalCode()
-            );
-        }
+        var cmd = toCreateCustomerCommand(request);
 
-        var res = createCustomer.create(new CreateCustomerUseCase.Command(
-                request.getFullName(),
-                LocalDate.parse(request.getBirthDate()), // tú lo manejabas como string/date en OpenAPI; conserva tu lógica
-                request.getTin(),
-                ProtoEnumMapper.toDbRiskSegment(request.getRiskSegment()),
-                request.getEmail(),
-                request.getPhone(),
-                addr
-        ));
+        var res = createCustomer.create(cmd);
 
         responseObserver.onNext(CreateCustomerResponse.newBuilder()
                 .setCustomerId(res.customerId().toString())
@@ -51,39 +37,9 @@ public class CustomersGrpcService extends CustomersServiceGrpc.CustomersServiceI
 
     @Override
     public void patchCustomer(PatchCustomerRequest request, StreamObserver<PatchCustomerResponse> responseObserver) {
-        UUID id = UUID.fromString(request.getId());
+        var cmd = toPatchCustomerCommand(request);
 
-        String fullName = request.hasFullName() ? request.getFullName().getValue() : null;
-
-        String riskSegment = request.hasRiskSegment() ? request.getRiskSegment().getValue().name() : null;
-        String customerStatus = request.hasCustomerStatus() ? request.getCustomerStatus().getValue().name() : null;
-
-        PatchCustomerUseCase.ContactPatch contact = null;
-        if (request.hasContact()) {
-            var c = request.getContact();
-            contact = new PatchCustomerUseCase.ContactPatch(
-                    c.hasEmail() ? c.getEmail().getValue() : null,
-                    c.hasPhone() ? c.getPhone().getValue() : null
-            );
-        }
-
-        PatchCustomerUseCase.PreferencesPatch prefs = null;
-        if (request.hasPreferences()) {
-            var p = request.getPreferences();
-            prefs = new PatchCustomerUseCase.PreferencesPatch(
-                    p.hasChannel() ? p.getChannel().getValue().name() : null,
-                    p.hasOptIn() ? p.getOptIn().getValue() : null
-            );
-        }
-
-        var res = patchCustomer.patch(new PatchCustomerUseCase.Command(
-                id,
-                fullName,
-                riskSegment,
-                customerStatus,
-                contact,
-                prefs
-        ));
+        var res = patchCustomer.patch(cmd);
 
         responseObserver.onNext(PatchCustomerResponse.newBuilder()
                 .setCustomerId(res.customerId().toString())
