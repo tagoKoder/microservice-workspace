@@ -17,6 +17,7 @@ import (
 	accountsv1 "github.com/tagoKoder/ledger/internal/genproto/bank/accounts/v1"
 	"github.com/tagoKoder/ledger/internal/infra/config"
 	"github.com/tagoKoder/ledger/internal/infra/in/grpc/handler"
+	"github.com/tagoKoder/ledger/internal/infra/in/grpc/middleware"
 	"github.com/tagoKoder/ledger/internal/infra/out/audit"
 	"github.com/tagoKoder/ledger/internal/infra/out/gateway"
 	"github.com/tagoKoder/ledger/internal/infra/out/messaging"
@@ -129,6 +130,7 @@ func main() {
 
 	grpcSrv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
+			middleware.NewUnaryErrorInterceptor(cfg.AppEnv),
 		//authzItc.Unary(),
 		),
 	)
