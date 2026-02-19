@@ -21,11 +21,11 @@ public class ActionResolver {
 
             // Session (aquí sí puedes exigir Bearer si lo decides; si tu BFF llama con token, perfecto)
             Map.entry("bank.identity.v1.OidcAuthService/RefreshSession",
-                    new ActionDef("identity.session.refresh", true, false)),
+                    new ActionDef("identity.session.refresh", true, true)),
             Map.entry("bank.identity.v1.OidcAuthService/LogoutSession",
-                    new ActionDef("identity.session.logout", true, false)),
+                    new ActionDef("identity.session.logout", true, true)),
             Map.entry("bank.identity.v1.OidcAuthService/GetSessionInfo",
-                    new ActionDef("identity.session.get_info", false, false))
+                    new ActionDef("identity.session.get_info", false, true))
     );
 
     public ActionDef resolve(String fullMethodName) {

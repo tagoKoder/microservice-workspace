@@ -48,7 +48,14 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         final long started = System.nanoTime();
         final String route = call.getMethodDescriptor().getFullMethodName();
         final var actionDef = actionResolver.resolve(route);
-
+        // Infra: health (y opcional reflection) no requieren Bearer
+        if (route.startsWith("grpc.health.v1.Health/")) {
+        return next.startCall(call, headers);
+        }
+        // opcional si usas grpcurl / reflection
+        if (route.startsWith("grpc.reflection.v1alpha.ServerReflection/")) {
+        return next.startCall(call, headers);
+        }
         // Permite flujos “public” (no bearer) para OIDC/Onboarding
         if (actionDef.publicUnauthenticated()) {
             return next.startCall(call, headers);

@@ -50,6 +50,14 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         final String route = call.getMethodDescriptor().getFullMethodName();
         final var actionDef = actionResolver.resolve(route);
 
+        if (route.startsWith("grpc.health.v1.Health/")) {
+        return next.startCall(call, headers);
+        }
+        // opcional si usas grpcurl / reflection
+        if (route.startsWith("grpc.reflection.v1alpha.ServerReflection/")) {
+        return next.startCall(call, headers);
+        }
+
         String auth = headers.get(AUTH);
         String token = extractBearer(auth);
 

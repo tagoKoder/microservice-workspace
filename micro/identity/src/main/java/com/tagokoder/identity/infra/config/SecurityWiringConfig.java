@@ -58,7 +58,7 @@ public class SecurityWiringConfig {
         return new AvpAuthorizer(avp, props);
     }
 
-    @Bean
+    @Bean(name = "authzInterceptor")
     @Profile("!local")
     public AuthzServerInterceptor authzServerInterceptor(
             AppProps props,

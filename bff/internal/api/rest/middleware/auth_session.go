@@ -52,6 +52,14 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 
 			ip := util.GetClientIP(r)
 			ua := r.UserAgent()
+			// NEW: guarda contexto para propagación gRPC
+			ctx = security.WithClientIP(ctx, ip)
+			ctx = security.WithUserAgent(ctx, ua)
+			ctx = security.WithRouteTemplate(ctx, ri.RouteTemplate)
+
+			if ik := r.Header.Get("Idempotency-Key"); ik != "" {
+				ctx = security.WithIdempotencyKey(ctx, ik)
+			}
 
 			info, newSid, accessTok, err := getSessionInfoWithRefresh(ctx, deps, sid, ip, ua, w)
 			if err != nil {
