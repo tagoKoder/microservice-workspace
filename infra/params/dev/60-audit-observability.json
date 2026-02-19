@@ -15,15 +15,15 @@
   { "ParameterKey": "KycBucketArn", "ParameterValue": "" },
 
   { "ParameterKey": "EnableWafLogging", "ParameterValue": "true" },
-  { "ParameterKey": "WafWebAclArn", "ParameterValue": "REEMPLAZAR_WEBACL_ARN" },
+  { "ParameterKey": "WafWebAclArn", "ParameterValue": "arn:aws:wafv2:us-east-1:936532783795:global/webacl/imaginarybank-dev-web-acl/282df25f-9f6c-4c0e-9e15-fa2b7cecf34c" },
   { "ParameterKey": "WafLogRetentionDays", "ParameterValue": "30" },
 
-  { "ParameterKey": "EnableAlbAlarms", "ParameterValue": "true" },
-  { "ParameterKey": "AlbArn", "ParameterValue": "REEMPLAZAR_ALB_ARN" },
+  { "ParameterKey": "EnableAlbAlarms", "ParameterValue": "false" },
+  { "ParameterKey": "AlbArn", "ParameterValue": "" },
 
-  { "ParameterKey": "EnableEcsAlarms", "ParameterValue": "true" },
-  { "ParameterKey": "EcsClusterName", "ParameterValue": "REEMPLAZAR_CLUSTER_NAME" },
-  { "ParameterKey": "BffServiceName", "ParameterValue": "REEMPLAZAR_BFF_SERVICE_NAME" },
+  { "ParameterKey": "EnableEcsAlarms", "ParameterValue": "false" },
+  { "ParameterKey": "EcsClusterName", "ParameterValue": "" },
+  { "ParameterKey": "BffServiceName", "ParameterValue": "" },
   { "ParameterKey": "IdentityServiceName", "ParameterValue": "" },
   { "ParameterKey": "AccountServiceName", "ParameterValue": "" },
   { "ParameterKey": "LedgerServiceName", "ParameterValue": "" }
