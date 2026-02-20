@@ -146,6 +146,8 @@ Resources:
       EnableLogFileValidation: !If [EnableTrailValidation, true, false]
       S3BucketName: !Ref LogsBucketName
       S3KeyPrefix: !Ref CloudTrailS3Prefix
+      KMSKeyId:
+        Fn::ImportValue: !Sub "${ProjectName}-${Env}-KmsKeyS3Arn"
       EventSelectors: !If
         - EnableS3DataEvents
         - - ReadWriteType: All

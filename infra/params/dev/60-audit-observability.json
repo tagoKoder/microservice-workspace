@@ -2,7 +2,7 @@
   { "ParameterKey": "ProjectName", "ParameterValue": "imaginarybank" },
   { "ParameterKey": "Env", "ParameterValue": "dev" },
 
-  { "ParameterKey": "LogsBucketName", "ParameterValue": "imaginarybank-logs-dev" },
+  { "ParameterKey": "LogsBucketName", "ParameterValue": "imaginarybank-logs-dev-936532783795-us-east-1" },
 
   { "ParameterKey": "AuditBusName", "ParameterValue": "audit-bus-dev" },
   { "ParameterKey": "AuditArchiveRetentionDays", "ParameterValue": "30" },
