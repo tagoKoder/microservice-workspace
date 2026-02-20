@@ -38,6 +38,7 @@ public class LedgerPaymentsGrpcClientAdapter implements LedgerPaymentsClientPort
       .setAmount(amount)
       .setCustomerId(customerId == null ? "" : customerId)
       .setReason(reason == null ? "" : reason)
+      .setInitiatedBy(customerId)
       
       .build();
 

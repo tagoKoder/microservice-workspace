@@ -12,6 +12,8 @@ public class ActionResolver {
                     new ActionDef("identity.onboarding.start_registration", true, true)),
             Map.entry("bank.identity.v1.OnboardingService/ConfirmRegistrationKyc",
                     new ActionDef("identity.onboarding.confirm_kyc", true, true)),
+            Map.entry("bank.identity.v1.OnboardingService/ActivateRegistration",
+                    new ActionDef("identity.onboarding.activate_registration", true, true)),
 
             // OIDC (public, sin Bearer)
             Map.entry("bank.identity.v1.OidcAuthService/StartOidcLogin",

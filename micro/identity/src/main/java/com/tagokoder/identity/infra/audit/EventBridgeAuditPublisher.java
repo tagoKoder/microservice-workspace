@@ -29,6 +29,7 @@ public class EventBridgeAuditPublisher implements AuditPublisher {
   public void publish(AuditEventV1 evt) {
     try {
       String detail = om.writeValueAsString(evt);
+
       var entry = PutEventsRequestEntry.builder()
           .eventBusName(busName)
           .source(source)
@@ -37,16 +38,24 @@ public class EventBridgeAuditPublisher implements AuditPublisher {
           .build();
 
       var resp = eb.putEvents(PutEventsRequest.builder().entries(entry).build());
-      if (resp.failedEntryCount() != null && resp.failedEntryCount() > 0) {
-        var e0 = resp.entries().get(0);
-        log.warn("audit_publish_rejected correlation_id={} action={} code={} msg={}",
-            evt.correlation_id(), evt.action(), e0.errorCode(), e0.errorMessage());
+
+      // log útil SIEMPRE (para prueba)
+      var r0 = resp.entries().isEmpty() ? null : resp.entries().get(0);
+      if (r0 != null && r0.eventId() != null) {
+        log.info("audit_publish_ok correlation_id={} action={} eventId={}",
+            evt.correlation_id(), evt.action(), r0.eventId());
+      } else if (r0 != null) {
+        log.warn("audit_publish_failed_entry correlation_id={} action={} code={} msg={}",
+            evt.correlation_id(), evt.action(), r0.errorCode(), r0.errorMessage());
+      } else {
+        log.warn("audit_publish_no_entries correlation_id={} action={}",
+            evt.correlation_id(), evt.action());
       }
 
     } catch (Exception e) {
-      // fallback a log (best-effort)
       log.warn("audit_publish_failed correlation_id={} action={} err={}",
           evt.correlation_id(), evt.action(), e.toString());
     }
   }
+
 }

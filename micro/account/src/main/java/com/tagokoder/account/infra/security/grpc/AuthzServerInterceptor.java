@@ -57,6 +57,9 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         if (route.startsWith("grpc.reflection.v1alpha.ServerReflection/")) {
         return next.startCall(call, headers);
         }
+        if(actionDef.publicUnauthenticated()){
+            return next.startCall(call, headers);
+        }
 
         String auth = headers.get(AUTH);
         String token = extractBearer(auth);

@@ -161,6 +161,33 @@ public class OidcAuthService implements StartLoginUseCase, CompleteLoginUseCase 
             command.ip(), 
             command.userAgent());
 
+            // --- AUDIT: session created (best-effort) ---
+        try {
+            var cid = CorrelationServerInterceptor.getCorrelationId();
+
+            audit.publish(new AuditEventV1(
+                "1.0",
+                Instant.now(),
+                "identity",
+                props.env(),
+                cid,
+                "grpc:/bank.identity.v1.OidcAuthService/CompleteOidcLogin",
+                "identity.session.created",
+                200,
+                new AuditEventV1.Actor(subject, provider),
+                Map.of(
+                    "flow", "oidc",
+                    "session_id", created.sessionId().toString(),   // OK (no es PII)
+                    "session_ttl_sec", created.expiresInSeconds()
+                ),
+                Map.of(),
+                null
+            ));
+        } catch (Exception ignore) {
+            // no rompas el login por auditoría
+        }
+
+
         return new CompleteLoginResponse(
                 identity.getId(),
                 subject,

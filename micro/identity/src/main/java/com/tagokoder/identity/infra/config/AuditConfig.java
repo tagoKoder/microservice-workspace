@@ -16,8 +16,8 @@ public class AuditConfig {
   @Bean
   public JsonMapper auditJsonMapper() {
     return JsonMapper.builder()
-        .findAndAddModules() // ✅ carga JavaTimeModule si está en classpath
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS) // ✅ ISO-8601
+        .findAndAddModules() // carga JavaTimeModule si está en classpath
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS) // ISO-8601
         .build();
   }
 
