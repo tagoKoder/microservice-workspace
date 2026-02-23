@@ -20,7 +20,7 @@ public class ResourceResolver {
         if (fullMethodName.equals("bank.accounts.v1.AccountsService/ListAccounts")) {
             // Recurso: Customer (self)
             String cid = principalCustomerIdOrNull != null ? principalCustomerIdOrNull : "unknown";
-            return new ResourceDef("Customer", cid, Map.of("owner_customer_id", cid));
+            return new ResourceDef("ImaginaryBank::Account", cid, Map.of("owner_customer_id", cid));
         }
 
         // Para requests con accountId: usamos owner = account.customerId
@@ -29,7 +29,7 @@ public class ResourceResolver {
             var acc = accountRepo.findById(accountId).orElse(null);
             String owner = (acc != null && acc.getCustomerId() != null) ? acc.getCustomerId().toString() : "unknown";
 
-            return new ResourceDef("Account", accountId.toString(), Map.of(
+            return new ResourceDef("ImaginaryBank::Account", accountId.toString(), Map.of(
                     "owner_customer_id", owner
             ));
         }

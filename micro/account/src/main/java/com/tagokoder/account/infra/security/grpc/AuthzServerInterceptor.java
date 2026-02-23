@@ -1,19 +1,34 @@
 package com.tagokoder.account.infra.security.grpc;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+
 import com.tagokoder.account.infra.config.AppProps;
 import com.tagokoder.account.infra.out.audit.AuditPublisher;
 import com.tagokoder.account.infra.security.authz.ActionResolver;
 import com.tagokoder.account.infra.security.authz.ResourceResolver;
 import com.tagokoder.account.infra.security.avp.AvpAuthorizer;
 import com.tagokoder.account.infra.security.context.AuthCtx;
-import io.grpc.*;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
+
+import io.grpc.Context;
+import io.grpc.Contexts;
+import io.grpc.ForwardingServerCall;
+import io.grpc.ForwardingServerCallListener;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.Status;
 import software.amazon.awssdk.services.verifiedpermissions.model.AttributeValue;
 import software.amazon.awssdk.services.verifiedpermissions.model.Decision;
-
-import java.time.Instant;
-import java.util.*;
 
 public class AuthzServerInterceptor implements ServerInterceptor {
 
@@ -50,10 +65,42 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         final String route = call.getMethodDescriptor().getFullMethodName();
         final var actionDef = actionResolver.resolve(route);
 
+        // ---- FIX: evitar doble close (call already closed) ----
+        final AtomicBoolean closed = new AtomicBoolean(false);
+        final AtomicBoolean denied = new AtomicBoolean(false);
+
+        final Metadata trailersWithCorr = new Metadata();
+        if (corrId != null && !corrId.isBlank()) {
+            trailersWithCorr.put(
+                Metadata.Key.of("x-correlation-id", Metadata.ASCII_STRING_MARSHALLER),
+                corrId
+            );
+        }
+
+        // callSafe: close() idempotente
+        ServerCall<ReqT, RespT> callSafe = new ForwardingServerCall.SimpleForwardingServerCall<>(call) {
+            @Override
+            public void close(Status status, Metadata trailers) {
+                if (closed.compareAndSet(false, true)) {
+                    super.close(status, trailers);
+                }
+                // si ya estaba cerrado => NO hacer nada
+            }
+        };
+
+        // helper para negar + cerrar una sola vez
+        BiConsumer<Status, String> deny = (st, note) -> {
+            denied.set(true);
+            // audita si quieres
+            // publishAuthEvent("DENY", null, actionDef.actionId(), route, null, note);
+            callSafe.close(st, trailersWithCorr);
+        };
+
+
         if (route.startsWith("grpc.health.v1.Health/")) {
         return next.startCall(call, headers);
         }
-        // opcional si usas grpcurl / reflection
+
         if (route.startsWith("grpc.reflection.v1alpha.ServerReflection/")) {
         return next.startCall(call, headers);
         }
@@ -62,11 +109,16 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         }
 
         String auth = headers.get(AUTH);
+        if (auth == null) {
+        System.out.println("AUTH header missing route=" + route + " mdKeys=" + headers.keys());
+        } else {
+        System.out.println("AUTH header present route=" + route + " len=" + auth.length());
+        }
         String token = extractBearer(auth);
 
         if (token == null) {
             publishAuthEvent("DENY", null, actionDef.actionId(), route, null, "missing_token");
-            call.close(Status.UNAUTHENTICATED.withDescription("Missing token"), new Metadata());
+            deny.accept(Status.UNAUTHENTICATED.withDescription("Missing token"), "missing_token");
             return new ServerCall.Listener<>() {};
         }
 
@@ -74,8 +126,11 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         try {
             jwt = jwtDecoder.decode(token);
         } catch (Exception e) {
+            System.out.println("jwt_decode_failed route=" + route
+                + " type=" + e.getClass().getName()
+                + " msg=" + (e.getMessage() == null ? "" : e.getMessage()));
             publishAuthEvent("DENY", null, actionDef.actionId(), route, null, "invalid_token");
-            call.close(Status.UNAUTHENTICATED.withDescription("Invalid token"), new Metadata());
+            deny.accept(Status.UNAUTHENTICATED.withDescription("Invalid token"), "invalid_token");
             return new ServerCall.Listener<>() {};
         }
 
@@ -87,20 +142,8 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         var principal = new AuthCtx.AuthPrincipal(sub, customerId, roles, mfa);
         Context ctxWithPrincipal = Context.current().withValue(AuthCtx.PRINCIPAL, principal);
 
-        // Wrap call para auditar al cierre si acción crítica
-        ServerCall<ReqT, RespT> callWrapper = new ForwardingServerCall.SimpleForwardingServerCall<>(call) {
-            @Override
-            public void close(Status status, Metadata trailers) {
-                // Si fue crítico, audita ALLOW (si no hubo PERMISSION_DENIED/UNAUTHENTICATED)
-                if (actionDef.critical() && status.getCode() == Status.Code.OK) {
-                    // ALLOW crítico (la decisión real se setea cuando se autoriza en onMessage)
-                    // aquí no repetimos AVP; solo emitimos el "allow-critical" final si ya pasó
-                }
-                super.close(status, trailers);
-            }
-        };
 
-        ServerCall.Listener<ReqT> delegate = Contexts.interceptCall(ctxWithPrincipal, callWrapper, headers, next);
+        ServerCall.Listener<ReqT> delegate = Contexts.interceptCall(ctxWithPrincipal, callSafe, headers, next);
 
         // Para unary: hacemos authz cuando llega el request (onMessage)
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<>(delegate) {
@@ -127,8 +170,14 @@ public class AuthzServerInterceptor implements ServerInterceptor {
                 try {
                     decision = avp.authorize(token, actionDef.actionId(), res.type(), res.id(), resourceAttrs, ctxAttrs);
                 } catch (Exception e) {
+                    System.out.println("avp_call_failed route=" + route
+                        + " actionId=" + actionDef.actionId()
+                        + " resType=" + res.type()
+                        + " resId=" + res.id()
+                        + " ex=" + e.getClass().getName()
+                        + " msg=" + (e.getMessage() == null ? "" : e.getMessage()));
                     publishAuthEvent("DENY", "avp_error", actionDef.actionId(), route, res, e.toString());
-                    call.close(Status.PERMISSION_DENIED.withDescription("Authorization error"), new Metadata());
+                    deny.accept(Status.PERMISSION_DENIED.withDescription("Authorization error"), "avp_error");
                     return;
                 }
 
@@ -136,7 +185,7 @@ public class AuthzServerInterceptor implements ServerInterceptor {
 
                 if (decision.decision() != Decision.ALLOW) {
                     publishAuthEvent("DENY", "avp", actionDef.actionId(), route, res, "decision=DENY elapsed_ms=" + elapsedMs);
-                    call.close(Status.PERMISSION_DENIED.withDescription("Denied"), new Metadata());
+                    deny.accept(Status.PERMISSION_DENIED.withDescription("Denied"), "avp_deny");
                     return;
                 }
 
@@ -146,6 +195,12 @@ public class AuthzServerInterceptor implements ServerInterceptor {
                 }
 
                 super.onMessage(message);
+            }
+
+            @Override
+            public void onHalfClose() {
+                if (denied.get()) return;
+                super.onHalfClose();
             }
         };
     }
@@ -196,6 +251,8 @@ public class AuthzServerInterceptor implements ServerInterceptor {
 
         audit.publish(base);
     }
+
+    
 
     private static String extractBearer(String auth) {
         if (auth == null) return null;

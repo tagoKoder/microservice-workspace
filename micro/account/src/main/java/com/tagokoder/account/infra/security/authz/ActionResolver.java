@@ -7,7 +7,7 @@ public class ActionResolver {
     public record ActionDef(String actionId, boolean critical, boolean publicUnauthenticated) {}
 
     private final Map<String, ActionDef> map = Map.ofEntries(
-            Map.entry("bank.accounts.v1.AccountsService/ListAccounts", new ActionDef("accounts:list", false, false)),
+            Map.entry("bank.accounts.v1.AccountsService/ListAccounts", new ActionDef("accounts:read", false, false)),
             Map.entry("bank.accounts.v1.AccountsService/CreateAccount", new ActionDef("accounts:create", true, true)),
             Map.entry("bank.accounts.v1.AccountsService/GetAccountBalances", new ActionDef("accounts:balances_read", false, false)),
             Map.entry("bank.accounts.v1.AccountsService/PatchAccountLimits", new ActionDef("accounts:limits_patch", true, false)),

@@ -17,24 +17,49 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 public class JwtConfig {
 
     @Bean
-    @Profile("!local")
     JwtDecoder jwtDecoder(AppProps props) {
-        String issuer = props.security().issuerUri();
-        if (issuer == null || issuer.isBlank()) {
-            throw new IllegalStateException("Missing app.security.issuer-uri (COGNITO_ISSUER_URI)");
-        }
-        String jwks = issuer.replaceAll("/$", "") + "/.well-known/jwks.json";
 
+        String issuer = props.security().issuerUri();
+        String expectedClientId = props.security().audience(); // tu App Client ID
+
+        if (issuer == null || issuer.isBlank()) {
+        throw new IllegalStateException("Missing app.security.issuer-uri (COGNITO_ISSUER_URI)");
+        }
+        if (expectedClientId == null || expectedClientId.isBlank()) {
+        throw new IllegalStateException("Missing app.security.audience (COGNITO_AUDIENCE)");
+        }
+
+        // Importante: issuer sin trailing slash para matchear iss del token
+        issuer = issuer.replaceAll("/+$", "");
+
+        String jwks = issuer + "/.well-known/jwks.json";
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwks).build();
 
         OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuer);
-        OAuth2TokenValidator<Jwt> withAudience = jwt -> {
-            boolean ok = jwt.getAudience() != null && jwt.getAudience().contains(props.security().audience());
-            return ok ? OAuth2TokenValidatorResult.success()
-            : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Invalid audience", null));
+
+        OAuth2TokenValidator<Jwt> tokenUseAccess = jwt -> {
+        String tu = jwt.getClaimAsString("token_use");
+        if ("access".equals(tu)) return OAuth2TokenValidatorResult.success();
+        return OAuth2TokenValidatorResult.failure(
+            new OAuth2Error("invalid_token", "token_use must be access", null)
+        );
         };
 
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(withIssuer, withAudience));
+        OAuth2TokenValidator<Jwt> clientIdOrAud = jwt -> {
+        // Cognito access_token suele traer client_id (y a veces no trae aud)
+        String clientId = jwt.getClaimAsString("client_id");
+        if (expectedClientId.equals(clientId)) {
+            return OAuth2TokenValidatorResult.success();
+        }
+        if (jwt.getAudience() != null && jwt.getAudience().contains(expectedClientId)) {
+            return OAuth2TokenValidatorResult.success();
+        }
+        return OAuth2TokenValidatorResult.failure(
+            new OAuth2Error("invalid_token", "client_id/aud mismatch", null)
+        );
+        };
+
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(withIssuer, tokenUseAccess, clientIdOrAud));
         return decoder;
     }
 }

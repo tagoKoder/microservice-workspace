@@ -62,10 +62,21 @@ func AuthSession(deps AuthDeps, oas *OpenAPISecurity) func(http.Handler) http.Ha
 			}
 
 			info, newSid, accessTok, err := getSessionInfoWithRefresh(ctx, deps, sid, ip, ua, w)
+			// después de getSessionInfoWithRefresh(...)
+			log.Printf(
+				"auth_session cid=%s op=%s sid=%s customer=%s accessTokLen=%d expIn=%d",
+				security.CorrelationID(ctx),
+				ri.OperationID,
+				sid,
+				info.CustomerID,
+				len(accessTok),
+				info.AccessTokenExpiresIn,
+			)
 			if err != nil {
 				// getSessionInfoWithRefresh ya escribió la respuesta (401/503/etc)
 				return
 			}
+
 			ctx = security.WithSessionID(ctx, newSid)
 			ctx = security.WithAccessToken(ctx, accessTok)
 
@@ -116,17 +127,6 @@ func getSessionInfoWithRefresh(
 		if info.AccessToken != "" && info.AccessTokenExpiresIn > skewSeconds {
 			return info, "", info.AccessToken, nil
 		}
-		// 2) fallback: si token viene vacío o corto, intenta Redis (NO valida sesión)
-		/*
-			if tok, expAt, ok := deps.TokenCache.Get(ctx, sid); ok {
-				sec := int64(time.Until(expAt).Seconds())
-				if sec > skewSeconds {
-					info.AccessToken = tok
-					info.AccessTokenExpiresIn = sec
-					return info, "", tok, nil
-				}
-			}
-		*/
 
 		// Si token falta o está por expirar -> refresh (rota sid)
 		ref, rerr := deps.Identity.RefreshSession(ctx, ports.RefreshSessionInput{
@@ -139,14 +139,6 @@ func getSessionInfoWithRefresh(
 			w.WriteHeader(http.StatusUnauthorized)
 			return ports.GetSessionInfoOutput{}, "", "", rerr
 		}
-		/*
-			if deps.TokenCache != nil && ref.AccessToken != "" && ref.AccessTokenExpiresIn > 0 {
-				expAt := time.Now().Add(time.Duration(ref.AccessTokenExpiresIn) * time.Second)
-				_ = deps.TokenCache.Set(ctx, ref.SessionID, ref.AccessToken, expAt)
-				_ = deps.TokenCache.Del(ctx, sid)
-			}
-		*/
-
 		// rota cookie
 		deps.Cookies.WriteSessionID(w, ref.SessionID, ref.SessionExpiresIn)
 

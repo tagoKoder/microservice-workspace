@@ -28,10 +28,8 @@ func NewLedgerPaymentsClient(conn *grpc.ClientConn) *LedgerPaymentsClient {
 }
 
 func (c *LedgerPaymentsClient) PostPayment(ctx context.Context, in ports.PostPaymentInput) (ports.PostPaymentOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
-	res, err := c.payments.PostPayment(ctx2, &ledgerpaymentsv1.PostPaymentRequest{
+	res, err := c.payments.PostPayment(ctx, &ledgerpaymentsv1.PostPaymentRequest{
 		IdempotencyKey:       in.IdempotencyKey,
 		SourceAccountId:      in.SourceAccountID,
 		DestinationAccountId: in.DestinationAccountID,
@@ -46,10 +44,8 @@ func (c *LedgerPaymentsClient) PostPayment(ctx context.Context, in ports.PostPay
 }
 
 func (c *LedgerPaymentsClient) GetPayment(ctx context.Context, in ports.GetPaymentInput) (ports.GetPaymentOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
-	res, err := c.payments.GetPayment(ctx2, &ledgerpaymentsv1.GetPaymentRequest{PaymentId: in.PaymentID})
+	res, err := c.payments.GetPayment(ctx, &ledgerpaymentsv1.GetPaymentRequest{PaymentId: in.PaymentID})
 	if err != nil {
 		return ports.GetPaymentOutput{}, err
 	}
@@ -82,8 +78,6 @@ func (c *LedgerPaymentsClient) GetPayment(ctx context.Context, in ports.GetPayme
 }
 
 func (c *LedgerPaymentsClient) CreditAccount(ctx context.Context, in ports.CreditAccountInput) (ports.CreditAccountOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
 	req := &ledgerpaymentsv1.CreditAccountRequest{
 		IdempotencyKey: in.IdempotencyKey,
@@ -96,7 +90,7 @@ func (c *LedgerPaymentsClient) CreditAccount(ctx context.Context, in ports.Credi
 		req.ExternalRef = *in.ExternalRef
 	}
 
-	res, err := c.ledger.CreditAccount(ctx2, req)
+	res, err := c.ledger.CreditAccount(ctx, req)
 	if err != nil {
 		return ports.CreditAccountOutput{}, err
 	}
@@ -104,8 +98,6 @@ func (c *LedgerPaymentsClient) CreditAccount(ctx context.Context, in ports.Credi
 }
 
 func (c *LedgerPaymentsClient) ListAccountJournalEntries(ctx context.Context, in ports.ListAccountJournalEntriesInput) (ports.ListAccountJournalEntriesOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
 	req := &ledgerpaymentsv1.ListAccountJournalEntriesRequest{
 		AccountId: in.AccountID,
@@ -113,7 +105,7 @@ func (c *LedgerPaymentsClient) ListAccountJournalEntries(ctx context.Context, in
 		Size:      in.Size,
 	}
 	// si luego quieres soportar date params desde OpenAPI, aquí parseas RFC3339->timestamppb
-	res, err := c.ledger.ListAccountJournalEntries(ctx2, req)
+	res, err := c.ledger.ListAccountJournalEntries(ctx, req)
 	if err != nil {
 		return ports.ListAccountJournalEntriesOutput{}, err
 	}
@@ -148,8 +140,6 @@ func (c *LedgerPaymentsClient) ListAccountJournalEntries(ctx context.Context, in
 }
 
 func (c *LedgerPaymentsClient) ListAccountStatement(ctx context.Context, in ports.ListAccountStatementInput) (ports.ListAccountStatementOutput, error) {
-	ctx2, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
 	req := &ledgerpaymentsv1.ListAccountStatementRequest{
 		AccountId:           in.AccountID,
@@ -171,7 +161,7 @@ func (c *LedgerPaymentsClient) ListAccountStatement(ctx context.Context, in port
 		}
 	}
 
-	res, err := c.ledger.ListAccountStatement(ctx2, req)
+	res, err := c.ledger.ListAccountStatement(ctx, req)
 	if err != nil {
 		return ports.ListAccountStatementOutput{}, err
 	}

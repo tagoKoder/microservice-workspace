@@ -25,7 +25,7 @@ public class AvpAuthorizer {
                                     Map<String, AttributeValue> contextAttrs) {
 
         ActionIdentifier action = ActionIdentifier.builder()
-                .actionType("Action")
+                .actionType("ImaginaryBank::Action")
                 .actionId(actionId)
                 .build();
 
