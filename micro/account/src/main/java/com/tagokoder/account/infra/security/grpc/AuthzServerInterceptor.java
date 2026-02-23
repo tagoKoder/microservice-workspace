@@ -142,7 +142,6 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         var principal = new AuthCtx.AuthPrincipal(sub, customerId, roles, mfa);
         Context ctxWithPrincipal = Context.current().withValue(AuthCtx.PRINCIPAL, principal);
 
-
         ServerCall.Listener<ReqT> delegate = Contexts.interceptCall(ctxWithPrincipal, callSafe, headers, next);
 
         // Para unary: hacemos authz cuando llega el request (onMessage)
