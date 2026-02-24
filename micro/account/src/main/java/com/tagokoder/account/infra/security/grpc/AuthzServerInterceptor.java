@@ -11,6 +11,7 @@ import java.util.function.BiConsumer;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
+import com.tagokoder.account.domain.port.out.IdentityPrincipalPort;
 import com.tagokoder.account.infra.config.AppProps;
 import com.tagokoder.account.infra.out.audit.AuditPublisher;
 import com.tagokoder.account.infra.security.authz.ActionResolver;
@@ -27,6 +28,7 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import software.amazon.awssdk.services.verifiedpermissions.model.AttributeValue;
 import software.amazon.awssdk.services.verifiedpermissions.model.Decision;
 
@@ -41,19 +43,22 @@ public class AuthzServerInterceptor implements ServerInterceptor {
     private final AuditPublisher audit;
     private final ActionResolver actionResolver;
     private final ResourceResolver resourceResolver;
+    private final IdentityPrincipalPort principalPort;
 
     public AuthzServerInterceptor(AppProps props,
                                   JwtDecoder jwtDecoder,
                                   AvpAuthorizer avp,
                                   AuditPublisher audit,
                                   ActionResolver actionResolver,
-                                  ResourceResolver resourceResolver) {
+                                  ResourceResolver resourceResolver,
+                                  IdentityPrincipalPort principalPort) {
         this.props = props;
         this.jwtDecoder = jwtDecoder;
         this.avp = avp;
         this.audit = audit;
         this.actionResolver = actionResolver;
         this.resourceResolver = resourceResolver;
+        this.principalPort=principalPort;
     }
 
     @Override
@@ -135,12 +140,38 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         }
 
         String sub = jwt.getSubject();
-        String customerId = claimString(jwt, "custom:customer_id"); // ajusta si tu claim es otro
+        String customerId = claimString(jwt, "custom:customer_id");
+        // Fallback: resolve via identity if missing
+        if (customerId == null || customerId.isBlank()) {
+        try {
+            var p = principalPort.resolvePrincipal(token, /*requireLink*/ false);
+            customerId = (p.customerId() != null && !p.customerId().isBlank()) ? p.customerId() : null;
+
+            // opcional: si quieres alinear roles con identity
+            /*if (p.roles() != null && !p.roles().isEmpty()) {
+            roles = p.roles();
+            } */
+        } catch (StatusRuntimeException sre) {
+            // si identity dice NOT_FOUND por link inexistente, decides si es 403 o 401
+            // en ListAccounts yo lo haría 403 para no filtrar “no existe customer link”
+        }
+        }
+        System.out.println("jwt sub=" + sub + " customer_id_claim=" + customerId);
         List<String> roles = claimStringList(jwt, "cognito:groups");
         boolean mfa = claimStringList(jwt, "amr").contains("mfa");
 
         var principal = new AuthCtx.AuthPrincipal(sub, customerId, roles, mfa);
+        String principalId = buildAvpPrincipalId(jwt); // us-east-1_jpKpFUYH1|<sub>
+        String principalType = "ImaginaryBank::User";
         Context ctxWithPrincipal = Context.current().withValue(AuthCtx.PRINCIPAL, principal);
+        Map<String, AttributeValue> principalAttrs = new HashMap<>();
+        if (customerId != null && !customerId.isBlank()) {
+            principalAttrs.put("customer_id", AttributeValue.fromString(customerId));
+        }
+        // roles (opcional por ahora, pero tu schema lo tiene)
+        principalAttrs.put("roles", AttributeValue.fromSet(
+            roles.stream().map(AttributeValue::fromString).toList()
+        ));
 
         ServerCall.Listener<ReqT> delegate = Contexts.interceptCall(ctxWithPrincipal, callSafe, headers, next);
 
@@ -163,11 +194,21 @@ public class AuthzServerInterceptor implements ServerInterceptor {
                 if (AuthCtx.IDEMPOTENCY_KEY.get() != null) {
                     ctxAttrs.put("idempotency_key", AttributeValue.fromString(AuthCtx.IDEMPOTENCY_KEY.get()));
                 }
-                ctxAttrs.put("mfa", AttributeValue.fromString(String.valueOf(principal.mfa())));
+                ctxAttrs.put("mfa_verified", AttributeValue.fromBooleanValue(principal.mfa()));
 
                 AvpAuthorizer.DecisionResult decision;
                 try {
-                    decision = avp.authorize(token, actionDef.actionId(), res.type(), res.id(), resourceAttrs, ctxAttrs);
+                    decision = avp.authorize(
+                        token,
+                        actionDef.actionId(),
+                        principalType,
+                        principalId,
+                        principalAttrs,
+                        res.type(),
+                        res.id(),
+                        resourceAttrs,
+                        ctxAttrs
+                    );               
                 } catch (Exception e) {
                     System.out.println("avp_call_failed route=" + route
                         + " actionId=" + actionDef.actionId()
@@ -274,5 +315,11 @@ public class AuthzServerInterceptor implements ServerInterceptor {
             return out;
         }
         return List.of();
+    }
+    private static String buildAvpPrincipalId(Jwt jwt) {
+        // issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_jpKpFUYH1
+        String iss = jwt.getIssuer() != null ? jwt.getIssuer().toString() : "";
+        String poolId = iss.substring(iss.lastIndexOf('/') + 1);
+        return poolId + "|" + jwt.getSubject();
     }
 }

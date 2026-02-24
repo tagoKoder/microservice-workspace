@@ -1,9 +1,9 @@
 package com.tagokoder.account.infra.security.authz;
 
-import com.tagokoder.account.domain.port.out.AccountRepositoryPort;
-
 import java.util.Map;
 import java.util.UUID;
+
+import com.tagokoder.account.domain.port.out.AccountRepositoryPort;
 
 public class ResourceResolver {
 
@@ -19,8 +19,15 @@ public class ResourceResolver {
         // Default: resource = "System"
         if (fullMethodName.equals("bank.accounts.v1.AccountsService/ListAccounts")) {
             // Recurso: Customer (self)
-            String cid = principalCustomerIdOrNull != null ? principalCustomerIdOrNull : "unknown";
-            return new ResourceDef("ImaginaryBank::Account", cid, Map.of("owner_customer_id", cid));
+            String cid = (principalCustomerIdOrNull != null && !principalCustomerIdOrNull.isBlank())
+            ? principalCustomerIdOrNull
+            : "unknown";
+
+            String rid = "accounts_of:" + cid;
+            return new ResourceDef("ImaginaryBank::Account", rid, Map.of(
+            "owner_customer_id", cid,
+            "account_id", rid
+            ));
         }
 
         // Para requests con accountId: usamos owner = account.customerId

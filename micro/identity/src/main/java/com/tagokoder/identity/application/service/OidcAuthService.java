@@ -10,7 +10,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
 
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.tagokoder.identity.application.AppProps;

@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import com.tagokoder.account.domain.port.out.AccountRepositoryPort;
+import com.tagokoder.account.domain.port.out.IdentityPrincipalPort;
 import com.tagokoder.account.infra.out.audit.AuditPublisher;
 import com.tagokoder.account.infra.security.authz.ActionResolver;
 import com.tagokoder.account.infra.security.authz.ResourceResolver;
@@ -65,7 +66,8 @@ public class SecurityWiringConfig {
             AvpAuthorizer avpAuthorizer,
             AuditPublisher auditPublisher,
             ActionResolver actionResolver,
-            ResourceResolver resourceResolver
+            ResourceResolver resourceResolver,
+            IdentityPrincipalPort principalPort
     ) {
         return new AuthzServerInterceptor(
                 props,
@@ -73,7 +75,9 @@ public class SecurityWiringConfig {
                 avpAuthorizer,
                 auditPublisher,
                 actionResolver,
-                resourceResolver
+                resourceResolver,
+                principalPort
+
         );
     }
 }

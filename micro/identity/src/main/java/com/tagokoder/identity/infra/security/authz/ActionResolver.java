@@ -27,7 +27,11 @@ public class ActionResolver {
             Map.entry("bank.identity.v1.OidcAuthService/LogoutSession",
                     new ActionDef("identity.session.logout", true, true)),
             Map.entry("bank.identity.v1.OidcAuthService/GetSessionInfo",
-                    new ActionDef("identity.session.get_info", false, true))
+                    new ActionDef("identity.session.get_info", false, true)),
+
+            // Principal Service
+            Map.entry("bank.identity.v1.PrincipalService/ResolvePrincipal",
+                    new ActionDef("identity.principal.resolve", false, false))
     );
 
     public ActionDef resolve(String fullMethodName) {
