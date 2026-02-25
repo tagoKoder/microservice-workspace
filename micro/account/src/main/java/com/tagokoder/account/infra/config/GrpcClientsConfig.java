@@ -5,11 +5,10 @@ import org.springframework.context.annotation.Configuration;
 
 import com.tagokoder.account.infra.props.AccountClientsProperties;
 
+import bank.identity.v1.*;
 import bank.ledgerpayments.v1.LedgerServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-
-import bank.identity.v1.*;
 
 @Configuration
 public class GrpcClientsConfig {
@@ -20,11 +19,16 @@ public class GrpcClientsConfig {
                 .usePlaintext() // prod: mTLS
                 .build();
     }
+
     @Bean(destroyMethod = "shutdownNow")
     public ManagedChannel identityChannel(AccountClientsProperties props) {
-    return ManagedChannelBuilder.forTarget(props.getIdentityTarget())
-        .usePlaintext() // prod: mTLS
-        .build();
+        String target = props.getIdentityTarget();
+        if (target == null || target.isBlank()) {
+            throw new IllegalStateException("Missing account.clients.identityTarget (e.g. identity:9090) for profile");
+        }
+        return ManagedChannelBuilder.forTarget(target)
+            .usePlaintext()
+            .build();
     }
 
     @Bean
@@ -34,6 +38,6 @@ public class GrpcClientsConfig {
 
     @Bean
     public PrincipalServiceGrpc.PrincipalServiceBlockingStub principalStub(ManagedChannel identityChannel) {
-    return PrincipalServiceGrpc.newBlockingStub(identityChannel);
+        return PrincipalServiceGrpc.newBlockingStub(identityChannel);
     }
 }

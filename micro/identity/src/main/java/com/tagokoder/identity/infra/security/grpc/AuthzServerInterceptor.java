@@ -59,6 +59,7 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         if (route.startsWith("grpc.reflection.v1alpha.ServerReflection/")) {
         return next.startCall(call, headers);
         }
+        
         // Permite flujos “public” (no bearer) para OIDC/Onboarding
         if (publicUnauthenticated) {
             System.out.println("In Unauthenticated CLAUSE, ROUTE: "+route);

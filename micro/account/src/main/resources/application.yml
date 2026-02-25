@@ -90,6 +90,7 @@ app:
 
 clients:
   ledger-target: "${LEDGER_GRPC_TARGET:ledger:9093}"
+  identity-target: "${IDENTITY_GRPC_TARGET:identity:9090}"
 
 messaging:
   sqs:

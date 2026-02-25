@@ -39,6 +39,7 @@ public class IdentityGrpcClientAdapter implements IdentityPrincipalPort {
     );
 
     ResolvePrincipalResponse resp = stubWithHeaders.resolvePrincipal(req);
+    System.out.println("Respuesta identityPrincipal: "+ resp.getCustomerId());
 
     return new PrincipalInfo(
         resp.getSubjectIdOidc(),

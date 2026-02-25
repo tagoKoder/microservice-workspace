@@ -63,8 +63,8 @@ public class AvpAuthorizer {
                 .build();
                 
         EntitiesDefinition entities = EntitiesDefinition.builder()
-                .entityList(List.of(principalEntity, resourceEntity))
-                .build();
+        .entityList(List.of(resourceEntity))                    // ✅ SOLO resource
+        .build();
 
         IsAuthorizedWithTokenRequest.Builder req = IsAuthorizedWithTokenRequest.builder()
                 .policyStoreId(props.aws().avpPolicyStoreId())

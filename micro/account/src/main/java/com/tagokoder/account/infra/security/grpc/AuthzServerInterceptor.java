@@ -142,8 +142,9 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         String sub = jwt.getSubject();
         String customerId = claimString(jwt, "custom:customer_id");
         // Fallback: resolve via identity if missing
-        if (customerId == null || customerId.isBlank()) {
+        //if (customerId == null || customerId.isBlank()) {
         try {
+            System.out.println("ANTES DE LLAMADA IDENITYT");
             var p = principalPort.resolvePrincipal(token, /*requireLink*/ false);
             customerId = (p.customerId() != null && !p.customerId().isBlank()) ? p.customerId() : null;
 
@@ -155,7 +156,7 @@ public class AuthzServerInterceptor implements ServerInterceptor {
             // si identity dice NOT_FOUND por link inexistente, decides si es 403 o 401
             // en ListAccounts yo lo haría 403 para no filtrar “no existe customer link”
         }
-        }
+        //}
         System.out.println("jwt sub=" + sub + " customer_id_claim=" + customerId);
         List<String> roles = claimStringList(jwt, "cognito:groups");
         boolean mfa = claimStringList(jwt, "amr").contains("mfa");
