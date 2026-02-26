@@ -63,7 +63,7 @@ public class AvpAuthorizer {
                 .build();
                 
         EntitiesDefinition entities = EntitiesDefinition.builder()
-        .entityList(List.of(resourceEntity))                    // ✅ SOLO resource
+        .entityList(List.of(principalEntity, resourceEntity))
         .build();
 
         IsAuthorizedWithTokenRequest.Builder req = IsAuthorizedWithTokenRequest.builder()

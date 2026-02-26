@@ -50,7 +50,7 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         final var actionDef = actionResolver.resolve(route);
         final var publicUnauthenticated=actionDef.publicUnauthenticated();
 
-        System.out.println("Route, ActionDef, publicUnauthenticated: "+route+", "+actionDef+", "+publicUnauthenticated);
+        //System.out.println("Route, ActionDef, publicUnauthenticated: "+route+", "+actionDef+", "+publicUnauthenticated);
         // Infra: health (y opcional reflection) no requieren Bearer
         if (route.startsWith("grpc.health.v1.Health/")) {
         return next.startCall(call, headers);
@@ -62,13 +62,12 @@ public class AuthzServerInterceptor implements ServerInterceptor {
         
         // Permite flujos “public” (no bearer) para OIDC/Onboarding
         if (publicUnauthenticated) {
-            System.out.println("In Unauthenticated CLAUSE, ROUTE: "+route);
+            //System.out.println("In Unauthenticated CLAUSE, ROUTE: "+route);
             return next.startCall(call, headers);
         }
 
         String token = extractBearer(headers.get(AUTH));
         if (token == null) {
-            System.out.println("Why are you like this. Route: "+route);
             publishDecision(null, actionDef.actionId(), route, null,
                     "DENY", null, "missing_token", started);
             call.close(Status.UNAUTHENTICATED.withDescription("Missing token"), new Metadata());

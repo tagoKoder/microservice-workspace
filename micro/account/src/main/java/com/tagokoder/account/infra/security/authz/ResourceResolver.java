@@ -15,18 +15,15 @@ public class ResourceResolver {
         this.accountRepo = accountRepo;
     }
 
-    public ResourceDef resolve(String fullMethodName, Object request, String principalCustomerIdOrNull) {
+    public ResourceDef resolve(String fullMethodName, Object request, String principalIdOrNull, String principalCustomerIdOrNull) {
         // Default: resource = "System"
         if (fullMethodName.equals("bank.accounts.v1.AccountsService/ListAccounts")) {
-            // Recurso: Customer (self)
-            String cid = (principalCustomerIdOrNull != null && !principalCustomerIdOrNull.isBlank())
-            ? principalCustomerIdOrNull
-            : "unknown";
+            String rid = "accounts_of:" + (principalCustomerIdOrNull == null ? "unknown" : principalCustomerIdOrNull);
 
-            String rid = "accounts_of:" + cid;
+            // attrs: owner es Entity(User) -> lo ponemos después en AvpAuthorizer porque ahí tienes AttributeValue
             return new ResourceDef("ImaginaryBank::Account", rid, Map.of(
-            "owner_customer_id", cid,
-            "account_id", rid
+                "account_id", rid,
+                "owner_principal_id", principalIdOrNull // 👈 helper para construir owner entity
             ));
         }
 

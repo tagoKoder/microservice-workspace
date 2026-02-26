@@ -152,10 +152,16 @@ public class AuthzServerInterceptor implements ServerInterceptor {
             /*if (p.roles() != null && !p.roles().isEmpty()) {
             roles = p.roles();
             } */
-        } catch (StatusRuntimeException sre) {
-            // si identity dice NOT_FOUND por link inexistente, decides si es 403 o 401
-            // en ListAccounts yo lo haría 403 para no filtrar “no existe customer link”
-        }
+            } catch (StatusRuntimeException sre) {
+                System.out.println("IDENTITY_CALL_FAILED route=" + route
+                    + " status=" + sre.getStatus()
+                    + " desc=" + sre.getStatus().getDescription()
+                    + " cause=" + (sre.getCause() == null ? "" : sre.getCause().getClass().getName() + ":" + sre.getCause().getMessage()));
+            } catch (Exception e) {
+                System.out.println("IDENTITY_CALL_FAILED_UNEXPECTED route=" + route
+                    + " ex=" + e.getClass().getName()
+                    + " msg=" + (e.getMessage() == null ? "" : e.getMessage()));
+            }
         //}
         System.out.println("jwt sub=" + sub + " customer_id_claim=" + customerId);
         List<String> roles = claimStringList(jwt, "cognito:groups");
@@ -181,11 +187,26 @@ public class AuthzServerInterceptor implements ServerInterceptor {
             @Override
             public void onMessage(ReqT message) {
 
-                var res = resourceResolver.resolve(route, message, principal.customerIdOrNull());
+                var res = resourceResolver.resolve(route, message, principalId, principal.customerIdOrNull());
 
                 Map<String, AttributeValue> resourceAttrs = new HashMap<>();
+
                 for (var e : res.attrs().entrySet()) {
-                    resourceAttrs.put(e.getKey(), AttributeValue.fromString(String.valueOf(e.getValue())));
+                String k = e.getKey();
+                Object v = e.getValue();
+
+                if ("owner_principal_id".equals(k) && v instanceof String ownerPid && !ownerPid.isBlank()) {
+                    // resource.owner : Entity(User)
+                    resourceAttrs.put("owner", AttributeValue.fromEntityIdentifier(
+                        software.amazon.awssdk.services.verifiedpermissions.model.EntityIdentifier.builder()
+                        .entityType("ImaginaryBank::User")
+                        .entityId(ownerPid)
+                        .build()
+                    ));
+                    continue;
+                }
+
+                resourceAttrs.put(k, AttributeValue.fromString(String.valueOf(v)));
                 }
 
                 Map<String, AttributeValue> ctxAttrs = new HashMap<>();

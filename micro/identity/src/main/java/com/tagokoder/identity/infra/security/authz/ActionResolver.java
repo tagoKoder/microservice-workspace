@@ -31,7 +31,7 @@ public class ActionResolver {
 
             // Principal Service
             Map.entry("bank.identity.v1.PrincipalService/ResolvePrincipal",
-                    new ActionDef("identity.principal.resolve", false, false))
+                    new ActionDef("identity.principal.resolve", false, true))
     );
 
     public ActionDef resolve(String fullMethodName) {
