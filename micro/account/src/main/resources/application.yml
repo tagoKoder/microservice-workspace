@@ -103,4 +103,5 @@ logging:
   level:
     root: INFO
     com.tagokoder.account: INFO
+    com.tagokoder.account.infra.security: DEBUG
     org.springframework.security: INFO

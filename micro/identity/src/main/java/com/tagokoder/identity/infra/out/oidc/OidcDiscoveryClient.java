@@ -1,69 +1,116 @@
 package com.tagokoder.identity.infra.out.oidc;
 
-import java.net.URI;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.tagokoder.identity.application.OidcProperties;
 
-@Component
+import reactor.util.retry.Retry;
+
 public class OidcDiscoveryClient {
 
-    private final WebClient web;
-    private final OidcProperties props;
+  private static final Logger log = LoggerFactory.getLogger(OidcDiscoveryClient.class);
 
-    private final AtomicReference<Cached> cache = new AtomicReference<>();
+  private final WebClient webClient;
+  private final OidcProperties props;
 
-    public OidcDiscoveryClient(WebClient.Builder builder, OidcProperties props) {
-        this.web = builder.build();
-        this.props = props;
+  // cache en memoria (no consultes discovery en cada request)
+  private final AtomicReference<ProviderMetadata> cache = new AtomicReference<>();
+
+  public OidcDiscoveryClient(WebClient oidcWebClient, OidcProperties props) {
+    this.webClient = oidcWebClient;
+    this.props = props;
+  }
+
+  public ProviderMetadata getMetadata() {
+    ProviderMetadata cached = cache.get();
+    if (cached != null) return cached;
+
+    String issuer = props.getIssuer();
+    if (issuer == null || issuer.isBlank()) {
+      throw new IllegalStateException("oidc.issuer is required");
     }
+    issuer = issuer.replaceAll("/+$", "");
 
-    public ProviderMetadata getMetadata() {
-        if (!props.isDiscoveryEnabled()) {
-            return ProviderMetadata.fromStatic(props);
-        }
+    String wellKnown = issuer + "/.well-known/openid-configuration";
 
-        Cached c = cache.get();
-        long now = System.currentTimeMillis();
-        if (c != null && (now - c.cachedAtMs) < Duration.ofMinutes(10).toMillis()) {
-            return c.meta;
-        }
+    // Subimos timeout (3s es muy poco). Puedes mover esto a props/env si quieres.
+    int timeoutMs = 15000;
 
-        String issuerStr = normalizeIssuer(props.getIssuer());
-        URI issuer = URI.create(issuerStr);
-        URI wellKnown = issuer.resolve(".well-known/openid-configuration");
+    boolean canFallbackStatic =
+        notBlank(props.getAuthUrl()) &&
+        notBlank(props.getTokenUrl()) &&
+        notBlank(props.getUserInfoUrl());
 
-        ProviderMetadata meta = web.get()
-                .uri(wellKnown)
-                .retrieve()
-                .bodyToMono(ProviderMetadata.class)
-                .timeout(Duration.ofSeconds(3))
-                .block();
+    log.info("OIDC_DISCOVERY start url={} timeoutMs={} fallbackStatic={}", wellKnown, timeoutMs, canFallbackStatic);
 
-        if (meta == null || meta.issuer() == null || meta.jwks_uri() == null) {
-            throw new IllegalStateException("OIDC discovery returned invalid metadata");
-        }
+    try {
+      OpenIdConfiguration cfg = webClient.get()
+          .uri(wellKnown)
+          .accept(MediaType.APPLICATION_JSON)
+          .retrieve()
+          .bodyToMono(OpenIdConfiguration.class)
+          .timeout(Duration.ofMillis(timeoutMs))
+          .retryWhen(
+              Retry.backoff(2, Duration.ofMillis(250))
+                  .maxBackoff(Duration.ofSeconds(2))
+          )
+          .doOnError(e -> log.error("OIDC_DISCOVERY failed url={} err={}", wellKnown, e.toString()))
+          .block();
 
-        if (!normalizeIssuer(meta.issuer()).equals(normalizeIssuer(props.getIssuer()))) {
-            throw new IllegalStateException("OIDC issuer mismatch (possible mix-up attack)");
-        }
+      if (cfg == null || cfg.issuer() == null || cfg.authorization_endpoint() == null || cfg.token_endpoint() == null) {
+        throw new IllegalStateException("OIDC discovery returned incomplete metadata");
+      }
 
-        cache.set(new Cached(meta, now));
+      ProviderMetadata meta = new ProviderMetadata(
+          nvl(cfg.issuer(), issuer),
+          nvl(cfg.authorization_endpoint(), props.getAuthUrl()),
+          nvl(cfg.token_endpoint(), props.getTokenUrl()),
+          nvl(cfg.userinfo_endpoint(), props.getUserInfoUrl()),
+          nvl(cfg.jwks_uri(), issuer + "/.well-known/jwks.json"),
+          nvl(cfg.revocation_endpoint(), props.getRevocationUrl())
+      );
+
+      cache.set(meta);
+      log.info("OIDC_DISCOVERY ok issuer={} auth={}", meta.issuer(), meta.authorization_endpoint());
+      return meta;
+
+    } catch (Exception e) {
+      log.error("OIDC_DISCOVERY exception: {}", e.toString(), e);
+
+      // fallback a tu config estática (ProviderMetadata.fromStatic)
+      if (canFallbackStatic) {
+        ProviderMetadata meta = ProviderMetadata.fromStatic(props);
+        cache.set(meta);
+        log.warn("OIDC_DISCOVERY fallback STATIC issuer={} auth={}", meta.issuer(), meta.authorization_endpoint());
         return meta;
+      }
+
+      // si no hay fallback posible, reventamos con mensaje claro
+      throw new IllegalStateException("OIDC discovery failed and static fallback is not configured. url=" + wellKnown, e);
     }
+  }
 
+  // DTO para el JSON de /.well-known/openid-configuration
+  public record OpenIdConfiguration(
+      String issuer,
+      String authorization_endpoint,
+      String token_endpoint,
+      String userinfo_endpoint,
+      String jwks_uri,
+      String revocation_endpoint
+  ) {}
 
+  private static boolean notBlank(String s) {
+    return s != null && !s.isBlank();
+  }
 
-    private String normalizeIssuer(String issuer) {
-        if (issuer == null) return "";
-        return issuer.endsWith("/") ? issuer : issuer + "/";
-    }
-
-    
-
-    private record Cached(ProviderMetadata meta, long cachedAtMs) {}
+  private static String nvl(String v, String def) {
+    return (v == null || v.isBlank()) ? def : v;
+  }
 }

@@ -14,6 +14,8 @@ service PaymentsService {
 }
 
 service LedgerService {
+    // INTERNAL: solo system/service. No expuesta a usuarios.
+  rpc CreditAccountSystem(CreditAccountSystemRequest) returns (CreditAccountSystemResponse);
   rpc CreditAccount(CreditAccountRequest) returns (CreditAccountResponse);
   rpc ListAccountJournalEntries(ListAccountJournalEntriesRequest) returns (ListAccountJournalEntriesResponse);
   // NUEVO: Estado de cuenta / Movimientos
@@ -138,4 +140,18 @@ message ListAccountStatementResponse {
   repeated StatementItem items = 1;
   int32 page = 2;
   int32 size = 3;
+}
+
+message CreditAccountSystemRequest {
+  string idempotency_key = 1;
+  string account_id = 2;  // UUID
+  string currency = 3;    // "USD"
+  string amount = 4;      // decimal string
+  string external_ref = 5; // requerido: "bonus:registration:<regId>" o "system:..."
+  string reason = 6;       // requerido: "registration_bonus" (por ahora)
+}
+
+message CreditAccountSystemResponse {
+  string journal_id = 1;   // UUID
+  string status = 2;       // posted
 }

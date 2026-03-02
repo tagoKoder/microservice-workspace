@@ -8,7 +8,8 @@ public interface OpenAccountWithOpeningBonusUseCase {
             UUID customerId,
             String productType,
             String currency,
-            String idempotencyKey, // recomendado
+            String idempotencyKey,
+             String externalRef, 
             String initiatedBy     // "system" o subject
     ) {}
 

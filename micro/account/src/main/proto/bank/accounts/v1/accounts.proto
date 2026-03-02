@@ -43,6 +43,7 @@ service AccountsService {
 
 // INTERNAL (para ledger/payments) - proteger con mTLS/API key
 service InternalAccountsService {
+    rpc OpenAccountWithOpeningBonus(OpenAccountWithOpeningBonusRequest) returns (OpenAccountWithOpeningBonusResponse);
   // POST /internal/accounts/validate
   rpc ValidateAccountsAndLimits(ValidateAccountsAndLimitsRequest) returns (ValidateAccountsAndLimitsResponse);
 
@@ -335,4 +336,22 @@ message AccountLookup {
 
 message GetAccountByNumberResponse {
   AccountLookup account = 1;
+}
+
+
+message OpenAccountWithOpeningBonusRequest {
+  string customer_id = 1;
+  ProductType product_type = 2;
+  string currency = 3;
+
+  string idempotency_key = 4; // required
+  string external_ref = 5;    // required: "act:<regId>:checking"
+  string initiated_by = 6;    // "svc:identity" o "system"
+}
+
+message OpenAccountWithOpeningBonusResponse {
+  string account_id = 1;
+  string account_number = 2;
+  string bonus_journal_id = 3;
+  string status = 4; // opened
 }

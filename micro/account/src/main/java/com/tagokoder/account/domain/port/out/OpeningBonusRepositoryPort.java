@@ -6,19 +6,28 @@ import java.util.UUID;
 
 public interface OpeningBonusRepositoryPort {
 
-    record BonusGrant(
-            String idempotencyKey,
-            UUID accountId,
-            String journalId,
-            BigDecimal amount,
-            String currency
-    ) {}
+  enum Status { PENDING, COMPLETED }
 
-    Optional<BonusGrant> findByKey(String idempotencyKey);
+  record BonusGrant(
+      String idempotencyKey,
+      Status status,
+      UUID accountId,      // nullable mientras PENDING
+      String journalId,    // nullable mientras PENDING
+      BigDecimal amount,
+      String currency
+  ) {}
 
-    /**
-     * Inserta el grant si NO existe (unique por idempotencyKey).
-     * @return true si insertó (primer apply), false si ya existía.
-     */
-    boolean tryInsert(BonusGrant grant);
+  Optional<BonusGrant> findByKey(String idempotencyKey);
+
+  /** Inserta fila PENDING si no existe. True si el insert fue el que “ganó”. */
+  boolean tryAcquire(String key, BigDecimal amount, String currency);
+
+  /** Setea account_id solo si aún está null (para reintentos seguros). Retorna true si actualizó. */
+  boolean attachAccountIfEmpty(String key, UUID accountId);
+
+  /**
+   * Completa PENDING→COMPLETED. Retorna true si esta llamada hizo la transición.
+   * (Si ya estaba COMPLETED, retorna false)
+   */
+  boolean completeIfPending(String key, UUID accountId, String journalId);
 }

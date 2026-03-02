@@ -1,7 +1,6 @@
 package com.tagokoder.account.application.service;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -42,73 +41,75 @@ public class AccountOpeningService implements OpenAccountWithOpeningBonusUseCase
         this.openingBonusRepo = openingBonusRepo;
         this.accountRepo = accountRepo;
     }
-
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Result open(Command c) {
 
-        UUID customerId = c.customerId();
-        String currency = c.currency();
-        String initiatedBy = (c.initiatedBy() == null || c.initiatedBy().isBlank()) ? "system" : c.initiatedBy();
+    UUID customerId = c.customerId();
+    String currency = c.currency();
+    String initiatedBy = (c.initiatedBy() == null || c.initiatedBy().isBlank()) ? "system" : c.initiatedBy();
 
-        String baseKey = normalizeKey(c.idempotencyKey(), customerId, c.productType(), currency);
-        String bonusKey = baseKey + ":opening_bonus";
+    String baseKey = normalizeKey(c.idempotencyKey(), customerId, c.productType(), currency);
+    String bonusKey = baseKey + ":opening_bonus";
 
-        // 1) Si ya existe el grant, devolvemos determinístico (incluye account_number)
-        Optional<OpeningBonusRepositoryPort.BonusGrant> existing = openingBonusRepo.findByKey(bonusKey);
-        if (existing.isPresent()) {
-            var g = existing.get();
-            String accNum = accountRepo.findById(g.accountId())
-                    .map(a -> AccountNumberFmt.fmt12(a.getAccountNumber()))
-                    .orElse("");
-            return new Result(g.accountId(), accNum, g.journalId(), "opened");
-        }
+    // 0) Leer estado actual
+    var ex = openingBonusRepo.findByKey(bonusKey);
 
-        // 2) Crear cuenta
+    if (ex.isPresent() && ex.get().status() == OpeningBonusRepositoryPort.Status.COMPLETED) {
+        var g = ex.get();
+        String accNum = accountRepo.findById(g.accountId())
+            .map(a -> AccountNumberFmt.fmt12(a.getAccountNumber()))
+            .orElse("");
+        return new Result(g.accountId(), accNum, g.journalId(), "opened");
+    }
+
+    // 1) Si no existe, intentar adquirir (insert PENDING)
+    if (ex.isEmpty()) {
+        openingBonusRepo.tryAcquire(bonusKey, OPENING_BONUS, currency);
+        ex = openingBonusRepo.findByKey(bonusKey);
+    }
+
+    var now = ex.orElseThrow(() -> new IllegalStateException("opening bonus grant missing"));
+
+    // 2) Determinar accountId
+    UUID accountId = now.accountId();
+    String accountNumber;
+
+    if (accountId == null) {
+        // este request crea la cuenta y la “ancla” al grant
         var created = createAccount.create(new CreateAccountUseCase.Command(
-                customerId,
-                c.productType(),
-                currency
+            customerId, c.productType(), currency
         ));
+        accountId = created.accountId();
+        accountNumber = AccountNumberFmt.fmt12(created.accountNumber());
 
-        UUID accountId = created.accountId();
-        String accountNumber = AccountNumberFmt.fmt12(created.accountNumber());
+        // importante: anclar account_id para reintentos (evita doble cuenta si falla después)
+        openingBonusRepo.attachAccountIfEmpty(bonusKey, accountId);
+    } else {
+        accountNumber = accountRepo.findById(accountId)
+            .map(a -> AccountNumberFmt.fmt12(a.getAccountNumber()))
+            .orElse("");
+    }
 
-        // 3) Postear bono (idempotente por bonusKey)
-        String journalId = ledger.creditAccount(
-                bonusKey,
-                accountId,
-                currency,
-                OPENING_BONUS.toPlainString(),
-                initiatedBy,
-                BONUS_EXTERNAL_REF,
-                BONUS_REASON,
-                customerId
-        );
+    // 3) Postear bono en Ledger (idempotente por bonusKey)
+    String journalId = ledger.creditAccountSystem(
+        bonusKey,
+        accountId,
+        currency,
+        OPENING_BONUS.toPlainString(),
+        c.externalRef(),
+        BONUS_REASON
+    );
 
-        // 4) Guardar grant (idempotente)
-        var grant = new OpeningBonusRepositoryPort.BonusGrant(
-                bonusKey, accountId, journalId, OPENING_BONUS, currency
-        );
+    // 4) Completar PENDING→COMPLETED (solo 1 gana)
+    boolean transitioned = openingBonusRepo.completeIfPending(bonusKey, accountId, journalId);
 
-        boolean inserted = openingBonusRepo.tryInsert(grant);
+    // 5) Aplicar balance materializado SOLO si esta llamada completó
+    if (transitioned) {
+        balances.applyCredit(accountId, OPENING_BONUS);
+    }
 
-        if (inserted) {
-            balances.applyCredit(accountId, OPENING_BONUS);
-            return new Result(accountId, accountNumber, journalId, "opened");
-        }
-
-        // Carrera: otro request ganó. Re-lee y devuelve el “real”
-        var existingAfter = openingBonusRepo.findByKey(bonusKey);
-        if (existingAfter.isPresent()) {
-            var g = existingAfter.get();
-            String accNum = accountRepo.findById(g.accountId())
-                    .map(a -> AccountNumberFmt.fmt12(a.getAccountNumber()))
-                    .orElse("");
-            return new Result(g.accountId(), accNum, g.journalId(), "opened");
-        }
-
-        throw new IllegalStateException("opening bonus grant missing after concurrent insert");
+    return new Result(accountId, accountNumber, journalId, "opened");
     }
 
     private static String normalizeKey(String key, UUID customerId, String productType, String currency) {

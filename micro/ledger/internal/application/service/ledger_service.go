@@ -176,6 +176,150 @@ func (s *ledgerAppService) CreditAccount(ctx context.Context, cmd in.CreditAccou
 	return result, nil
 }
 
+func (s *ledgerAppService) CreditAccountSystem(ctx context.Context, cmd in.CreditAccountSystemCommand) (*in.CreditAccountResult, error) {
+	// NO usa initiated_by del usuario. Es “system/service”.
+	initiatedBy := "system"
+
+	amt, err := decimal.NewFromString(cmd.Amount)
+	if err != nil {
+		return nil, err
+	}
+	af, exact := amt.Float64()
+	if !exact {
+		return nil, model.ErrAmountNotExact
+	}
+
+	// Idempotencia (igual que CreditAccount)
+	var cachedJSON string
+	if err := s.uow.DoRead(ctx, func(r uow.ReadRepos) error {
+		rec, err := r.Idempotency().Get(ctx, cmd.IdempotencyKey)
+		if err != nil {
+			return err
+		}
+		if rec != nil {
+			cachedJSON = rec.ResponseJSON
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	if cachedJSON != "" {
+		var prev *in.CreditAccountResult
+		_ = json.Unmarshal([]byte(cachedJSON), &prev)
+		return prev, nil
+	}
+
+	// Validación básica en Accounts (self-credit)
+	vresp, err := s.accounts.ValidateAccountsAndLimits(ctx, &accountsv1.ValidateAccountsAndLimitsRequest{
+		SourceAccountId:      cmd.AccountID.String(),
+		DestinationAccountId: cmd.AccountID.String(),
+		Currency:             cmd.Currency,
+		Amount:               af,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if vresp != nil && !vresp.Ok {
+		reason := ""
+		if vresp.Reason != nil {
+			reason = vresp.Reason.Value
+		}
+		return nil, fmt.Errorf("accounts validation failed: %s", reason)
+	}
+
+	journalID := uuid.New()
+	now := time.Now().UTC()
+
+	var result *in.CreditAccountResult
+	err = s.uow.DoWrite(ctx, func(w uow.WriteRepos) error {
+		accRef := cmd.AccountID.String()
+
+		// Igual que CreditAccount: SystemFund -> CustomerCash
+		lines := []dm.EntryLine{
+			{
+				ID: uuid.New(), JournalID: journalID,
+				GLAccountID: dm.GLSystemFundID, GLAccountCode: "GL_SYSTEM_FUND",
+				CounterpartyRef: nil,
+				Debit:           amt, Credit: decimal.Zero,
+			},
+			{
+				ID: uuid.New(), JournalID: journalID,
+				GLAccountID: dm.GLCustomerCashID, GLAccountCode: "GL_CUSTOMER_CASH",
+				CounterpartyRef: &accRef,
+				Debit:           decimal.Zero, Credit: amt,
+			},
+		}
+		if err := EnsureBalanced(lines); err != nil {
+			return err
+		}
+
+		j := &dm.JournalEntry{
+			ID:          journalID,
+			ExternalRef: cmd.ExternalRef,
+			BookedAt:    now,
+			Status:      dm.JournalPosted,
+			Currency:    cmd.Currency,
+			CreatedBy:   initiatedBy,
+			Lines:       lines,
+		}
+		if err := w.Journals().InsertJournal(ctx, j); err != nil {
+			return err
+		}
+
+		// outbox ledger.posted
+		payload := map[string]any{
+			"journal_id":   journalID.String(),
+			"account_id":   cmd.AccountID.String(),
+			"currency":     cmd.Currency,
+			"amount":       amt.StringFixed(6),
+			"reason":       cmd.Reason,
+			"external_ref": cmd.ExternalRef,
+			"occurred_at":  now.Format(time.RFC3339Nano),
+		}
+		pj, _ := json.Marshal(payload)
+
+		if err := w.Outbox().Insert(ctx, &dm.OutboxEvent{
+			ID:            uuid.New(),
+			AggregateType: "ledger",
+			AggregateID:   journalID,
+			EventType:     "ledger.posted",
+			PayloadJSON:   string(pj),
+			Published:     false,
+			CreatedAt:     now,
+		}); err != nil {
+			return err
+		}
+
+		result = &in.CreditAccountResult{JournalID: journalID, Status: "posted"}
+		rj, _ := json.Marshal(result)
+
+		if err := w.Idempotency().Put(ctx, &dm.IdempotencyRecord{
+			Key:          cmd.IdempotencyKey,
+			Operation:    "CreditAccountSystem:" + cmd.Reason,
+			ResponseJSON: string(rj),
+			StatusCode:   200,
+			CreatedAt:    now,
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	_ = s.audit.Record(ctx, "ledger.credit_system", journalID.String(), now, map[string]any{
+		"account_id":   cmd.AccountID.String(),
+		"currency":     cmd.Currency,
+		"amount":       amt.StringFixed(6),
+		"reason":       cmd.Reason,
+		"external_ref": cmd.ExternalRef,
+	})
+
+	return result, nil
+}
+
 func (s *ledgerAppService) ListAccountJournalEntries(ctx context.Context, q in.ListAccountJournalEntriesQuery) (*in.ListAccountJournalEntriesResult, error) {
 
 	from := time.Time{}

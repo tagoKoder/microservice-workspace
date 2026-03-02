@@ -3,7 +3,7 @@ package com.tagokoder.account.domain.port.out;
 import java.util.List;
 
 public interface IdentityPrincipalPort {
-  PrincipalInfo resolvePrincipal(String bearerAccessToken, boolean requireLink);
+  PrincipalInfo resolvePrincipal(String bearerAccessToken, boolean requireLink, String purpose);
 
   record PrincipalInfo(
       String subjectIdOidc,
