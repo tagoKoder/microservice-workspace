@@ -29,9 +29,9 @@ func NewRegistry() *Registry {
 			ActionID: "ledger.accounts.credit", Critical: true, Mode: ModeAuthz, RequireCustomerLink: true, ResourceTemplate: T_ACCOUNT_BY_ID,
 		},
 
-		// ✅ System credit: SOLO service/system (igual AVP pero con template diferente)
+		// System credit: SOLO service/system (igual AVP pero con template diferente)
 		"/bank.ledgerpayments.v1.LedgerService/CreditAccountSystem": {
-			ActionID: "ledger.accounts.credit_system", Critical: true, Mode: ModeAuthz, RequireCustomerLink: false, ResourceTemplate: T_ACCOUNT_SYSTEM_CREDIT,
+			ActionID: "ledger.accounts.credit_system", Critical: true, Mode: ModePublic, RequireCustomerLink: false, ResourceTemplate: T_ACCOUNT_SYSTEM_CREDIT,
 		},
 
 		"/bank.ledgerpayments.v1.LedgerService/ListAccountJournalEntries": {

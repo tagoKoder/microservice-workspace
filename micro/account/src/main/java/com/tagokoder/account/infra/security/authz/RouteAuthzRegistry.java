@@ -31,7 +31,7 @@ public class RouteAuthzRegistry {
       // ---- Customers ----
       // Importante: este normalmente ocurre cuando AÚN no hay customer_id (onboarding)
       Map.entry("bank.accounts.v1.CustomersService/CreateCustomer",
-          new RouteDef("customers:create", true, AuthzMode.AUTHZ, false, T_CUSTOMER_CREATE)),
+          new RouteDef("customers:create", true, AuthzMode.PUBLIC, false, T_CUSTOMER_CREATE)),
 
       Map.entry("bank.accounts.v1.CustomersService/PatchCustomer",
           new RouteDef("customers:patch", true, AuthzMode.AUTHZ, true, T_CUSTOMER_PATCH)),

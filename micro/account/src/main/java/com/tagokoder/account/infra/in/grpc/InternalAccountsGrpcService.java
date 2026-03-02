@@ -1,29 +1,36 @@
 package com.tagokoder.account.infra.in.grpc;
 
-import java.util.UUID;
+import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.toBatchIdsInput;
+import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.toOpenAccountWithBonusCommand;
+import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.toReleaseCommand;
+import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.toReleaseHoldInput;
+import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.toReserveCommand;
+import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.toReserveHoldInput;
+import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.toValidateCommand;
 
 import com.google.protobuf.StringValue;
 import com.tagokoder.account.domain.port.in.BatchGetAccountSummariesUseCase;
+import com.tagokoder.account.domain.port.in.OpenAccountWithOpeningBonusUseCase;
 import com.tagokoder.account.domain.port.in.ReleaseHoldUseCase;
 import com.tagokoder.account.domain.port.in.ReserveHoldUseCase;
 import com.tagokoder.account.domain.port.in.ValidateAccountsAndLimitsUseCase;
 import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
 
+import bank.accounts.v1.AccountSummary;
+import bank.accounts.v1.BatchGetAccountSummariesRequest;
+import bank.accounts.v1.BatchGetAccountSummariesResponse;
 import bank.accounts.v1.InternalAccountsServiceGrpc;
 import bank.accounts.v1.MissingAccount;
+import bank.accounts.v1.OpenAccountWithOpeningBonusRequest;
+import bank.accounts.v1.OpenAccountWithOpeningBonusResponse;
 import bank.accounts.v1.ReleaseHoldRequest;
 import bank.accounts.v1.ReleaseHoldResponse;
 import bank.accounts.v1.ReserveHoldRequest;
 import bank.accounts.v1.ReserveHoldResponse;
 import bank.accounts.v1.ValidateAccountsAndLimitsRequest;
 import bank.accounts.v1.ValidateAccountsAndLimitsResponse;
-import bank.accounts.v1.AccountSummary;
-import bank.accounts.v1.BatchGetAccountSummariesRequest;
-import bank.accounts.v1.BatchGetAccountSummariesResponse;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-import io.grpc.Status;
-import static com.tagokoder.account.infra.in.grpc.validation.InternalAccountsGrpcValidators.*;
 
 @GrpcService
 public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.InternalAccountsServiceImplBase {
@@ -32,17 +39,36 @@ public class InternalAccountsGrpcService extends InternalAccountsServiceGrpc.Int
     private final ReserveHoldUseCase reserveUC;
     private final ReleaseHoldUseCase releaseUC;
     private final BatchGetAccountSummariesUseCase batchSummariesUC;
+    private final OpenAccountWithOpeningBonusUseCase openWithBonusUC;
 
     public InternalAccountsGrpcService(
             ValidateAccountsAndLimitsUseCase validateUC,
             ReserveHoldUseCase reserveUC,
             ReleaseHoldUseCase releaseUC,
-            BatchGetAccountSummariesUseCase batchSummariesUC
+            BatchGetAccountSummariesUseCase batchSummariesUC,
+            OpenAccountWithOpeningBonusUseCase openWithBonusUC
     ) {
         this.validateUC = validateUC;
         this.reserveUC = reserveUC;
         this.releaseUC = releaseUC;
         this.batchSummariesUC = batchSummariesUC;
+        this.openWithBonusUC =openWithBonusUC;
+    }
+
+    @Override
+    public void openAccountWithOpeningBonus(OpenAccountWithOpeningBonusRequest request,
+        StreamObserver<OpenAccountWithOpeningBonusResponse> responseObserver) {
+
+        var cmd = toOpenAccountWithBonusCommand(request);
+        var res = openWithBonusUC.open(cmd);
+
+        responseObserver.onNext(OpenAccountWithOpeningBonusResponse.newBuilder()
+            .setAccountId(res.accountId().toString())
+            .setAccountNumber(res.accountNumber() == null ? "" : res.accountNumber())
+            .setBonusJournalId(res.bonusJournalId() == null ? "" : res.bonusJournalId())
+            .setStatus(res.status() == null ? "opened" : res.status())
+            .build());
+        responseObserver.onCompleted();
     }
 
         @Override

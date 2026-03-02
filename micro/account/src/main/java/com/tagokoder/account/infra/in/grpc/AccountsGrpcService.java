@@ -62,8 +62,8 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
         this.createAccount= createAccount;
     }
 
-        @Override
-        public void listAccounts(ListAccountsRequest request, StreamObserver<ListAccountsResponse> responseObserver) {
+    @Override
+    public void listAccounts(ListAccountsRequest request, StreamObserver<ListAccountsResponse> responseObserver) {
         UUID customerId = resolveCustomerIdForList(request);
         var res = listAccounts.listByCustomer(customerId);
 
@@ -89,7 +89,7 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
 
         responseObserver.onNext(out.build());
         responseObserver.onCompleted();
-        }
+    }
 
 
     @Override

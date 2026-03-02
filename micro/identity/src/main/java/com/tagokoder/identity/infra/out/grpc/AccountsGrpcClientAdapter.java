@@ -1,33 +1,33 @@
 package com.tagokoder.identity.infra.out.grpc;
 
+import java.time.LocalDate;
+
 import org.springframework.stereotype.Component;
 
 import com.tagokoder.identity.domain.port.out.AccountsClientPort;
 import com.tagokoder.identity.infra.security.grpc.BearerTokenCallCredentials;
 
-import bank.accounts.v1.CustomersServiceGrpc;
-import bank.accounts.v1.ProductType;
-import bank.accounts.v1.AccountsServiceGrpc;
 // Ajusta imports de request/response según tu accounts.proto real:
 import bank.accounts.v1.CreateCustomerRequest;
 import bank.accounts.v1.CreateCustomerResponse;
-import bank.accounts.v1.CreateAccountRequest;
-import bank.accounts.v1.CreateAccountResponse;
-
-import java.time.LocalDate;
+import bank.accounts.v1.CustomersServiceGrpc;
+import bank.accounts.v1.InternalAccountsServiceGrpc;
+import bank.accounts.v1.OpenAccountWithOpeningBonusRequest;
+import bank.accounts.v1.OpenAccountWithOpeningBonusResponse;
+import bank.accounts.v1.ProductType;
 
 @Component
 public class AccountsGrpcClientAdapter implements AccountsClientPort {
 
   private final CustomersServiceGrpc.CustomersServiceBlockingStub customers;
-  private final AccountsServiceGrpc.AccountsServiceBlockingStub accounts;
+  private final InternalAccountsServiceGrpc.InternalAccountsServiceBlockingStub internalStub;
 
   public AccountsGrpcClientAdapter(
     CustomersServiceGrpc.CustomersServiceBlockingStub customers,
-    AccountsServiceGrpc.AccountsServiceBlockingStub accounts
+    InternalAccountsServiceGrpc.InternalAccountsServiceBlockingStub internalStub
   ) {
     this.customers = customers;
-    this.accounts = accounts;
+    this.internalStub = internalStub;
   }
 
   @Override
@@ -57,29 +57,37 @@ public class AccountsGrpcClientAdapter implements AccountsClientPort {
     return resp.getCustomerId();
   }
 
-  @Override
-  public String createAccount(
-    String bearerToken,
-    String idempotencyKey,
-    String externalRef,
-    String customerId,
-    String currency,
-    String productType
-  ) {
-    var stub = accounts.withCallCredentials(new BearerTokenCallCredentials(bearerToken));
+    @Override
+    public OpenedAccount openAccountWithOpeningBonus(
+        String bearer,
+        String customerId,
+        String currency,
+        String productType,
+        String idempotencyKey,
+        String externalRef,
+        String initiatedBy
+    ) {
+      OpenAccountWithOpeningBonusRequest req = OpenAccountWithOpeningBonusRequest.newBuilder()
+          .setCustomerId(customerId)
+          .setProductType(mapProductType(productType))
+          .setCurrency(currency)
+          .setIdempotencyKey(idempotencyKey)
+          .setExternalRef(externalRef)
+          .setInitiatedBy(initiatedBy == null || initiatedBy.isBlank() ? "svc:identity" : initiatedBy)
+          .build();
 
-    CreateAccountRequest req = CreateAccountRequest.newBuilder()
-      .setIdempotencyKey(idempotencyKey)
-      .setExternalRef(externalRef)
-      .setCustomerId(customerId)
-      .setCurrency(currency)
-      .setProductType(mapProductType(productType))
-      .build();
+      OpenAccountWithOpeningBonusResponse resp = internalStub
+          .withCallCredentials(new BearerTokenCallCredentials(bearer))
+          .openAccountWithOpeningBonus(req);
 
-    CreateAccountResponse resp = stub.createAccount(req);
-    return resp.getAccountId();
-  }
-  
+      return new OpenedAccount(
+          resp.getAccountId(),
+          resp.getAccountNumber(),
+          resp.getBonusJournalId(),
+          resp.getStatus()
+      );
+    }
+
   private ProductType mapProductType(String productType) {
       if (productType == null) return ProductType.PRODUCT_TYPE_UNSPECIFIED;
   

@@ -17,7 +17,6 @@ import com.tagokoder.identity.domain.port.in.StartRegistrationUseCase;
 import com.tagokoder.identity.domain.port.out.AccountsClientPort;
 import com.tagokoder.identity.domain.port.out.IdentityLinkRepositoryPort;
 import com.tagokoder.identity.domain.port.out.KycPresignedStoragePort;
-import com.tagokoder.identity.domain.port.out.LedgerPaymentsClientPort;
 import com.tagokoder.identity.domain.port.out.RegistrationIntentRepositoryPort;
 
 @Service
@@ -27,7 +26,6 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
   private final KycPresignedStoragePort kycStorage;
 
   private final AccountsClientPort accounts;
-  private final LedgerPaymentsClientPort ledger;
   private final IdentityClientsProperties clientProps;
   private final IdentityLinkRepositoryPort identityLinks;
 
@@ -35,14 +33,12 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
     RegistrationIntentRepositoryPort registrationRepo,
     KycPresignedStoragePort kycStorage,
     AccountsClientPort accounts,
-    LedgerPaymentsClientPort ledger,
     IdentityClientsProperties clientProps,
     IdentityLinkRepositoryPort identityLinks
   ) {
     this.registrationRepo = registrationRepo;
     this.kycStorage = kycStorage;
     this.accounts = accounts;
-    this.ledger = ledger;
     this.clientProps = clientProps;
     this.identityLinks = identityLinks;
   }
@@ -89,13 +85,12 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
     List<FinalizedObject> finalized = kycStorage.confirmAndFinalize(regId, command.objects());
 
     for (FinalizedObject f : finalized) {
-        reg.getKycObjects().removeIf(x -> x.kind() == f.kind());
-        reg.addKycObject(f);
+      reg.getKycObjects().removeIf(x -> x.kind() == f.kind());
+      reg.addKycObject(f);
     }
 
     reg.setState(RegistrationIntent.State.KYC_CONFIRMED);
     reg.setUpdatedAt(Instant.now());
-
     registrationRepo.save(reg);
 
     return new ConfirmRegistrationKycResult(regId, "kyc_confirmed", reg.getUpdatedAt(), finalized);
@@ -125,10 +120,10 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
     reg.setUpdatedAt(Instant.now());
     registrationRepo.save(reg);
 
-    final String bearer = clientProps.getServiceAccessToken(); // flujo público
+    final String bearer = clientProps.getServiceAccessToken(); // token de servicio
     final String activationRef = reg.getActivationRef();
 
-    // (1) CreateCustomer idempotente
+    // (1) CreateCustomer idempotente (igual que antes)
     if (reg.getCustomerId() == null || reg.getCustomerId().isBlank()) {
       String customerId = accounts.createCustomer(
         bearer,
@@ -138,42 +133,34 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
         c.birthDate(),
         c.tin(),
         c.email(),
-        c.phone()      
+        c.phone()
       );
       reg.setCustomerId(customerId);
       reg.setUpdatedAt(Instant.now());
       registrationRepo.save(reg);
-      identityLinks.upsert(reg.getIdentityId(), reg.getCustomerId());
 
+      identityLinks.upsert(reg.getIdentityId(), reg.getCustomerId());
     }
 
-    // (2) Create CHECKING
-    if (reg.getPrimaryAccountId() == null || reg.getPrimaryAccountId().isBlank()) {
-      String accId = accounts.createAccount(
+    // (2) OPEN SAVING + BONUS (UNA sola llamada idempotente)
+    // Esto reemplaza tu antiguo CreateAccount + ledger.creditAccount
+    boolean needsOpen = isBlank(reg.getPrimaryAccountId()) || isBlank(reg.getBonusJournalId());
+    if (needsOpen) {
+      String idem = activationRef + ":savings"; // estable
+      String ext  = activationRef + ":savings"; // estable (pasa validadores: empieza con act:)
+
+      AccountsClientPort.OpenedAccount opened = accounts.openAccountWithOpeningBonus(
         bearer,
-        activationRef + ":checking",
-        regId + ":CHECKING",
         reg.getCustomerId(),
         "USD",
-        "CHECKING"
+        "SAVINGS",
+        idem,
+        ext,
+        "svc:identity"
       );
-      reg.setPrimaryAccountId(accId);
-      reg.setUpdatedAt(Instant.now());
-      registrationRepo.save(reg);
-    }
 
-    // (3) Bonus opcional
-    if (reg.getBonusJournalId() == null || reg.getBonusJournalId().isBlank()) {
-      String journalId = ledger.creditAccount(
-        bearer,
-        activationRef + ":bonus",
-        reg.getPrimaryAccountId(),
-        "USD",
-        "50.00",
-        "registration_bonus",
-        reg.getCustomerId()
-      );
-      reg.setBonusJournalId(journalId);
+      if (!isBlank(opened.accountId())) reg.setPrimaryAccountId(opened.accountId());
+      if (!isBlank(opened.bonusJournalId())) reg.setBonusJournalId(opened.bonusJournalId());
       reg.setUpdatedAt(Instant.now());
       registrationRepo.save(reg);
     }
@@ -188,10 +175,10 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
 
   private ActivateRegistrationResult buildResponse(RegistrationIntent reg, String correlationId) {
     List<ActivatedAccount> accounts = new ArrayList<>();
-    if (reg.getPrimaryAccountId() != null && !reg.getPrimaryAccountId().isBlank()) {
+    if (!isBlank(reg.getPrimaryAccountId())) {
       accounts.add(new ActivatedAccount(reg.getPrimaryAccountId(), "USD", "CHECKING"));
     }
-    if (reg.getSavingsAccountId() != null && !reg.getSavingsAccountId().isBlank()) {
+    if (!isBlank(reg.getSavingsAccountId())) {
       accounts.add(new ActivatedAccount(reg.getSavingsAccountId(), "USD", "SAVINGS"));
     }
 
@@ -205,5 +192,9 @@ public class OnboardingService implements StartRegistrationUseCase, ConfirmRegis
       reg.getBonusJournalId(),
       correlationId == null ? "" : correlationId
     );
+  }
+
+  private static boolean isBlank(String s) {
+    return s == null || s.isBlank();
   }
 }

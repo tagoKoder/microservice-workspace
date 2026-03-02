@@ -14,12 +14,20 @@ public interface AccountsClientPort {
     String phone
   );
 
-  String createAccount(
-    String bearerToken,
-    String idempotencyKey,
-    String externalRef,
-    String customerId,
-    String currency,
-    String productType
+  record OpenedAccount(
+      String accountId,
+      String accountNumber,
+      String bonusJournalId,
+      String status
+  ) {}
+
+  OpenedAccount openAccountWithOpeningBonus(
+      String bearer,
+      String customerId,
+      String currency,
+      String productType,     // "CHECKING" | "SAVINGS"
+      String idempotencyKey,  // act:<regId>:checking
+      String externalRef,     // act:<regId>:checking
+      String initiatedBy      // "svc:identity"
   );
 }
