@@ -1,11 +1,9 @@
-// micro\ledger\internal\infra\security\grpc\authz_interceptor.go
 package securitygrpc
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"log"
 	"strings"
 	"time"
 
@@ -23,11 +21,11 @@ import (
 )
 
 type Interceptor struct {
-	jwt   *jwtvalidator.Validator
-	avp   *avp.Client
-	acts  *authz.ActionResolver
-	res   *authz.ResourceResolver
-	audit out.AuditPort
+	jwt      *jwtvalidator.Validator
+	avp      *avp.Client
+	registry *authz.Registry
+	tpl      *authz.Templates
+	audit    out.AuditPort
 
 	hashSaltIP string
 	hashSaltUA string
@@ -36,36 +34,50 @@ type Interceptor struct {
 func NewAuthzInterceptor(
 	jwtv *jwtvalidator.Validator,
 	avpc *avp.Client,
-	ar *authz.ActionResolver,
-	rr *authz.ResourceResolver,
+	reg *authz.Registry,
+	tpl *authz.Templates,
 	audit out.AuditPort,
 	hashSaltIP, hashSaltUA string,
 ) *Interceptor {
 	return &Interceptor{
-		jwt: jwtv, avp: avpc, acts: ar, res: rr, audit: audit,
+		jwt: jwtv, avp: avpc, registry: reg, tpl: tpl, audit: audit,
 		hashSaltIP: hashSaltIP, hashSaltUA: hashSaltUA,
 	}
 }
 
 func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		// 0) correlation-id (si no viene, generar)
+
+		// correlation id
 		cid := readIncoming(ctx, "x-correlation-id")
 		if cid == "" {
 			cid = uuid.NewString()
 		}
 		ctx = authctx.WithCorrelationID(ctx, cid)
-
-		// devolver correlation-id en trailer para trazabilidad
 		_ = grpc.SetTrailer(ctx, metadata.Pairs("x-correlation-id", cid))
 
-		// 1) extraer bearer token del metadata
+		// bypass infra
+		if strings.HasPrefix(info.FullMethod, "/grpc.health.v1.Health/") ||
+			strings.HasPrefix(info.FullMethod, "/grpc.reflection.v1alpha.ServerReflection/") {
+			return handler(ctx, req)
+		}
+
+		def, ok := i.registry.Get(info.FullMethod)
+		if !ok {
+			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "route_not_registered", time.Now().UTC(), nil)
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+
+		// PUBLIC
+		if def.Mode == authz.ModePublic {
+			return handler(ctx, req)
+		}
+
+		// token required for AUTHN_ONLY/AUTHZ
 		authzHdr := readIncoming(ctx, "authorization")
 		claims, err := i.jwt.ValidateBearer(ctx, authzHdr)
 		if err != nil {
-			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "authn_failed", time.Now().UTC(), map[string]any{
-				"reason": err.Error(),
-			})
+			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "authn_failed", time.Now().UTC(), map[string]any{"err": err.Error()})
 			return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 		}
 		ctx = authctx.WithAccessToken(ctx, bearerValue(authzHdr))
@@ -76,51 +88,65 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 			MFA:        claims.MFA,
 		})
 
-		// 2) request context (hash ip/ua sin PII cruda)
+		// context (hash)
 		ip := readIncoming(ctx, "x-forwarded-for")
 		ua := readIncoming(ctx, "user-agent")
 		ctx = authctx.WithIPHash(ctx, shaHex(ip+i.hashSaltIP))
 		ctx = authctx.WithUAHash(ctx, shaHex(ua+i.hashSaltUA))
 
-		// 3) action  route_template (obligatorio)
-		act := i.acts.Resolve(info.FullMethod)
-		ctx = authctx.WithActionID(ctx, act.ID)
-		ctx = authctx.WithRouteTemplate(ctx, act.RouteTemplate)
+		// route template
+		ctx = authctx.WithRouteTemplate(ctx, "CALL "+info.FullMethod)
+		ctx = authctx.WithActionID(ctx, def.ActionID)
 
-		// IdempotencyKey (si existe en request)
-		if info.FullMethod == "/bank.ledgerpayments.v1.PaymentsService/PostPayment" {
-			if k := authz.ExtractStringField(req, "IdempotencyKey"); k != "" {
-				ctx = authctx.WithIdempotencyKey(ctx, k)
-			} else if k := authz.ExtractStringField(req, "idempotency_key"); k != "" {
-				ctx = authctx.WithIdempotencyKey(ctx, k)
-			}
+		// idempotency key: intenta leer campo genérico
+		if k := authz.ExtractStringField(req, "IdempotencyKey"); k != "" {
+			ctx = authctx.WithIdempotencyKey(ctx, k)
+		} else if k := authz.ExtractStringField(req, "idempotency_key"); k != "" {
+			ctx = authctx.WithIdempotencyKey(ctx, k)
 		}
 
-		// 4) resource
-		res := i.res.Resolve(ctx, info.FullMethod, req)
+		// AUTHN_ONLY
+		if def.Mode == authz.ModeAuthnOnly {
+			return handler(ctx, req)
+		}
 
-		// 5) construir context AVP mínimo (Cedar JSON map)
+		// AUTHZ
+		resolved, err := i.tpl.Resolve(ctx, def.ResourceTemplate, req)
+		if err != nil {
+			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "resource_resolve_error", time.Now().UTC(), map[string]any{"err": err.Error()})
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+
+		actor := authctx.ActorFrom(ctx)
+		if def.RequireCustomerLink && actor.CustomerID == "" {
+			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "customer_link_missing", time.Now().UTC(), nil)
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+
 		avpCtx := map[string]vptypes.AttributeValue{
 			"correlation_id": &vptypes.AttributeValueMemberString{Value: cid},
-			"channel":        &vptypes.AttributeValueMemberString{Value: "web"},
+			"route_template": &vptypes.AttributeValueMemberString{Value: authctx.RouteTemplate(ctx)},
 			"ip_hash":        &vptypes.AttributeValueMemberString{Value: authctx.IPHash(ctx)},
 			"ua_hash":        &vptypes.AttributeValueMemberString{Value: authctx.UAHash(ctx)},
-			"route_template": &vptypes.AttributeValueMemberString{Value: act.RouteTemplate},
 		}
-
-		if actor := authctx.ActorFrom(ctx); actor.CustomerID != "" {
+		if actor.CustomerID != "" {
 			avpCtx["customer_id"] = &vptypes.AttributeValueMemberString{Value: actor.CustomerID}
 		}
-		if res.OwnerCustomerID != "" {
-			avpCtx["owner_customer_id"] = &vptypes.AttributeValueMemberString{Value: res.OwnerCustomerID}
+		if resolved.OwnerCustomerID != "" {
+			avpCtx["owner_customer_id"] = &vptypes.AttributeValueMemberString{Value: resolved.OwnerCustomerID}
+		}
+		if ik := authctx.IdempotencyKey(ctx); ik != "" {
+			avpCtx["idempotency_key"] = &vptypes.AttributeValueMemberString{Value: ik}
+		}
+		for k, v := range resolved.ContextAttrs {
+			avpCtx[k] = v
 		}
 
-		// 6) AVP IsAuthorizedWithToken (decision solo si AVP)
-		dec, err := i.avp.AuthorizeWithToken(ctx, authctx.AccessToken(ctx), act, res, avpCtx)
+		dec, err := i.avp.AuthorizeWithToken(ctx, authctx.AccessToken(ctx), authz.Action{ID: def.ActionID, RouteTemplate: authctx.RouteTemplate(ctx)}, authz.Resource{
+			Type: resolved.ResourceType, ID: resolved.ResourceID, OwnerCustomerID: resolved.OwnerCustomerID,
+		}, avpCtx)
 		if err != nil {
-			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "avp_error", time.Now().UTC(), map[string]any{
-				"error": err.Error(),
-			})
+			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "avp_error", time.Now().UTC(), map[string]any{"err": err.Error()})
 			return nil, status.Error(codes.Internal, "authorization error")
 		}
 
@@ -128,40 +154,24 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 		if dec.PolicyID != "" {
 			ctx = authctx.WithAuthzPolicyID(ctx, dec.PolicyID)
 		}
-
 		if dec.Decision != avp.DecisionAllow {
 			i.bestEffortAudit(ctx, info.FullMethod, "DENY", "not_authorized", time.Now().UTC(), map[string]any{
-				"action":   act.ID,
-				"resource": map[string]any{"type": res.Type, "id": res.ID},
+				"action": def.ActionID, "resource": map[string]any{"type": resolved.ResourceType, "id": resolved.ResourceID},
 			})
 			return nil, status.Error(codes.PermissionDenied, "forbidden")
 		}
 
-		// 7) Ejecutar handler
 		resp, hErr := handler(ctx, req)
 
-		// 8) Audit best-effort: siempre DENY y acciones críticas; aquí audit de allow opcional
-		// Puedes ajustar catálogo de "críticas" según ASVS.
-		if isCriticalAction(act.ID) {
-			code := "ok"
+		if def.Critical {
+			outcome := "ok"
 			if hErr != nil {
-				code = "handler_error"
+				outcome = "handler_error"
 			}
-			i.bestEffortAudit(ctx, info.FullMethod, "ALLOW", code, time.Now().UTC(), map[string]any{
-				"action": act.ID,
-			})
+			i.bestEffortAudit(ctx, info.FullMethod, "ALLOW", outcome, time.Now().UTC(), map[string]any{"action": def.ActionID})
 		}
 
 		return resp, hErr
-	}
-}
-
-func isCriticalAction(actionID string) bool {
-	switch actionID {
-	case "ledger.payments.post", "ledger.accounts.credit", "ledger.journals.manual.create":
-		return true
-	default:
-		return false
 	}
 }
 
@@ -169,22 +179,17 @@ func (i *Interceptor) bestEffortAudit(ctx context.Context, fullMethod, decision,
 	if i.audit == nil {
 		return
 	}
-	_ = i.audit.Record(ctx,
-		"AUTHZ",
-		fullMethod,
-		at,
-		map[string]any{
-			"decision":       decision,
-			"outcome":        outcome,
-			"correlation_id": authctx.CorrelationID(ctx),
-			"route_template": authctx.RouteTemplate(ctx),
-			"action_id":      authctx.ActionID(ctx),
-			"policy_id":      authctx.AuthzPolicyID(ctx),
-			"ip_hash":        authctx.IPHash(ctx),
-			"ua_hash":        authctx.UAHash(ctx),
-			"extra":          extra,
-		},
-	)
+	_ = i.audit.Record(ctx, "AUTHZ", fullMethod, at, map[string]any{
+		"decision":       decision,
+		"outcome":        outcome,
+		"correlation_id": authctx.CorrelationID(ctx),
+		"route_template": authctx.RouteTemplate(ctx),
+		"action_id":      authctx.ActionID(ctx),
+		"policy_id":      authctx.AuthzPolicyID(ctx),
+		"ip_hash":        authctx.IPHash(ctx),
+		"ua_hash":        authctx.UAHash(ctx),
+		"extra":          extra,
+	})
 }
 
 func readIncoming(ctx context.Context, key string) string {
@@ -198,7 +203,6 @@ func readIncoming(ctx context.Context, key string) string {
 	}
 	return vs[0]
 }
-
 func bearerValue(header string) string {
 	h := strings.TrimSpace(header)
 	if strings.HasPrefix(strings.ToLower(h), "bearer ") {
@@ -206,14 +210,7 @@ func bearerValue(header string) string {
 	}
 	return ""
 }
-
 func shaHex(s string) string {
 	sum := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sum[:])
-}
-
-// fallback local logging si quisieras (no PII)
-func logFallback(msg string, fields map[string]any) {
-	_ = fields
-	log.Println(msg)
 }

@@ -2,9 +2,11 @@ package com.tagokoder.account.infra.in.grpc.validation;
 
 import bank.accounts.v1.*;
 import com.google.protobuf.StringValue;
+import com.tagokoder.account.domain.port.in.OpenAccountWithOpeningBonusUseCase;
 import com.tagokoder.account.domain.port.in.ReleaseHoldUseCase;
 import com.tagokoder.account.domain.port.in.ReserveHoldUseCase;
 import com.tagokoder.account.domain.port.in.ValidateAccountsAndLimitsUseCase;
+import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -89,6 +91,27 @@ public final class InternalAccountsGrpcValidators {
         }
 
         return new BatchIdsIn(ids, missingEarly, includeInactive);
+    }
+
+    public static OpenAccountWithOpeningBonusUseCase.Command toOpenAccountWithBonusCommand(OpenAccountWithOpeningBonusRequest req) {
+        UUID customerId = requireUuid(req.getCustomerId(), "customer_id");
+        String productType = ProtoEnumMapper.mapProductType(req.getProductType());
+        String currency = requireCurrency(req.getCurrency());
+
+        String idem = requireIdempotencyKey(req.getIdempotencyKey(), "idempotency_key");
+        String ext  = requireNonBlank(req.getExternalRef(), "external_ref");
+
+        // initiated_by opcional
+        String initiatedBy = (req.getInitiatedBy() == null || req.getInitiatedBy().isBlank()) ? "svc:identity" : req.getInitiatedBy().trim();
+
+        // defensa adicional: onboarding ref debe ser estable
+        if (!ext.startsWith("act:") && !ext.startsWith("bonus:registration:")) {
+            throw invalid("external_ref must start with act: or bonus:registration:");
+        }
+
+        return new OpenAccountWithOpeningBonusUseCase.Command(
+            customerId, productType, currency, idem, ext, initiatedBy
+        );
     }
 
     // Helpers: convierte HoldOpIn a tus Commands actuales (aunque HOY ignores holdId/idem)

@@ -9,6 +9,7 @@ import (
 
 type LedgerAppService interface {
 	CreditAccountUseCase
+	CreditAccountSystemUseCase
 	ListAccountJournalEntriesUseCase
 	ListAccountStatementUseCase
 }
@@ -19,6 +20,10 @@ type CreditAccountUseCase interface {
 
 type ListAccountJournalEntriesUseCase interface {
 	ListAccountJournalEntries(ctx context.Context, q ListAccountJournalEntriesQuery) (*ListAccountJournalEntriesResult, error)
+}
+
+type CreditAccountSystemUseCase interface {
+	CreditAccountSystem(ctx context.Context, cmd CreditAccountSystemCommand) (*CreditAccountResult, error)
 }
 
 type CreditAccountCommand struct {
@@ -63,4 +68,13 @@ type JournalLineView struct {
 	CounterpartyRef string
 	Debit           string
 	Credit          string
+}
+
+type CreditAccountSystemCommand struct {
+	IdempotencyKey string
+	AccountID      uuid.UUID
+	Currency       string
+	Amount         string
+	ExternalRef    string // required
+	Reason         string // required (registration_bonus)
 }

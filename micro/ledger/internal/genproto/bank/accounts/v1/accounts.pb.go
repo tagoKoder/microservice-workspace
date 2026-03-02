@@ -911,6 +911,7 @@ func (x *CreateAccountRequest) GetExternalRef() string {
 type CreateAccountResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"` // uuid
+	AccountNumber string                 `protobuf:"bytes,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -948,6 +949,13 @@ func (*CreateAccountResponse) Descriptor() ([]byte, []int) {
 func (x *CreateAccountResponse) GetAccountId() string {
 	if x != nil {
 		return x.AccountId
+	}
+	return ""
+}
+
+func (x *CreateAccountResponse) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
 	}
 	return ""
 }
@@ -1042,14 +1050,15 @@ func (x *ListAccountsResponse) GetAccounts() []*AccountView {
 
 type AccountView struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                      // uuid
-	CustomerId    string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`    // uuid
-	ProductType   string                 `protobuf:"bytes,3,opt,name=product_type,json=productType,proto3" json:"product_type,omitempty"` // OpenAPI lo dejaba string; aquí puedes usar enum si quieres versionar (ver nota abajo)
-	Currency      string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	OpenedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=opened_at,json=openedAt,proto3" json:"opened_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Balances      *AccountBalances       `protobuf:"bytes,8,opt,name=balances,proto3" json:"balances,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                            // uuid
+	CustomerId    string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`          // uuid
+	AccountNumber string                 `protobuf:"bytes,3,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"` // "000123..." (demo)
+	ProductType   string                 `protobuf:"bytes,4,opt,name=product_type,json=productType,proto3" json:"product_type,omitempty"`       // OpenAPI lo dejaba string; aquí puedes usar enum si quieres versionar (ver nota abajo)
+	Currency      string                 `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
+	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	OpenedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=opened_at,json=openedAt,proto3" json:"opened_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Balances      *AccountBalances       `protobuf:"bytes,9,opt,name=balances,proto3" json:"balances,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1094,6 +1103,13 @@ func (x *AccountView) GetId() string {
 func (x *AccountView) GetCustomerId() string {
 	if x != nil {
 		return x.CustomerId
+	}
+	return ""
+}
+
+func (x *AccountView) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
 	}
 	return ""
 }
@@ -2106,6 +2122,348 @@ func (x *BatchGetAccountSummariesResponse) GetMissing() []*MissingAccount {
 	return nil
 }
 
+type GetAccountByNumberRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// puede venir "12345" o "000000012345"
+	AccountNumber string `protobuf:"bytes,1,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	// opcional: si true, permite cuentas frozen (o futuras)
+	IncludeInactive *wrapperspb.BoolValue `protobuf:"bytes,2,opt,name=include_inactive,json=includeInactive,proto3" json:"include_inactive,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetAccountByNumberRequest) Reset() {
+	*x = GetAccountByNumberRequest{}
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAccountByNumberRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAccountByNumberRequest) ProtoMessage() {}
+
+func (x *GetAccountByNumberRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAccountByNumberRequest.ProtoReflect.Descriptor instead.
+func (*GetAccountByNumberRequest) Descriptor() ([]byte, []int) {
+	return file_bank_accounts_v1_accounts_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetAccountByNumberRequest) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
+	}
+	return ""
+}
+
+func (x *GetAccountByNumberRequest) GetIncludeInactive() *wrapperspb.BoolValue {
+	if x != nil {
+		return x.IncludeInactive
+	}
+	return nil
+}
+
+type AccountLookup struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                                          // uuid
+	CustomerId    string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`                                       // uuid
+	AccountNumber string                 `protobuf:"bytes,3,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`                              // "000000012345"
+	DisplayName   string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`                                    // demo: nombre del titular (NO PII sensible extra)
+	ProductType   ProductType            `protobuf:"varint,5,opt,name=product_type,json=productType,proto3,enum=bank.accounts.v1.ProductType" json:"product_type,omitempty"` // CHECKING|SAVINGS
+	Currency      string                 `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency,omitempty"`
+	Status        string                 `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"` // active|frozen (string por simplicidad)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountLookup) Reset() {
+	*x = AccountLookup{}
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountLookup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountLookup) ProtoMessage() {}
+
+func (x *AccountLookup) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountLookup.ProtoReflect.Descriptor instead.
+func (*AccountLookup) Descriptor() ([]byte, []int) {
+	return file_bank_accounts_v1_accounts_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *AccountLookup) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *AccountLookup) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
+	}
+	return ""
+}
+
+func (x *AccountLookup) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
+	}
+	return ""
+}
+
+func (x *AccountLookup) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *AccountLookup) GetProductType() ProductType {
+	if x != nil {
+		return x.ProductType
+	}
+	return ProductType_PRODUCT_TYPE_UNSPECIFIED
+}
+
+func (x *AccountLookup) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *AccountLookup) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type GetAccountByNumberResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Account       *AccountLookup         `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAccountByNumberResponse) Reset() {
+	*x = GetAccountByNumberResponse{}
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAccountByNumberResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAccountByNumberResponse) ProtoMessage() {}
+
+func (x *GetAccountByNumberResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAccountByNumberResponse.ProtoReflect.Descriptor instead.
+func (*GetAccountByNumberResponse) Descriptor() ([]byte, []int) {
+	return file_bank_accounts_v1_accounts_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *GetAccountByNumberResponse) GetAccount() *AccountLookup {
+	if x != nil {
+		return x.Account
+	}
+	return nil
+}
+
+type OpenAccountWithOpeningBonusRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CustomerId     string                 `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	ProductType    ProductType            `protobuf:"varint,2,opt,name=product_type,json=productType,proto3,enum=bank.accounts.v1.ProductType" json:"product_type,omitempty"`
+	Currency       string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"` // required
+	ExternalRef    string                 `protobuf:"bytes,5,opt,name=external_ref,json=externalRef,proto3" json:"external_ref,omitempty"`          // required: "act:<regId>:checking"
+	InitiatedBy    string                 `protobuf:"bytes,6,opt,name=initiated_by,json=initiatedBy,proto3" json:"initiated_by,omitempty"`          // "svc:identity" o "system"
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *OpenAccountWithOpeningBonusRequest) Reset() {
+	*x = OpenAccountWithOpeningBonusRequest{}
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenAccountWithOpeningBonusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenAccountWithOpeningBonusRequest) ProtoMessage() {}
+
+func (x *OpenAccountWithOpeningBonusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenAccountWithOpeningBonusRequest.ProtoReflect.Descriptor instead.
+func (*OpenAccountWithOpeningBonusRequest) Descriptor() ([]byte, []int) {
+	return file_bank_accounts_v1_accounts_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *OpenAccountWithOpeningBonusRequest) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
+	}
+	return ""
+}
+
+func (x *OpenAccountWithOpeningBonusRequest) GetProductType() ProductType {
+	if x != nil {
+		return x.ProductType
+	}
+	return ProductType_PRODUCT_TYPE_UNSPECIFIED
+}
+
+func (x *OpenAccountWithOpeningBonusRequest) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *OpenAccountWithOpeningBonusRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *OpenAccountWithOpeningBonusRequest) GetExternalRef() string {
+	if x != nil {
+		return x.ExternalRef
+	}
+	return ""
+}
+
+func (x *OpenAccountWithOpeningBonusRequest) GetInitiatedBy() string {
+	if x != nil {
+		return x.InitiatedBy
+	}
+	return ""
+}
+
+type OpenAccountWithOpeningBonusResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AccountId      string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	AccountNumber  string                 `protobuf:"bytes,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	BonusJournalId string                 `protobuf:"bytes,3,opt,name=bonus_journal_id,json=bonusJournalId,proto3" json:"bonus_journal_id,omitempty"`
+	Status         string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"` // opened
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *OpenAccountWithOpeningBonusResponse) Reset() {
+	*x = OpenAccountWithOpeningBonusResponse{}
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenAccountWithOpeningBonusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenAccountWithOpeningBonusResponse) ProtoMessage() {}
+
+func (x *OpenAccountWithOpeningBonusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_accounts_v1_accounts_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenAccountWithOpeningBonusResponse.ProtoReflect.Descriptor instead.
+func (*OpenAccountWithOpeningBonusResponse) Descriptor() ([]byte, []int) {
+	return file_bank_accounts_v1_accounts_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *OpenAccountWithOpeningBonusResponse) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *OpenAccountWithOpeningBonusResponse) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
+	}
+	return ""
+}
+
+func (x *OpenAccountWithOpeningBonusResponse) GetBonusJournalId() string {
+	if x != nil {
+		return x.BonusJournalId
+	}
+	return ""
+}
+
+func (x *OpenAccountWithOpeningBonusResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 var File_bank_accounts_v1_accounts_proto protoreflect.FileDescriptor
 
 const file_bank_accounts_v1_accounts_proto_rawDesc = "" +
@@ -2161,26 +2519,28 @@ const file_bank_accounts_v1_accounts_proto_rawDesc = "" +
 	"\fproduct_type\x18\x02 \x01(\x0e2\x1d.bank.accounts.v1.ProductTypeR\vproductType\x12\x1a\n" +
 	"\bcurrency\x18\x03 \x01(\tR\bcurrency\x12'\n" +
 	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\x12!\n" +
-	"\fexternal_ref\x18\x05 \x01(\tR\vexternalRef\"6\n" +
+	"\fexternal_ref\x18\x05 \x01(\tR\vexternalRef\"]\n" +
 	"\x15CreateAccountResponse\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\tR\taccountId\"6\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12%\n" +
+	"\x0eaccount_number\x18\x02 \x01(\tR\raccountNumber\"6\n" +
 	"\x13ListAccountsRequest\x12\x1f\n" +
 	"\vcustomer_id\x18\x01 \x01(\tR\n" +
 	"customerId\"Q\n" +
 	"\x14ListAccountsResponse\x129\n" +
-	"\baccounts\x18\x01 \x03(\v2\x1d.bank.accounts.v1.AccountViewR\baccounts\"\xc8\x02\n" +
+	"\baccounts\x18\x01 \x03(\v2\x1d.bank.accounts.v1.AccountViewR\baccounts\"\xef\x02\n" +
 	"\vAccountView\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vcustomer_id\x18\x02 \x01(\tR\n" +
-	"customerId\x12!\n" +
-	"\fproduct_type\x18\x03 \x01(\tR\vproductType\x12\x1a\n" +
-	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status\x127\n" +
-	"\topened_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bopenedAt\x129\n" +
+	"customerId\x12%\n" +
+	"\x0eaccount_number\x18\x03 \x01(\tR\raccountNumber\x12!\n" +
+	"\fproduct_type\x18\x04 \x01(\tR\vproductType\x12\x1a\n" +
+	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x127\n" +
+	"\topened_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\bopenedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12=\n" +
-	"\bbalances\x18\b \x01(\v2!.bank.accounts.v1.AccountBalancesR\bbalances\"[\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12=\n" +
+	"\bbalances\x18\t \x01(\v2!.bank.accounts.v1.AccountBalancesR\bbalances\"[\n" +
 	"\x0fAccountBalances\x12\x16\n" +
 	"\x06ledger\x18\x01 \x01(\x01R\x06ledger\x12\x1c\n" +
 	"\tavailable\x18\x02 \x01(\x01R\tavailable\x12\x12\n" +
@@ -2249,7 +2609,36 @@ const file_bank_accounts_v1_accounts_proto_rawDesc = "" +
 	"\x06reason\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueR\x06reason\"\x9c\x01\n" +
 	" BatchGetAccountSummariesResponse\x12<\n" +
 	"\baccounts\x18\x01 \x03(\v2 .bank.accounts.v1.AccountSummaryR\baccounts\x12:\n" +
-	"\amissing\x18\x02 \x03(\v2 .bank.accounts.v1.MissingAccountR\amissing*q\n" +
+	"\amissing\x18\x02 \x03(\v2 .bank.accounts.v1.MissingAccountR\amissing\"\x89\x01\n" +
+	"\x19GetAccountByNumberRequest\x12%\n" +
+	"\x0eaccount_number\x18\x01 \x01(\tR\raccountNumber\x12E\n" +
+	"\x10include_inactive\x18\x02 \x01(\v2\x1a.google.protobuf.BoolValueR\x0fincludeInactive\"\x8f\x02\n" +
+	"\rAccountLookup\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x1f\n" +
+	"\vcustomer_id\x18\x02 \x01(\tR\n" +
+	"customerId\x12%\n" +
+	"\x0eaccount_number\x18\x03 \x01(\tR\raccountNumber\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12@\n" +
+	"\fproduct_type\x18\x05 \x01(\x0e2\x1d.bank.accounts.v1.ProductTypeR\vproductType\x12\x1a\n" +
+	"\bcurrency\x18\x06 \x01(\tR\bcurrency\x12\x16\n" +
+	"\x06status\x18\a \x01(\tR\x06status\"W\n" +
+	"\x1aGetAccountByNumberResponse\x129\n" +
+	"\aaccount\x18\x01 \x01(\v2\x1f.bank.accounts.v1.AccountLookupR\aaccount\"\x92\x02\n" +
+	"\"OpenAccountWithOpeningBonusRequest\x12\x1f\n" +
+	"\vcustomer_id\x18\x01 \x01(\tR\n" +
+	"customerId\x12@\n" +
+	"\fproduct_type\x18\x02 \x01(\x0e2\x1d.bank.accounts.v1.ProductTypeR\vproductType\x12\x1a\n" +
+	"\bcurrency\x18\x03 \x01(\tR\bcurrency\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\x12!\n" +
+	"\fexternal_ref\x18\x05 \x01(\tR\vexternalRef\x12!\n" +
+	"\finitiated_by\x18\x06 \x01(\tR\vinitiatedBy\"\xad\x01\n" +
+	"#OpenAccountWithOpeningBonusResponse\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12%\n" +
+	"\x0eaccount_number\x18\x02 \x01(\tR\raccountNumber\x12(\n" +
+	"\x10bonus_journal_id\x18\x03 \x01(\tR\x0ebonusJournalId\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status*q\n" +
 	"\vRiskSegment\x12\x1c\n" +
 	"\x18RISK_SEGMENT_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10RISK_SEGMENT_LOW\x10\x01\x12\x17\n" +
@@ -2270,13 +2659,15 @@ const file_bank_accounts_v1_accounts_proto_rawDesc = "" +
 	"\x14PRODUCT_TYPE_SAVINGS\x10\x022\xd9\x01\n" +
 	"\x10CustomersService\x12c\n" +
 	"\x0eCreateCustomer\x12'.bank.accounts.v1.CreateCustomerRequest\x1a(.bank.accounts.v1.CreateCustomerResponse\x12`\n" +
-	"\rPatchCustomer\x12&.bank.accounts.v1.PatchCustomerRequest\x1a'.bank.accounts.v1.PatchCustomerResponse2\xb4\x03\n" +
+	"\rPatchCustomer\x12&.bank.accounts.v1.PatchCustomerRequest\x1a'.bank.accounts.v1.PatchCustomerResponse2\xa5\x04\n" +
 	"\x0fAccountsService\x12]\n" +
 	"\fListAccounts\x12%.bank.accounts.v1.ListAccountsRequest\x1a&.bank.accounts.v1.ListAccountsResponse\x12`\n" +
 	"\rCreateAccount\x12&.bank.accounts.v1.CreateAccountRequest\x1a'.bank.accounts.v1.CreateAccountResponse\x12o\n" +
 	"\x12GetAccountBalances\x12+.bank.accounts.v1.GetAccountBalancesRequest\x1a,.bank.accounts.v1.GetAccountBalancesResponse\x12o\n" +
-	"\x12PatchAccountLimits\x12+.bank.accounts.v1.PatchAccountLimitsRequest\x1a,.bank.accounts.v1.PatchAccountLimitsResponse2\xdc\x03\n" +
-	"\x17InternalAccountsService\x12\x84\x01\n" +
+	"\x12PatchAccountLimits\x12+.bank.accounts.v1.PatchAccountLimitsRequest\x1a,.bank.accounts.v1.PatchAccountLimitsResponse\x12o\n" +
+	"\x12GetAccountByNumber\x12+.bank.accounts.v1.GetAccountByNumberRequest\x1a,.bank.accounts.v1.GetAccountByNumberResponse2\xe9\x04\n" +
+	"\x17InternalAccountsService\x12\x8a\x01\n" +
+	"\x1bOpenAccountWithOpeningBonus\x124.bank.accounts.v1.OpenAccountWithOpeningBonusRequest\x1a5.bank.accounts.v1.OpenAccountWithOpeningBonusResponse\x12\x84\x01\n" +
 	"\x19ValidateAccountsAndLimits\x122.bank.accounts.v1.ValidateAccountsAndLimitsRequest\x1a3.bank.accounts.v1.ValidateAccountsAndLimitsResponse\x12Z\n" +
 	"\vReserveHold\x12$.bank.accounts.v1.ReserveHoldRequest\x1a%.bank.accounts.v1.ReserveHoldResponse\x12Z\n" +
 	"\vReleaseHold\x12$.bank.accounts.v1.ReleaseHoldRequest\x1a%.bank.accounts.v1.ReleaseHoldResponse\x12\x81\x01\n" +
@@ -2296,107 +2687,120 @@ func file_bank_accounts_v1_accounts_proto_rawDescGZIP() []byte {
 }
 
 var file_bank_accounts_v1_accounts_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_bank_accounts_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_bank_accounts_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_bank_accounts_v1_accounts_proto_goTypes = []any{
-	(RiskSegment)(0),                          // 0: bank.accounts.v1.RiskSegment
-	(CustomerStatus)(0),                       // 1: bank.accounts.v1.CustomerStatus
-	(PreferenceChannel)(0),                    // 2: bank.accounts.v1.PreferenceChannel
-	(ProductType)(0),                          // 3: bank.accounts.v1.ProductType
-	(*CreateCustomerRequest)(nil),             // 4: bank.accounts.v1.CreateCustomerRequest
-	(*CustomerAddressCreate)(nil),             // 5: bank.accounts.v1.CustomerAddressCreate
-	(*CreateCustomerResponse)(nil),            // 6: bank.accounts.v1.CreateCustomerResponse
-	(*PatchCustomerRequest)(nil),              // 7: bank.accounts.v1.PatchCustomerRequest
-	(*RiskSegmentValue)(nil),                  // 8: bank.accounts.v1.RiskSegmentValue
-	(*CustomerStatusValue)(nil),               // 9: bank.accounts.v1.CustomerStatusValue
-	(*CustomerContactPatch)(nil),              // 10: bank.accounts.v1.CustomerContactPatch
-	(*PreferencesPatch)(nil),                  // 11: bank.accounts.v1.PreferencesPatch
-	(*PreferenceChannelValue)(nil),            // 12: bank.accounts.v1.PreferenceChannelValue
-	(*PatchCustomerResponse)(nil),             // 13: bank.accounts.v1.PatchCustomerResponse
-	(*CreateAccountRequest)(nil),              // 14: bank.accounts.v1.CreateAccountRequest
-	(*CreateAccountResponse)(nil),             // 15: bank.accounts.v1.CreateAccountResponse
-	(*ListAccountsRequest)(nil),               // 16: bank.accounts.v1.ListAccountsRequest
-	(*ListAccountsResponse)(nil),              // 17: bank.accounts.v1.ListAccountsResponse
-	(*AccountView)(nil),                       // 18: bank.accounts.v1.AccountView
-	(*AccountBalances)(nil),                   // 19: bank.accounts.v1.AccountBalances
-	(*GetAccountBalancesRequest)(nil),         // 20: bank.accounts.v1.GetAccountBalancesRequest
-	(*GetAccountBalancesResponse)(nil),        // 21: bank.accounts.v1.GetAccountBalancesResponse
-	(*PatchAccountLimitsRequest)(nil),         // 22: bank.accounts.v1.PatchAccountLimitsRequest
-	(*PatchAccountLimitsResponse)(nil),        // 23: bank.accounts.v1.PatchAccountLimitsResponse
-	(*ValidateAccountsAndLimitsRequest)(nil),  // 24: bank.accounts.v1.ValidateAccountsAndLimitsRequest
-	(*ValidateAccountsAndLimitsResponse)(nil), // 25: bank.accounts.v1.ValidateAccountsAndLimitsResponse
-	(*HoldRequest)(nil),                       // 26: bank.accounts.v1.HoldRequest
-	(*ReserveHoldRequest)(nil),                // 27: bank.accounts.v1.ReserveHoldRequest
-	(*ReleaseHoldRequest)(nil),                // 28: bank.accounts.v1.ReleaseHoldRequest
-	(*ReserveHoldResponse)(nil),               // 29: bank.accounts.v1.ReserveHoldResponse
-	(*ReleaseHoldResponse)(nil),               // 30: bank.accounts.v1.ReleaseHoldResponse
-	(*BatchGetAccountSummariesRequest)(nil),   // 31: bank.accounts.v1.BatchGetAccountSummariesRequest
-	(*AccountSummary)(nil),                    // 32: bank.accounts.v1.AccountSummary
-	(*MissingAccount)(nil),                    // 33: bank.accounts.v1.MissingAccount
-	(*BatchGetAccountSummariesResponse)(nil),  // 34: bank.accounts.v1.BatchGetAccountSummariesResponse
-	(*wrapperspb.StringValue)(nil),            // 35: google.protobuf.StringValue
-	(*wrapperspb.BoolValue)(nil),              // 36: google.protobuf.BoolValue
-	(*timestamppb.Timestamp)(nil),             // 37: google.protobuf.Timestamp
-	(*wrapperspb.DoubleValue)(nil),            // 38: google.protobuf.DoubleValue
+	(RiskSegment)(0),                            // 0: bank.accounts.v1.RiskSegment
+	(CustomerStatus)(0),                         // 1: bank.accounts.v1.CustomerStatus
+	(PreferenceChannel)(0),                      // 2: bank.accounts.v1.PreferenceChannel
+	(ProductType)(0),                            // 3: bank.accounts.v1.ProductType
+	(*CreateCustomerRequest)(nil),               // 4: bank.accounts.v1.CreateCustomerRequest
+	(*CustomerAddressCreate)(nil),               // 5: bank.accounts.v1.CustomerAddressCreate
+	(*CreateCustomerResponse)(nil),              // 6: bank.accounts.v1.CreateCustomerResponse
+	(*PatchCustomerRequest)(nil),                // 7: bank.accounts.v1.PatchCustomerRequest
+	(*RiskSegmentValue)(nil),                    // 8: bank.accounts.v1.RiskSegmentValue
+	(*CustomerStatusValue)(nil),                 // 9: bank.accounts.v1.CustomerStatusValue
+	(*CustomerContactPatch)(nil),                // 10: bank.accounts.v1.CustomerContactPatch
+	(*PreferencesPatch)(nil),                    // 11: bank.accounts.v1.PreferencesPatch
+	(*PreferenceChannelValue)(nil),              // 12: bank.accounts.v1.PreferenceChannelValue
+	(*PatchCustomerResponse)(nil),               // 13: bank.accounts.v1.PatchCustomerResponse
+	(*CreateAccountRequest)(nil),                // 14: bank.accounts.v1.CreateAccountRequest
+	(*CreateAccountResponse)(nil),               // 15: bank.accounts.v1.CreateAccountResponse
+	(*ListAccountsRequest)(nil),                 // 16: bank.accounts.v1.ListAccountsRequest
+	(*ListAccountsResponse)(nil),                // 17: bank.accounts.v1.ListAccountsResponse
+	(*AccountView)(nil),                         // 18: bank.accounts.v1.AccountView
+	(*AccountBalances)(nil),                     // 19: bank.accounts.v1.AccountBalances
+	(*GetAccountBalancesRequest)(nil),           // 20: bank.accounts.v1.GetAccountBalancesRequest
+	(*GetAccountBalancesResponse)(nil),          // 21: bank.accounts.v1.GetAccountBalancesResponse
+	(*PatchAccountLimitsRequest)(nil),           // 22: bank.accounts.v1.PatchAccountLimitsRequest
+	(*PatchAccountLimitsResponse)(nil),          // 23: bank.accounts.v1.PatchAccountLimitsResponse
+	(*ValidateAccountsAndLimitsRequest)(nil),    // 24: bank.accounts.v1.ValidateAccountsAndLimitsRequest
+	(*ValidateAccountsAndLimitsResponse)(nil),   // 25: bank.accounts.v1.ValidateAccountsAndLimitsResponse
+	(*HoldRequest)(nil),                         // 26: bank.accounts.v1.HoldRequest
+	(*ReserveHoldRequest)(nil),                  // 27: bank.accounts.v1.ReserveHoldRequest
+	(*ReleaseHoldRequest)(nil),                  // 28: bank.accounts.v1.ReleaseHoldRequest
+	(*ReserveHoldResponse)(nil),                 // 29: bank.accounts.v1.ReserveHoldResponse
+	(*ReleaseHoldResponse)(nil),                 // 30: bank.accounts.v1.ReleaseHoldResponse
+	(*BatchGetAccountSummariesRequest)(nil),     // 31: bank.accounts.v1.BatchGetAccountSummariesRequest
+	(*AccountSummary)(nil),                      // 32: bank.accounts.v1.AccountSummary
+	(*MissingAccount)(nil),                      // 33: bank.accounts.v1.MissingAccount
+	(*BatchGetAccountSummariesResponse)(nil),    // 34: bank.accounts.v1.BatchGetAccountSummariesResponse
+	(*GetAccountByNumberRequest)(nil),           // 35: bank.accounts.v1.GetAccountByNumberRequest
+	(*AccountLookup)(nil),                       // 36: bank.accounts.v1.AccountLookup
+	(*GetAccountByNumberResponse)(nil),          // 37: bank.accounts.v1.GetAccountByNumberResponse
+	(*OpenAccountWithOpeningBonusRequest)(nil),  // 38: bank.accounts.v1.OpenAccountWithOpeningBonusRequest
+	(*OpenAccountWithOpeningBonusResponse)(nil), // 39: bank.accounts.v1.OpenAccountWithOpeningBonusResponse
+	(*wrapperspb.StringValue)(nil),              // 40: google.protobuf.StringValue
+	(*wrapperspb.BoolValue)(nil),                // 41: google.protobuf.BoolValue
+	(*timestamppb.Timestamp)(nil),               // 42: google.protobuf.Timestamp
+	(*wrapperspb.DoubleValue)(nil),              // 43: google.protobuf.DoubleValue
 }
 var file_bank_accounts_v1_accounts_proto_depIdxs = []int32{
 	0,  // 0: bank.accounts.v1.CreateCustomerRequest.risk_segment:type_name -> bank.accounts.v1.RiskSegment
 	5,  // 1: bank.accounts.v1.CreateCustomerRequest.address:type_name -> bank.accounts.v1.CustomerAddressCreate
-	35, // 2: bank.accounts.v1.PatchCustomerRequest.full_name:type_name -> google.protobuf.StringValue
+	40, // 2: bank.accounts.v1.PatchCustomerRequest.full_name:type_name -> google.protobuf.StringValue
 	8,  // 3: bank.accounts.v1.PatchCustomerRequest.risk_segment:type_name -> bank.accounts.v1.RiskSegmentValue
 	9,  // 4: bank.accounts.v1.PatchCustomerRequest.customer_status:type_name -> bank.accounts.v1.CustomerStatusValue
 	10, // 5: bank.accounts.v1.PatchCustomerRequest.contact:type_name -> bank.accounts.v1.CustomerContactPatch
 	11, // 6: bank.accounts.v1.PatchCustomerRequest.preferences:type_name -> bank.accounts.v1.PreferencesPatch
 	0,  // 7: bank.accounts.v1.RiskSegmentValue.value:type_name -> bank.accounts.v1.RiskSegment
 	1,  // 8: bank.accounts.v1.CustomerStatusValue.value:type_name -> bank.accounts.v1.CustomerStatus
-	35, // 9: bank.accounts.v1.CustomerContactPatch.email:type_name -> google.protobuf.StringValue
-	35, // 10: bank.accounts.v1.CustomerContactPatch.phone:type_name -> google.protobuf.StringValue
+	40, // 9: bank.accounts.v1.CustomerContactPatch.email:type_name -> google.protobuf.StringValue
+	40, // 10: bank.accounts.v1.CustomerContactPatch.phone:type_name -> google.protobuf.StringValue
 	12, // 11: bank.accounts.v1.PreferencesPatch.channel:type_name -> bank.accounts.v1.PreferenceChannelValue
-	36, // 12: bank.accounts.v1.PreferencesPatch.opt_in:type_name -> google.protobuf.BoolValue
+	41, // 12: bank.accounts.v1.PreferencesPatch.opt_in:type_name -> google.protobuf.BoolValue
 	2,  // 13: bank.accounts.v1.PreferenceChannelValue.value:type_name -> bank.accounts.v1.PreferenceChannel
 	3,  // 14: bank.accounts.v1.CreateAccountRequest.product_type:type_name -> bank.accounts.v1.ProductType
 	18, // 15: bank.accounts.v1.ListAccountsResponse.accounts:type_name -> bank.accounts.v1.AccountView
-	37, // 16: bank.accounts.v1.AccountView.opened_at:type_name -> google.protobuf.Timestamp
-	37, // 17: bank.accounts.v1.AccountView.updated_at:type_name -> google.protobuf.Timestamp
+	42, // 16: bank.accounts.v1.AccountView.opened_at:type_name -> google.protobuf.Timestamp
+	42, // 17: bank.accounts.v1.AccountView.updated_at:type_name -> google.protobuf.Timestamp
 	19, // 18: bank.accounts.v1.AccountView.balances:type_name -> bank.accounts.v1.AccountBalances
 	19, // 19: bank.accounts.v1.GetAccountBalancesResponse.balances:type_name -> bank.accounts.v1.AccountBalances
-	38, // 20: bank.accounts.v1.PatchAccountLimitsRequest.daily_out:type_name -> google.protobuf.DoubleValue
-	38, // 21: bank.accounts.v1.PatchAccountLimitsRequest.daily_in:type_name -> google.protobuf.DoubleValue
-	35, // 22: bank.accounts.v1.ValidateAccountsAndLimitsResponse.reason:type_name -> google.protobuf.StringValue
-	35, // 23: bank.accounts.v1.HoldRequest.reason:type_name -> google.protobuf.StringValue
+	43, // 20: bank.accounts.v1.PatchAccountLimitsRequest.daily_out:type_name -> google.protobuf.DoubleValue
+	43, // 21: bank.accounts.v1.PatchAccountLimitsRequest.daily_in:type_name -> google.protobuf.DoubleValue
+	40, // 22: bank.accounts.v1.ValidateAccountsAndLimitsResponse.reason:type_name -> google.protobuf.StringValue
+	40, // 23: bank.accounts.v1.HoldRequest.reason:type_name -> google.protobuf.StringValue
 	26, // 24: bank.accounts.v1.ReserveHoldRequest.hold:type_name -> bank.accounts.v1.HoldRequest
 	26, // 25: bank.accounts.v1.ReleaseHoldRequest.hold:type_name -> bank.accounts.v1.HoldRequest
-	35, // 26: bank.accounts.v1.ReserveHoldResponse.status:type_name -> google.protobuf.StringValue
-	35, // 27: bank.accounts.v1.ReleaseHoldResponse.status:type_name -> google.protobuf.StringValue
-	36, // 28: bank.accounts.v1.BatchGetAccountSummariesRequest.include_inactive:type_name -> google.protobuf.BoolValue
+	40, // 26: bank.accounts.v1.ReserveHoldResponse.status:type_name -> google.protobuf.StringValue
+	40, // 27: bank.accounts.v1.ReleaseHoldResponse.status:type_name -> google.protobuf.StringValue
+	41, // 28: bank.accounts.v1.BatchGetAccountSummariesRequest.include_inactive:type_name -> google.protobuf.BoolValue
 	3,  // 29: bank.accounts.v1.AccountSummary.product_type:type_name -> bank.accounts.v1.ProductType
-	35, // 30: bank.accounts.v1.MissingAccount.reason:type_name -> google.protobuf.StringValue
+	40, // 30: bank.accounts.v1.MissingAccount.reason:type_name -> google.protobuf.StringValue
 	32, // 31: bank.accounts.v1.BatchGetAccountSummariesResponse.accounts:type_name -> bank.accounts.v1.AccountSummary
 	33, // 32: bank.accounts.v1.BatchGetAccountSummariesResponse.missing:type_name -> bank.accounts.v1.MissingAccount
-	4,  // 33: bank.accounts.v1.CustomersService.CreateCustomer:input_type -> bank.accounts.v1.CreateCustomerRequest
-	7,  // 34: bank.accounts.v1.CustomersService.PatchCustomer:input_type -> bank.accounts.v1.PatchCustomerRequest
-	16, // 35: bank.accounts.v1.AccountsService.ListAccounts:input_type -> bank.accounts.v1.ListAccountsRequest
-	14, // 36: bank.accounts.v1.AccountsService.CreateAccount:input_type -> bank.accounts.v1.CreateAccountRequest
-	20, // 37: bank.accounts.v1.AccountsService.GetAccountBalances:input_type -> bank.accounts.v1.GetAccountBalancesRequest
-	22, // 38: bank.accounts.v1.AccountsService.PatchAccountLimits:input_type -> bank.accounts.v1.PatchAccountLimitsRequest
-	24, // 39: bank.accounts.v1.InternalAccountsService.ValidateAccountsAndLimits:input_type -> bank.accounts.v1.ValidateAccountsAndLimitsRequest
-	27, // 40: bank.accounts.v1.InternalAccountsService.ReserveHold:input_type -> bank.accounts.v1.ReserveHoldRequest
-	28, // 41: bank.accounts.v1.InternalAccountsService.ReleaseHold:input_type -> bank.accounts.v1.ReleaseHoldRequest
-	31, // 42: bank.accounts.v1.InternalAccountsService.BatchGetAccountSummaries:input_type -> bank.accounts.v1.BatchGetAccountSummariesRequest
-	6,  // 43: bank.accounts.v1.CustomersService.CreateCustomer:output_type -> bank.accounts.v1.CreateCustomerResponse
-	13, // 44: bank.accounts.v1.CustomersService.PatchCustomer:output_type -> bank.accounts.v1.PatchCustomerResponse
-	17, // 45: bank.accounts.v1.AccountsService.ListAccounts:output_type -> bank.accounts.v1.ListAccountsResponse
-	15, // 46: bank.accounts.v1.AccountsService.CreateAccount:output_type -> bank.accounts.v1.CreateAccountResponse
-	21, // 47: bank.accounts.v1.AccountsService.GetAccountBalances:output_type -> bank.accounts.v1.GetAccountBalancesResponse
-	23, // 48: bank.accounts.v1.AccountsService.PatchAccountLimits:output_type -> bank.accounts.v1.PatchAccountLimitsResponse
-	25, // 49: bank.accounts.v1.InternalAccountsService.ValidateAccountsAndLimits:output_type -> bank.accounts.v1.ValidateAccountsAndLimitsResponse
-	29, // 50: bank.accounts.v1.InternalAccountsService.ReserveHold:output_type -> bank.accounts.v1.ReserveHoldResponse
-	30, // 51: bank.accounts.v1.InternalAccountsService.ReleaseHold:output_type -> bank.accounts.v1.ReleaseHoldResponse
-	34, // 52: bank.accounts.v1.InternalAccountsService.BatchGetAccountSummaries:output_type -> bank.accounts.v1.BatchGetAccountSummariesResponse
-	43, // [43:53] is the sub-list for method output_type
-	33, // [33:43] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+	41, // 33: bank.accounts.v1.GetAccountByNumberRequest.include_inactive:type_name -> google.protobuf.BoolValue
+	3,  // 34: bank.accounts.v1.AccountLookup.product_type:type_name -> bank.accounts.v1.ProductType
+	36, // 35: bank.accounts.v1.GetAccountByNumberResponse.account:type_name -> bank.accounts.v1.AccountLookup
+	3,  // 36: bank.accounts.v1.OpenAccountWithOpeningBonusRequest.product_type:type_name -> bank.accounts.v1.ProductType
+	4,  // 37: bank.accounts.v1.CustomersService.CreateCustomer:input_type -> bank.accounts.v1.CreateCustomerRequest
+	7,  // 38: bank.accounts.v1.CustomersService.PatchCustomer:input_type -> bank.accounts.v1.PatchCustomerRequest
+	16, // 39: bank.accounts.v1.AccountsService.ListAccounts:input_type -> bank.accounts.v1.ListAccountsRequest
+	14, // 40: bank.accounts.v1.AccountsService.CreateAccount:input_type -> bank.accounts.v1.CreateAccountRequest
+	20, // 41: bank.accounts.v1.AccountsService.GetAccountBalances:input_type -> bank.accounts.v1.GetAccountBalancesRequest
+	22, // 42: bank.accounts.v1.AccountsService.PatchAccountLimits:input_type -> bank.accounts.v1.PatchAccountLimitsRequest
+	35, // 43: bank.accounts.v1.AccountsService.GetAccountByNumber:input_type -> bank.accounts.v1.GetAccountByNumberRequest
+	38, // 44: bank.accounts.v1.InternalAccountsService.OpenAccountWithOpeningBonus:input_type -> bank.accounts.v1.OpenAccountWithOpeningBonusRequest
+	24, // 45: bank.accounts.v1.InternalAccountsService.ValidateAccountsAndLimits:input_type -> bank.accounts.v1.ValidateAccountsAndLimitsRequest
+	27, // 46: bank.accounts.v1.InternalAccountsService.ReserveHold:input_type -> bank.accounts.v1.ReserveHoldRequest
+	28, // 47: bank.accounts.v1.InternalAccountsService.ReleaseHold:input_type -> bank.accounts.v1.ReleaseHoldRequest
+	31, // 48: bank.accounts.v1.InternalAccountsService.BatchGetAccountSummaries:input_type -> bank.accounts.v1.BatchGetAccountSummariesRequest
+	6,  // 49: bank.accounts.v1.CustomersService.CreateCustomer:output_type -> bank.accounts.v1.CreateCustomerResponse
+	13, // 50: bank.accounts.v1.CustomersService.PatchCustomer:output_type -> bank.accounts.v1.PatchCustomerResponse
+	17, // 51: bank.accounts.v1.AccountsService.ListAccounts:output_type -> bank.accounts.v1.ListAccountsResponse
+	15, // 52: bank.accounts.v1.AccountsService.CreateAccount:output_type -> bank.accounts.v1.CreateAccountResponse
+	21, // 53: bank.accounts.v1.AccountsService.GetAccountBalances:output_type -> bank.accounts.v1.GetAccountBalancesResponse
+	23, // 54: bank.accounts.v1.AccountsService.PatchAccountLimits:output_type -> bank.accounts.v1.PatchAccountLimitsResponse
+	37, // 55: bank.accounts.v1.AccountsService.GetAccountByNumber:output_type -> bank.accounts.v1.GetAccountByNumberResponse
+	39, // 56: bank.accounts.v1.InternalAccountsService.OpenAccountWithOpeningBonus:output_type -> bank.accounts.v1.OpenAccountWithOpeningBonusResponse
+	25, // 57: bank.accounts.v1.InternalAccountsService.ValidateAccountsAndLimits:output_type -> bank.accounts.v1.ValidateAccountsAndLimitsResponse
+	29, // 58: bank.accounts.v1.InternalAccountsService.ReserveHold:output_type -> bank.accounts.v1.ReserveHoldResponse
+	30, // 59: bank.accounts.v1.InternalAccountsService.ReleaseHold:output_type -> bank.accounts.v1.ReleaseHoldResponse
+	34, // 60: bank.accounts.v1.InternalAccountsService.BatchGetAccountSummaries:output_type -> bank.accounts.v1.BatchGetAccountSummariesResponse
+	49, // [49:61] is the sub-list for method output_type
+	37, // [37:49] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_bank_accounts_v1_accounts_proto_init() }
@@ -2410,7 +2814,7 @@ func file_bank_accounts_v1_accounts_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_accounts_v1_accounts_proto_rawDesc), len(file_bank_accounts_v1_accounts_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   31,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

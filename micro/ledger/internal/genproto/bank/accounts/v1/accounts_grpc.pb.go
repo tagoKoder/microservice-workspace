@@ -167,6 +167,7 @@ const (
 	AccountsService_CreateAccount_FullMethodName      = "/bank.accounts.v1.AccountsService/CreateAccount"
 	AccountsService_GetAccountBalances_FullMethodName = "/bank.accounts.v1.AccountsService/GetAccountBalances"
 	AccountsService_PatchAccountLimits_FullMethodName = "/bank.accounts.v1.AccountsService/PatchAccountLimits"
+	AccountsService_GetAccountByNumber_FullMethodName = "/bank.accounts.v1.AccountsService/GetAccountByNumber"
 )
 
 // AccountsServiceClient is the client API for AccountsService service.
@@ -181,6 +182,7 @@ type AccountsServiceClient interface {
 	GetAccountBalances(ctx context.Context, in *GetAccountBalancesRequest, opts ...grpc.CallOption) (*GetAccountBalancesResponse, error)
 	// PATCH /accounts/{id}/limits
 	PatchAccountLimits(ctx context.Context, in *PatchAccountLimitsRequest, opts ...grpc.CallOption) (*PatchAccountLimitsResponse, error)
+	GetAccountByNumber(ctx context.Context, in *GetAccountByNumberRequest, opts ...grpc.CallOption) (*GetAccountByNumberResponse, error)
 }
 
 type accountsServiceClient struct {
@@ -231,6 +233,16 @@ func (c *accountsServiceClient) PatchAccountLimits(ctx context.Context, in *Patc
 	return out, nil
 }
 
+func (c *accountsServiceClient) GetAccountByNumber(ctx context.Context, in *GetAccountByNumberRequest, opts ...grpc.CallOption) (*GetAccountByNumberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAccountByNumberResponse)
+	err := c.cc.Invoke(ctx, AccountsService_GetAccountByNumber_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AccountsServiceServer is the server API for AccountsService service.
 // All implementations must embed UnimplementedAccountsServiceServer
 // for forward compatibility.
@@ -243,6 +255,7 @@ type AccountsServiceServer interface {
 	GetAccountBalances(context.Context, *GetAccountBalancesRequest) (*GetAccountBalancesResponse, error)
 	// PATCH /accounts/{id}/limits
 	PatchAccountLimits(context.Context, *PatchAccountLimitsRequest) (*PatchAccountLimitsResponse, error)
+	GetAccountByNumber(context.Context, *GetAccountByNumberRequest) (*GetAccountByNumberResponse, error)
 	mustEmbedUnimplementedAccountsServiceServer()
 }
 
@@ -264,6 +277,9 @@ func (UnimplementedAccountsServiceServer) GetAccountBalances(context.Context, *G
 }
 func (UnimplementedAccountsServiceServer) PatchAccountLimits(context.Context, *PatchAccountLimitsRequest) (*PatchAccountLimitsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PatchAccountLimits not implemented")
+}
+func (UnimplementedAccountsServiceServer) GetAccountByNumber(context.Context, *GetAccountByNumberRequest) (*GetAccountByNumberResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAccountByNumber not implemented")
 }
 func (UnimplementedAccountsServiceServer) mustEmbedUnimplementedAccountsServiceServer() {}
 func (UnimplementedAccountsServiceServer) testEmbeddedByValue()                         {}
@@ -358,6 +374,24 @@ func _AccountsService_PatchAccountLimits_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountsService_GetAccountByNumber_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountByNumberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).GetAccountByNumber(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_GetAccountByNumber_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).GetAccountByNumber(ctx, req.(*GetAccountByNumberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AccountsService_ServiceDesc is the grpc.ServiceDesc for AccountsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -381,16 +415,21 @@ var AccountsService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "PatchAccountLimits",
 			Handler:    _AccountsService_PatchAccountLimits_Handler,
 		},
+		{
+			MethodName: "GetAccountByNumber",
+			Handler:    _AccountsService_GetAccountByNumber_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "bank/accounts/v1/accounts.proto",
 }
 
 const (
-	InternalAccountsService_ValidateAccountsAndLimits_FullMethodName = "/bank.accounts.v1.InternalAccountsService/ValidateAccountsAndLimits"
-	InternalAccountsService_ReserveHold_FullMethodName               = "/bank.accounts.v1.InternalAccountsService/ReserveHold"
-	InternalAccountsService_ReleaseHold_FullMethodName               = "/bank.accounts.v1.InternalAccountsService/ReleaseHold"
-	InternalAccountsService_BatchGetAccountSummaries_FullMethodName  = "/bank.accounts.v1.InternalAccountsService/BatchGetAccountSummaries"
+	InternalAccountsService_OpenAccountWithOpeningBonus_FullMethodName = "/bank.accounts.v1.InternalAccountsService/OpenAccountWithOpeningBonus"
+	InternalAccountsService_ValidateAccountsAndLimits_FullMethodName   = "/bank.accounts.v1.InternalAccountsService/ValidateAccountsAndLimits"
+	InternalAccountsService_ReserveHold_FullMethodName                 = "/bank.accounts.v1.InternalAccountsService/ReserveHold"
+	InternalAccountsService_ReleaseHold_FullMethodName                 = "/bank.accounts.v1.InternalAccountsService/ReleaseHold"
+	InternalAccountsService_BatchGetAccountSummaries_FullMethodName    = "/bank.accounts.v1.InternalAccountsService/BatchGetAccountSummaries"
 )
 
 // InternalAccountsServiceClient is the client API for InternalAccountsService service.
@@ -399,6 +438,7 @@ const (
 //
 // INTERNAL (para ledger/payments) - proteger con mTLS/API key
 type InternalAccountsServiceClient interface {
+	OpenAccountWithOpeningBonus(ctx context.Context, in *OpenAccountWithOpeningBonusRequest, opts ...grpc.CallOption) (*OpenAccountWithOpeningBonusResponse, error)
 	// POST /internal/accounts/validate
 	ValidateAccountsAndLimits(ctx context.Context, in *ValidateAccountsAndLimitsRequest, opts ...grpc.CallOption) (*ValidateAccountsAndLimitsResponse, error)
 	// POST /internal/accounts/{id}/hold/reserve
@@ -414,6 +454,16 @@ type internalAccountsServiceClient struct {
 
 func NewInternalAccountsServiceClient(cc grpc.ClientConnInterface) InternalAccountsServiceClient {
 	return &internalAccountsServiceClient{cc}
+}
+
+func (c *internalAccountsServiceClient) OpenAccountWithOpeningBonus(ctx context.Context, in *OpenAccountWithOpeningBonusRequest, opts ...grpc.CallOption) (*OpenAccountWithOpeningBonusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenAccountWithOpeningBonusResponse)
+	err := c.cc.Invoke(ctx, InternalAccountsService_OpenAccountWithOpeningBonus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *internalAccountsServiceClient) ValidateAccountsAndLimits(ctx context.Context, in *ValidateAccountsAndLimitsRequest, opts ...grpc.CallOption) (*ValidateAccountsAndLimitsResponse, error) {
@@ -462,6 +512,7 @@ func (c *internalAccountsServiceClient) BatchGetAccountSummaries(ctx context.Con
 //
 // INTERNAL (para ledger/payments) - proteger con mTLS/API key
 type InternalAccountsServiceServer interface {
+	OpenAccountWithOpeningBonus(context.Context, *OpenAccountWithOpeningBonusRequest) (*OpenAccountWithOpeningBonusResponse, error)
 	// POST /internal/accounts/validate
 	ValidateAccountsAndLimits(context.Context, *ValidateAccountsAndLimitsRequest) (*ValidateAccountsAndLimitsResponse, error)
 	// POST /internal/accounts/{id}/hold/reserve
@@ -479,6 +530,9 @@ type InternalAccountsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInternalAccountsServiceServer struct{}
 
+func (UnimplementedInternalAccountsServiceServer) OpenAccountWithOpeningBonus(context.Context, *OpenAccountWithOpeningBonusRequest) (*OpenAccountWithOpeningBonusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenAccountWithOpeningBonus not implemented")
+}
 func (UnimplementedInternalAccountsServiceServer) ValidateAccountsAndLimits(context.Context, *ValidateAccountsAndLimitsRequest) (*ValidateAccountsAndLimitsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ValidateAccountsAndLimits not implemented")
 }
@@ -511,6 +565,24 @@ func RegisterInternalAccountsServiceServer(s grpc.ServiceRegistrar, srv Internal
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&InternalAccountsService_ServiceDesc, srv)
+}
+
+func _InternalAccountsService_OpenAccountWithOpeningBonus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenAccountWithOpeningBonusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalAccountsServiceServer).OpenAccountWithOpeningBonus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InternalAccountsService_OpenAccountWithOpeningBonus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalAccountsServiceServer).OpenAccountWithOpeningBonus(ctx, req.(*OpenAccountWithOpeningBonusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _InternalAccountsService_ValidateAccountsAndLimits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -592,6 +664,10 @@ var InternalAccountsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "bank.accounts.v1.InternalAccountsService",
 	HandlerType: (*InternalAccountsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "OpenAccountWithOpeningBonus",
+			Handler:    _InternalAccountsService_OpenAccountWithOpeningBonus_Handler,
+		},
 		{
 			MethodName: "ValidateAccountsAndLimits",
 			Handler:    _InternalAccountsService_ValidateAccountsAndLimits_Handler,

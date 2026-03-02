@@ -142,4 +142,5 @@ logging:
   level:
     root: INFO
     com.tagokoder: DEBUG
+    com.tagokoder.identity.infra.security: DEBUG
     net.devh.boot.grpc: DEBUG

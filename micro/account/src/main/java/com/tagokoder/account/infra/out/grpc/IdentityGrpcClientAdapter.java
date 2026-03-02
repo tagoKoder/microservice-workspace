@@ -3,6 +3,7 @@ package com.tagokoder.account.infra.out.grpc;
 import org.springframework.stereotype.Component;
 
 import com.tagokoder.account.domain.port.out.IdentityPrincipalPort;
+import com.tagokoder.account.infra.security.grpc.BearerTokenCallCredentials;
 
 import bank.identity.v1.PrincipalServiceGrpc;
 import bank.identity.v1.ResolvePrincipalRequest;
@@ -23,22 +24,16 @@ public class IdentityGrpcClientAdapter implements IdentityPrincipalPort {
   }
 
   @Override
-  public PrincipalInfo resolvePrincipal(String bearerAccessToken, boolean requireLink) {
+  public PrincipalInfo resolvePrincipal(String accessToken, boolean requireLink, String purpose) {
 
     ResolvePrincipalRequest req = ResolvePrincipalRequest.newBuilder()
         .setRequireCustomerLink(requireLink)
-        .setPurpose("accounts:read")
+        .setPurpose(purpose)
         .build();
 
-    Metadata md = new Metadata();
-    md.put(AUTH, "Bearer " + bearerAccessToken);
-
-    // Adjunta metadata a ESTE call usando interceptor
-    var stubWithHeaders = principalStub.withInterceptors(
-        MetadataUtils.newAttachHeadersInterceptor(md)
-    );
-
-    ResolvePrincipalResponse resp = stubWithHeaders.resolvePrincipal(req);
+      var resp = principalStub
+          .withCallCredentials(new BearerTokenCallCredentials(accessToken))
+          .resolvePrincipal(req);
     System.out.println("Respuesta identityPrincipal: "+ resp.getCustomerId());
 
     return new PrincipalInfo(

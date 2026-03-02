@@ -11,12 +11,12 @@ import (
 
 type LedgerHandler struct {
 	ledgerpb.UnimplementedLedgerServiceServer
-	creaAcc  in.CreditAccountUseCase
+	creaAcc  in.LedgerAppService
 	listAcc  in.ListAccountJournalEntriesUseCase
 	listStmt in.ListAccountStatementUseCase
 }
 
-func NewLedgerHandler(creaAcc in.CreditAccountUseCase, listAcc in.ListAccountJournalEntriesUseCase, listStmt in.ListAccountStatementUseCase) *LedgerHandler {
+func NewLedgerHandler(creaAcc in.LedgerAppService, listAcc in.ListAccountJournalEntriesUseCase, listStmt in.ListAccountStatementUseCase) *LedgerHandler {
 	return &LedgerHandler{creaAcc: creaAcc, listAcc: listAcc, listStmt: listStmt}
 }
 
@@ -60,4 +60,18 @@ func (h *LedgerHandler) ListAccountStatement(ctx context.Context, req *ledgerpb.
 	}
 
 	return mapper.ToListAccountStatementResponse(res), nil
+}
+
+func (h *LedgerHandler) CreditAccountSystem(ctx context.Context, req *ledgerpb.CreditAccountSystemRequest) (*ledgerpb.CreditAccountSystemResponse, error) {
+	cmd, err := validation.ToCreditAccountSystemCommand(req)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := h.creaAcc.CreditAccountSystem(ctx, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapper.ToCreditAccountSystemResponse(res), nil
 }

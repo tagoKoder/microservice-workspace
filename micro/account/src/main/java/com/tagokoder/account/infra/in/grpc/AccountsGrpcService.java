@@ -1,22 +1,41 @@
 package com.tagokoder.account.infra.in.grpc;
 
+import static com.tagokoder.account.infra.in.grpc.validation.AccountsGrpcValidators.resolveCustomerIdForList;
+import static com.tagokoder.account.infra.in.grpc.validation.AccountsGrpcValidators.toAccountId;
+import static com.tagokoder.account.infra.in.grpc.validation.AccountsGrpcValidators.toCreateAccountCommand;
+import static com.tagokoder.account.infra.in.grpc.validation.AccountsGrpcValidators.toGetByNumberCommand;
+import static com.tagokoder.account.infra.in.grpc.validation.AccountsGrpcValidators.toPatchLimitsInput;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import com.google.protobuf.Timestamp;
+import com.tagokoder.account.application.AccountNumberFmt;
 import com.tagokoder.account.application.service.IdempotencyService;
+import com.tagokoder.account.domain.port.in.CreateAccountUseCase;
 import com.tagokoder.account.domain.port.in.GetAccountBalancesUseCase;
 import com.tagokoder.account.domain.port.in.GetAccountByNumberUseCase;
 import com.tagokoder.account.domain.port.in.ListAccountsUseCase;
-import com.tagokoder.account.domain.port.in.OpenAccountWithOpeningBonusUseCase;
 import com.tagokoder.account.domain.port.in.PatchAccountLimitsUseCase;
 import com.tagokoder.account.infra.in.grpc.mapper.ProtoEnumMapper;
 import com.tagokoder.account.infra.security.grpc.IdempotencyKeyInterceptor;
 
-import bank.accounts.v1.*;
+import bank.accounts.v1.AccountBalances;
+import bank.accounts.v1.AccountLookup;
+import bank.accounts.v1.AccountView;
+import bank.accounts.v1.AccountsServiceGrpc;
+import bank.accounts.v1.CreateAccountRequest;
+import bank.accounts.v1.CreateAccountResponse;
+import bank.accounts.v1.GetAccountBalancesRequest;
+import bank.accounts.v1.GetAccountBalancesResponse;
+import bank.accounts.v1.GetAccountByNumberRequest;
+import bank.accounts.v1.GetAccountByNumberResponse;
+import bank.accounts.v1.ListAccountsRequest;
+import bank.accounts.v1.ListAccountsResponse;
+import bank.accounts.v1.PatchAccountLimitsRequest;
+import bank.accounts.v1.PatchAccountLimitsResponse;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-import static com.tagokoder.account.infra.in.grpc.validation.AccountsGrpcValidators.*;
 @GrpcService
 public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImplBase {
 
@@ -25,7 +44,7 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
     private final GetAccountBalancesUseCase getBalances;
     private final PatchAccountLimitsUseCase patchLimits;
     private final IdempotencyService idem;
-    private final OpenAccountWithOpeningBonusUseCase openAccountWithBonus;
+    private final CreateAccountUseCase createAccount; 
 
     public AccountsGrpcService(
             ListAccountsUseCase listAccounts,
@@ -33,20 +52,22 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
             GetAccountBalancesUseCase getBalances,
             PatchAccountLimitsUseCase patchLimits,
             IdempotencyService idem,
-            OpenAccountWithOpeningBonusUseCase openAccountWithBonus
+            CreateAccountUseCase createAccount
     ) {
         this.listAccounts = listAccounts;
         this.getByNumber = getByNumber;
         this.getBalances = getBalances;
         this.patchLimits = patchLimits;
         this.idem = idem;
-        this.openAccountWithBonus = openAccountWithBonus;
+        this.createAccount= createAccount;
     }
 
         @Override
         public void listAccounts(ListAccountsRequest request, StreamObserver<ListAccountsResponse> responseObserver) {
         UUID customerId = resolveCustomerIdForList(request);
         var res = listAccounts.listByCustomer(customerId);
+
+        System.out.println("AUTHZ request customerId={}"+ customerId);
 
         ListAccountsResponse.Builder out = ListAccountsResponse.newBuilder();
         res.accounts().forEach(a -> {
@@ -96,13 +117,28 @@ public class AccountsGrpcService extends AccountsServiceGrpc.AccountsServiceImpl
 
     @Override
     public void createAccount(CreateAccountRequest request, StreamObserver<CreateAccountResponse> responseObserver) {
-        var cmd = toOpenWithBonusCommand(request);
-        var res = openAccountWithBonus.open(cmd);
+        String idemKey = request.getIdempotencyKey();
+        // cache idempotente (opcional pero recomendado)
+        var cached = idem.tryGet(idemKey, "accounts.createAccount", CreateAccountUseCase.Result.class);
+        if (cached.isPresent()) {
+        var r = cached.get();
+        responseObserver.onNext(CreateAccountResponse.newBuilder()
+            .setAccountId(r.accountId().toString())
+            .setAccountNumber(AccountNumberFmt.fmt12(r.accountNumber()))
+            .build());
+        responseObserver.onCompleted();
+        return;
+        }
+
+        var cmd = toCreateAccountCommand(request);
+        var res = createAccount.create(cmd);
+
+        idem.save(idemKey, "accounts.createAccount", 200, res);
 
         responseObserver.onNext(CreateAccountResponse.newBuilder()
-                .setAccountId(res.accountId().toString())
-                .setAccountNumber(res.accountNumber() == null ? "" : res.accountNumber())
-                .build());
+            .setAccountId(res.accountId().toString())
+            .setAccountNumber(AccountNumberFmt.fmt12(res.accountNumber()))
+            .build());
         responseObserver.onCompleted();
     }
 

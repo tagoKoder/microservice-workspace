@@ -13,6 +13,7 @@ import (
 
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
+	"github.com/aws/aws-sdk-go-v2/service/verifiedpermissions"
 	"github.com/tagoKoder/ledger/internal/application/service"
 	accountsv1 "github.com/tagoKoder/ledger/internal/genproto/bank/accounts/v1"
 	"github.com/tagoKoder/ledger/internal/infra/config"
@@ -23,8 +24,12 @@ import (
 	"github.com/tagoKoder/ledger/internal/infra/out/messaging"
 	gormdb "github.com/tagoKoder/ledger/internal/infra/out/persistence/gorm"
 	gormuow "github.com/tagoKoder/ledger/internal/infra/out/persistence/gorm/uow"
+	"github.com/tagoKoder/ledger/internal/infra/security/authz"
+	"github.com/tagoKoder/ledger/internal/infra/security/avp"
 
 	ledgerpb "github.com/tagoKoder/ledger/internal/genproto/bank/ledgerpayments/v1"
+	securitygrpc "github.com/tagoKoder/ledger/internal/infra/security/grpc"
+	jwtvalidator "github.com/tagoKoder/ledger/internal/infra/security/jwt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -107,20 +112,23 @@ func main() {
 	outboxWorker := messaging.NewOutboxWorker(uow, pub, cfg.OutboxBatchSize, cfg.OutboxPollInterval)
 	outboxWorker.Start()
 
-	// Security: JWT validator  AVP  resolver  interceptor
-	/*jv := jwtvalidator.New(cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTJWKSURL)
+	vp := verifiedpermissions.NewFromConfig(awsCfg)
+
+	jv := jwtvalidator.New(cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTJWKSURL)
 	avpClient := avp.New(vp, cfg.AVPPolicyStoreID)
-	actRes := authz.NewActionResolver()
-	resRes := authz.NewResourceResolver(uow)
+
+	reg := authz.NewRegistry()
+	tpl := authz.NewTemplates(uow)
+
 	authzItc := securitygrpc.NewAuthzInterceptor(
 		jv,
 		avpClient,
-		actRes,
-		resRes,
+		reg,
+		tpl,
 		auditPort,
 		cfg.HashSaltIP,
 		cfg.HashSaltUA,
-	)*/
+	)
 
 	// gRPC server
 	lis, err := net.Listen("tcp", ":"+cfg.GrpcPort)
@@ -131,7 +139,7 @@ func main() {
 	grpcSrv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			middleware.NewUnaryErrorInterceptor(cfg.AppEnv),
-		//authzItc.Unary(),
+			authzItc.Unary(),
 		),
 	)
 

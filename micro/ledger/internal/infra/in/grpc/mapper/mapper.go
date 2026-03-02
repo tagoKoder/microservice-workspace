@@ -190,3 +190,10 @@ func ToListAccountStatementResponse(res *in.ListAccountStatementResult) *ledgerp
 
 	return out
 }
+
+func ToCreditAccountSystemResponse(res *in.CreditAccountResult) *ledgerpb.CreditAccountSystemResponse {
+	return &ledgerpb.CreditAccountSystemResponse{
+		JournalId: res.JournalID.String(),
+		Status:    res.Status,
+	}
+}

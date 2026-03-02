@@ -1,5 +1,6 @@
 package com.tagokoder.account.infra.security.avp;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -19,67 +20,52 @@ import software.amazon.awssdk.services.verifiedpermissions.model.IsAuthorizedWit
 
 public class AvpAuthorizer {
 
-    private final VerifiedPermissionsClient avp;
-    private final AppProps props;
+  private final VerifiedPermissionsClient avp;
+  private final AppProps props;
 
-    public AvpAuthorizer(VerifiedPermissionsClient avp, AppProps props) {
-        this.avp = avp;
-        this.props = props;
-    }
+  public AvpAuthorizer(VerifiedPermissionsClient avp, AppProps props) {
+    this.avp = avp;
+    this.props = props;
+  }
 
-    public DecisionResult authorize(String accessToken,
-                                String actionId,
-                                String principalType,
-                                String principalId,
-                                Map<String, AttributeValue> principalAttrs,
-                                String resourceType,
-                                String resourceId,
-                                Map<String, AttributeValue> resourceAttrs,
-                                Map<String, AttributeValue> contextAttrs) {
-
-        ActionIdentifier action = ActionIdentifier.builder()
-                .actionType("ImaginaryBank::Action")
-                .actionId(actionId)
-                .build();
-
-        EntityIdentifier principal = EntityIdentifier.builder()
-                .entityType(principalType)              // "ImaginaryBank::User"
-                .entityId(principalId)                  // "us-east-1_jpKpFUYH1|<sub>"
-                .build();
-
-        EntityIdentifier resource = EntityIdentifier.builder()
-                .entityType(resourceType)               // "ImaginaryBank::Account"
-                .entityId(resourceId)
-                .build();
-
-        EntityItem principalEntity = EntityItem.builder()
-                .identifier(principal)
-                .attributes(principalAttrs == null ? Map.of() : principalAttrs)
-                .build();
-
-        EntityItem resourceEntity = EntityItem.builder()
-                .identifier(resource)
-                .attributes(resourceAttrs == null ? Map.of() : resourceAttrs)
-                .build();
-                
-        EntitiesDefinition entities = EntitiesDefinition.builder()
-        .entityList(List.of(principalEntity, resourceEntity))
+  public DecisionResult authorizeWithToken(
+      String accessToken,
+      String actionId,
+      EntityItem principalEntity,
+      EntityItem resourceEntity,
+      List<EntityItem> extraEntities,
+      Map<String, AttributeValue> contextAttrs
+  ) {
+    ActionIdentifier action = ActionIdentifier.builder()
+        .actionType("ImaginaryBank::Action")
+        .actionId(actionId)
         .build();
 
-        IsAuthorizedWithTokenRequest.Builder req = IsAuthorizedWithTokenRequest.builder()
-                .policyStoreId(props.aws().avpPolicyStoreId())
-                .accessToken(accessToken)
-                .action(action)
-                .resource(resource)
-                .entities(entities);
+    EntityIdentifier resourceId = resourceEntity.identifier();
 
-        if (contextAttrs != null && !contextAttrs.isEmpty()) {
-                req.context(ContextDefinition.fromContextMap(contextAttrs));
-        }
+    List<EntityItem> all = new ArrayList<>();
+    //all.add(principalEntity);
+    all.add(resourceEntity);
+    if (extraEntities != null && !extraEntities.isEmpty()) all.addAll(extraEntities);
 
-        IsAuthorizedWithTokenResponse resp = avp.isAuthorizedWithToken(req.build());
-        return new DecisionResult(resp.decision(), resp.determiningPolicies());
+    EntitiesDefinition entities = EntitiesDefinition.builder()
+        .entityList(all)
+        .build();
+
+    IsAuthorizedWithTokenRequest.Builder req = IsAuthorizedWithTokenRequest.builder()
+        .policyStoreId(props.aws().avpPolicyStoreId())
+        .accessToken(accessToken)
+        .action(action)
+        .resource(resourceId)
+        .entities(entities);
+
+    if (contextAttrs != null && !contextAttrs.isEmpty()) {
+      req.context(ContextDefinition.fromContextMap(contextAttrs));
     }
 
-    public record DecisionResult(Decision decision, List<DeterminingPolicyItem> determiningPolicies) {}
+    IsAuthorizedWithTokenResponse resp = avp.isAuthorizedWithToken(req.build());
+    return new DecisionResult(resp.decision(), resp.determiningPolicies());
+  }
+
+  public record DecisionResult(Decision decision, List<DeterminingPolicyItem> determiningPolicies) {}
 }

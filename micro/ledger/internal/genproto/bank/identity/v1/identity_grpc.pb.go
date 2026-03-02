@@ -461,3 +461,107 @@ var OidcAuthService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "bank/identity/v1/identity.proto",
 }
+
+const (
+	PrincipalService_ResolvePrincipal_FullMethodName = "/bank.identity.v1.PrincipalService/ResolvePrincipal"
+)
+
+// PrincipalServiceClient is the client API for PrincipalService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type PrincipalServiceClient interface {
+	// Resolver atributos del principal a partir del token del caller (microservice)
+	ResolvePrincipal(ctx context.Context, in *ResolvePrincipalRequest, opts ...grpc.CallOption) (*ResolvePrincipalResponse, error)
+}
+
+type principalServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewPrincipalServiceClient(cc grpc.ClientConnInterface) PrincipalServiceClient {
+	return &principalServiceClient{cc}
+}
+
+func (c *principalServiceClient) ResolvePrincipal(ctx context.Context, in *ResolvePrincipalRequest, opts ...grpc.CallOption) (*ResolvePrincipalResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolvePrincipalResponse)
+	err := c.cc.Invoke(ctx, PrincipalService_ResolvePrincipal_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PrincipalServiceServer is the server API for PrincipalService service.
+// All implementations must embed UnimplementedPrincipalServiceServer
+// for forward compatibility.
+type PrincipalServiceServer interface {
+	// Resolver atributos del principal a partir del token del caller (microservice)
+	ResolvePrincipal(context.Context, *ResolvePrincipalRequest) (*ResolvePrincipalResponse, error)
+	mustEmbedUnimplementedPrincipalServiceServer()
+}
+
+// UnimplementedPrincipalServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedPrincipalServiceServer struct{}
+
+func (UnimplementedPrincipalServiceServer) ResolvePrincipal(context.Context, *ResolvePrincipalRequest) (*ResolvePrincipalResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolvePrincipal not implemented")
+}
+func (UnimplementedPrincipalServiceServer) mustEmbedUnimplementedPrincipalServiceServer() {}
+func (UnimplementedPrincipalServiceServer) testEmbeddedByValue()                          {}
+
+// UnsafePrincipalServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PrincipalServiceServer will
+// result in compilation errors.
+type UnsafePrincipalServiceServer interface {
+	mustEmbedUnimplementedPrincipalServiceServer()
+}
+
+func RegisterPrincipalServiceServer(s grpc.ServiceRegistrar, srv PrincipalServiceServer) {
+	// If the following call panics, it indicates UnimplementedPrincipalServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&PrincipalService_ServiceDesc, srv)
+}
+
+func _PrincipalService_ResolvePrincipal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolvePrincipalRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrincipalServiceServer).ResolvePrincipal(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PrincipalService_ResolvePrincipal_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrincipalServiceServer).ResolvePrincipal(ctx, req.(*ResolvePrincipalRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// PrincipalService_ServiceDesc is the grpc.ServiceDesc for PrincipalService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var PrincipalService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "bank.identity.v1.PrincipalService",
+	HandlerType: (*PrincipalServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ResolvePrincipal",
+			Handler:    _PrincipalService_ResolvePrincipal_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "bank/identity/v1/identity.proto",
+}

@@ -53,7 +53,7 @@ public class LedgerPostedConsumer {
       .waitTimeSeconds(20)
       .maxNumberOfMessages(10)
     );
-    log.info("Polling messages resp: "+resp);
+    //log.info("Polling messages resp: "+resp);
     for (Message m : resp.messages()) {
       try {
         LedgerPostedDetail detail = unwrapEventBridgeDetail(m.body());

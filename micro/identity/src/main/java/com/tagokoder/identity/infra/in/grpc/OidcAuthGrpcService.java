@@ -1,5 +1,10 @@
 package com.tagokoder.identity.infra.in.grpc;
 
+import static com.tagokoder.identity.infra.in.grpc.validation.OidcAuthGrpcValidators.toCompleteLoginCommand;
+import static com.tagokoder.identity.infra.in.grpc.validation.OidcAuthGrpcValidators.toSessionClientIn;
+import static com.tagokoder.identity.infra.in.grpc.validation.OidcAuthGrpcValidators.toSessionId;
+import static com.tagokoder.identity.infra.in.grpc.validation.OidcAuthGrpcValidators.toStartLoginCommand;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +30,6 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-import static com.tagokoder.identity.infra.in.grpc.validation.OidcAuthGrpcValidators.*;
 
 @GrpcService
 public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImplBase {
@@ -138,6 +142,25 @@ public class OidcAuthGrpcService extends OidcAuthServiceGrpc.OidcAuthServiceImpl
 
       responseObserver.onNext(response);
       responseObserver.onCompleted();
+
+    } catch (IllegalStateException e) {
+      String m = e.getMessage() == null ? "" : e.getMessage();
+
+      if (m.contains("Invalid or expired state")) {
+        responseObserver.onError(
+            Status.FAILED_PRECONDITION
+                .withDescription("OIDC_STATE_INVALID_OR_EXPIRED")
+                .asRuntimeException()
+        );
+        return;
+      }
+
+      responseObserver.onError(
+          Status.FAILED_PRECONDITION
+              .withDescription("OIDC_FLOW_INVALID")
+              .asRuntimeException()
+      );
+      return;
 
     } catch (Exception e) {
       log.error("completeOidcLogin INTERNAL", e);

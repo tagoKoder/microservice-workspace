@@ -1777,16 +1777,18 @@ func (x *GetSessionInfoRequest) GetUserAgent() string {
 }
 
 type GetSessionInfoResponse struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	IdentityId       string                 `protobuf:"bytes,1,opt,name=identity_id,json=identityId,proto3" json:"identity_id,omitempty"` // uuid
-	SubjectIdOidc    string                 `protobuf:"bytes,2,opt,name=subject_id_oidc,json=subjectIdOidc,proto3" json:"subject_id_oidc,omitempty"`
-	Provider         string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`                       // example: cognito
-	User             *OidcUser              `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`                               // roles here
-	CustomerId       string                 `protobuf:"bytes,5,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"` // optional if linked
-	UserStatus       string                 `protobuf:"bytes,6,opt,name=user_status,json=userStatus,proto3" json:"user_status,omitempty"` // ACTIVE|LOCKED|DISABLED
-	SessionExpiresIn int64                  `protobuf:"varint,7,opt,name=session_expires_in,json=sessionExpiresIn,proto3" json:"session_expires_in,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	IdentityId           string                 `protobuf:"bytes,1,opt,name=identity_id,json=identityId,proto3" json:"identity_id,omitempty"` // uuid
+	SubjectIdOidc        string                 `protobuf:"bytes,2,opt,name=subject_id_oidc,json=subjectIdOidc,proto3" json:"subject_id_oidc,omitempty"`
+	Provider             string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`                       // example: cognito
+	User                 *OidcUser              `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`                               // roles here
+	CustomerId           string                 `protobuf:"bytes,5,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"` // optional if linked
+	UserStatus           string                 `protobuf:"bytes,6,opt,name=user_status,json=userStatus,proto3" json:"user_status,omitempty"` // ACTIVE|LOCKED|DISABLED
+	SessionExpiresIn     int64                  `protobuf:"varint,7,opt,name=session_expires_in,json=sessionExpiresIn,proto3" json:"session_expires_in,omitempty"`
+	AccessToken          string                 `protobuf:"bytes,8,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	AccessTokenExpiresIn int64                  `protobuf:"varint,9,opt,name=access_token_expires_in,json=accessTokenExpiresIn,proto3" json:"access_token_expires_in,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GetSessionInfoResponse) Reset() {
@@ -1866,6 +1868,150 @@ func (x *GetSessionInfoResponse) GetSessionExpiresIn() int64 {
 		return x.SessionExpiresIn
 	}
 	return 0
+}
+
+func (x *GetSessionInfoResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *GetSessionInfoResponse) GetAccessTokenExpiresIn() int64 {
+	if x != nil {
+		return x.AccessTokenExpiresIn
+	}
+	return 0
+}
+
+type ResolvePrincipalRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Si true, identity ignora customer_id vacío y devuelve NOT_FOUND
+	RequireCustomerLink bool `protobuf:"varint,1,opt,name=require_customer_link,json=requireCustomerLink,proto3" json:"require_customer_link,omitempty"`
+	// Opcional: para debugging controlado (no usar en prod si no lo necesitas)
+	Purpose       string `protobuf:"bytes,2,opt,name=purpose,proto3" json:"purpose,omitempty"` // e.g. "accounts:read"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolvePrincipalRequest) Reset() {
+	*x = ResolvePrincipalRequest{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolvePrincipalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolvePrincipalRequest) ProtoMessage() {}
+
+func (x *ResolvePrincipalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolvePrincipalRequest.ProtoReflect.Descriptor instead.
+func (*ResolvePrincipalRequest) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ResolvePrincipalRequest) GetRequireCustomerLink() bool {
+	if x != nil {
+		return x.RequireCustomerLink
+	}
+	return false
+}
+
+func (x *ResolvePrincipalRequest) GetPurpose() string {
+	if x != nil {
+		return x.Purpose
+	}
+	return ""
+}
+
+type ResolvePrincipalResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SubjectIdOidc string                 `protobuf:"bytes,1,opt,name=subject_id_oidc,json=subjectIdOidc,proto3" json:"subject_id_oidc,omitempty"` // sub
+	PrincipalId   string                 `protobuf:"bytes,2,opt,name=principal_id,json=principalId,proto3" json:"principal_id,omitempty"`         // "poolId|sub"
+	CustomerId    string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`            // uuid string (si existe link)
+	Roles         []string               `protobuf:"bytes,4,rep,name=roles,proto3" json:"roles,omitempty"`                                        // cognito:groups o roles internas
+	UserStatus    string                 `protobuf:"bytes,5,opt,name=user_status,json=userStatus,proto3" json:"user_status,omitempty"`            // ACTIVE|LOCKED|DISABLED (si lo tienes)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolvePrincipalResponse) Reset() {
+	*x = ResolvePrincipalResponse{}
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolvePrincipalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolvePrincipalResponse) ProtoMessage() {}
+
+func (x *ResolvePrincipalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_identity_v1_identity_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolvePrincipalResponse.ProtoReflect.Descriptor instead.
+func (*ResolvePrincipalResponse) Descriptor() ([]byte, []int) {
+	return file_bank_identity_v1_identity_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ResolvePrincipalResponse) GetSubjectIdOidc() string {
+	if x != nil {
+		return x.SubjectIdOidc
+	}
+	return ""
+}
+
+func (x *ResolvePrincipalResponse) GetPrincipalId() string {
+	if x != nil {
+		return x.PrincipalId
+	}
+	return ""
+}
+
+func (x *ResolvePrincipalResponse) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
+	}
+	return ""
+}
+
+func (x *ResolvePrincipalResponse) GetRoles() []string {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
+func (x *ResolvePrincipalResponse) GetUserStatus() string {
+	if x != nil {
+		return x.UserStatus
+	}
+	return ""
 }
 
 var File_bank_identity_v1_identity_proto protoreflect.FileDescriptor
@@ -2005,7 +2151,7 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x0e\n" +
 	"\x02ip\x18\x02 \x01(\tR\x02ip\x12\x1d\n" +
 	"\n" +
-	"user_agent\x18\x03 \x01(\tR\tuserAgent\"\x9d\x02\n" +
+	"user_agent\x18\x03 \x01(\tR\tuserAgent\"\xf7\x02\n" +
 	"\x16GetSessionInfoResponse\x12\x1f\n" +
 	"\videntity_id\x18\x01 \x01(\tR\n" +
 	"identityId\x12&\n" +
@@ -2016,7 +2162,20 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"customerId\x12\x1f\n" +
 	"\vuser_status\x18\x06 \x01(\tR\n" +
 	"userStatus\x12,\n" +
-	"\x12session_expires_in\x18\a \x01(\x03R\x10sessionExpiresIn*\xcc\x01\n" +
+	"\x12session_expires_in\x18\a \x01(\x03R\x10sessionExpiresIn\x12!\n" +
+	"\faccess_token\x18\b \x01(\tR\vaccessToken\x125\n" +
+	"\x17access_token_expires_in\x18\t \x01(\x03R\x14accessTokenExpiresIn\"g\n" +
+	"\x17ResolvePrincipalRequest\x122\n" +
+	"\x15require_customer_link\x18\x01 \x01(\bR\x13requireCustomerLink\x12\x18\n" +
+	"\apurpose\x18\x02 \x01(\tR\apurpose\"\xbd\x01\n" +
+	"\x18ResolvePrincipalResponse\x12&\n" +
+	"\x0fsubject_id_oidc\x18\x01 \x01(\tR\rsubjectIdOidc\x12!\n" +
+	"\fprincipal_id\x18\x02 \x01(\tR\vprincipalId\x12\x1f\n" +
+	"\vcustomer_id\x18\x03 \x01(\tR\n" +
+	"customerId\x12\x14\n" +
+	"\x05roles\x18\x04 \x03(\tR\x05roles\x12\x1f\n" +
+	"\vuser_status\x18\x05 \x01(\tR\n" +
+	"userStatus*\xcc\x01\n" +
 	"\x0eOccupationType\x12\x1f\n" +
 	"\x1bOCCUPATION_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17OCCUPATION_TYPE_STUDENT\x10\x01\x12\x1c\n" +
@@ -2049,7 +2208,9 @@ const file_bank_identity_v1_identity_proto_rawDesc = "" +
 	"\x11CompleteOidcLogin\x12*.bank.identity.v1.CompleteOidcLoginRequest\x1a+.bank.identity.v1.CompleteOidcLoginResponse\x12c\n" +
 	"\x0eRefreshSession\x12'.bank.identity.v1.RefreshSessionRequest\x1a(.bank.identity.v1.RefreshSessionResponse\x12`\n" +
 	"\rLogoutSession\x12&.bank.identity.v1.LogoutSessionRequest\x1a'.bank.identity.v1.LogoutSessionResponse\x12c\n" +
-	"\x0eGetSessionInfo\x12'.bank.identity.v1.GetSessionInfoRequest\x1a(.bank.identity.v1.GetSessionInfoResponseB\xd6\x01\n" +
+	"\x0eGetSessionInfo\x12'.bank.identity.v1.GetSessionInfoRequest\x1a(.bank.identity.v1.GetSessionInfoResponse2}\n" +
+	"\x10PrincipalService\x12i\n" +
+	"\x10ResolvePrincipal\x12).bank.identity.v1.ResolvePrincipalRequest\x1a*.bank.identity.v1.ResolvePrincipalResponseB\xd6\x01\n" +
 	"\x14com.bank.identity.v1B\rIdentityProtoP\x01ZMgithub.com/imaginarybank/banking-contracts/gen/go/bank/identity/v1;identityv1\xa2\x02\x03BIX\xaa\x02\x10Bank.Identity.V1\xca\x02\x10Bank\\Identity\\V1\xe2\x02\x1cBank\\Identity\\V1\\GPBMetadata\xea\x02\x12Bank::Identity::V1b\x06proto3"
 
 var (
@@ -2065,7 +2226,7 @@ func file_bank_identity_v1_identity_proto_rawDescGZIP() []byte {
 }
 
 var file_bank_identity_v1_identity_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_bank_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_bank_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_bank_identity_v1_identity_proto_goTypes = []any{
 	(OccupationType)(0),                    // 0: bank.identity.v1.OccupationType
 	(KycDocType)(0),                        // 1: bank.identity.v1.KycDocType
@@ -2093,14 +2254,16 @@ var file_bank_identity_v1_identity_proto_goTypes = []any{
 	(*LogoutSessionResponse)(nil),          // 23: bank.identity.v1.LogoutSessionResponse
 	(*GetSessionInfoRequest)(nil),          // 24: bank.identity.v1.GetSessionInfoRequest
 	(*GetSessionInfoResponse)(nil),         // 25: bank.identity.v1.GetSessionInfoResponse
-	(*timestamppb.Timestamp)(nil),          // 26: google.protobuf.Timestamp
+	(*ResolvePrincipalRequest)(nil),        // 26: bank.identity.v1.ResolvePrincipalRequest
+	(*ResolvePrincipalResponse)(nil),       // 27: bank.identity.v1.ResolvePrincipalResponse
+	(*timestamppb.Timestamp)(nil),          // 28: google.protobuf.Timestamp
 }
 var file_bank_identity_v1_identity_proto_depIdxs = []int32{
 	3,  // 0: bank.identity.v1.ActivateRegistrationResponse.state:type_name -> bank.identity.v1.RegistrationState
 	5,  // 1: bank.identity.v1.ActivateRegistrationResponse.accounts:type_name -> bank.identity.v1.ActivatedAccount
 	0,  // 2: bank.identity.v1.StartRegistrationRequest.occupation_type:type_name -> bank.identity.v1.OccupationType
 	3,  // 3: bank.identity.v1.StartRegistrationResponse.state:type_name -> bank.identity.v1.RegistrationState
-	26, // 4: bank.identity.v1.StartRegistrationResponse.created_at:type_name -> google.protobuf.Timestamp
+	28, // 4: bank.identity.v1.StartRegistrationResponse.created_at:type_name -> google.protobuf.Timestamp
 	9,  // 5: bank.identity.v1.StartRegistrationResponse.uploads:type_name -> bank.identity.v1.PresignedUpload
 	1,  // 6: bank.identity.v1.PresignedUpload.doc_type:type_name -> bank.identity.v1.KycDocType
 	10, // 7: bank.identity.v1.PresignedUpload.headers:type_name -> bank.identity.v1.Header
@@ -2108,7 +2271,7 @@ var file_bank_identity_v1_identity_proto_depIdxs = []int32{
 	1,  // 9: bank.identity.v1.UploadedObject.doc_type:type_name -> bank.identity.v1.KycDocType
 	3,  // 10: bank.identity.v1.ConfirmRegistrationKycResponse.state:type_name -> bank.identity.v1.RegistrationState
 	14, // 11: bank.identity.v1.ConfirmRegistrationKycResponse.statuses:type_name -> bank.identity.v1.KycObjectStatus
-	26, // 12: bank.identity.v1.ConfirmRegistrationKycResponse.confirmed_at:type_name -> google.protobuf.Timestamp
+	28, // 12: bank.identity.v1.ConfirmRegistrationKycResponse.confirmed_at:type_name -> google.protobuf.Timestamp
 	1,  // 13: bank.identity.v1.KycObjectStatus.doc_type:type_name -> bank.identity.v1.KycDocType
 	2,  // 14: bank.identity.v1.KycObjectStatus.status:type_name -> bank.identity.v1.KycUploadStatus
 	19, // 15: bank.identity.v1.CompleteOidcLoginResponse.user:type_name -> bank.identity.v1.OidcUser
@@ -2121,16 +2284,18 @@ var file_bank_identity_v1_identity_proto_depIdxs = []int32{
 	20, // 22: bank.identity.v1.OidcAuthService.RefreshSession:input_type -> bank.identity.v1.RefreshSessionRequest
 	22, // 23: bank.identity.v1.OidcAuthService.LogoutSession:input_type -> bank.identity.v1.LogoutSessionRequest
 	24, // 24: bank.identity.v1.OidcAuthService.GetSessionInfo:input_type -> bank.identity.v1.GetSessionInfoRequest
-	8,  // 25: bank.identity.v1.OnboardingService.StartRegistration:output_type -> bank.identity.v1.StartRegistrationResponse
-	13, // 26: bank.identity.v1.OnboardingService.ConfirmRegistrationKyc:output_type -> bank.identity.v1.ConfirmRegistrationKycResponse
-	6,  // 27: bank.identity.v1.OnboardingService.ActivateRegistration:output_type -> bank.identity.v1.ActivateRegistrationResponse
-	16, // 28: bank.identity.v1.OidcAuthService.StartOidcLogin:output_type -> bank.identity.v1.StartOidcLoginResponse
-	18, // 29: bank.identity.v1.OidcAuthService.CompleteOidcLogin:output_type -> bank.identity.v1.CompleteOidcLoginResponse
-	21, // 30: bank.identity.v1.OidcAuthService.RefreshSession:output_type -> bank.identity.v1.RefreshSessionResponse
-	23, // 31: bank.identity.v1.OidcAuthService.LogoutSession:output_type -> bank.identity.v1.LogoutSessionResponse
-	25, // 32: bank.identity.v1.OidcAuthService.GetSessionInfo:output_type -> bank.identity.v1.GetSessionInfoResponse
-	25, // [25:33] is the sub-list for method output_type
-	17, // [17:25] is the sub-list for method input_type
+	26, // 25: bank.identity.v1.PrincipalService.ResolvePrincipal:input_type -> bank.identity.v1.ResolvePrincipalRequest
+	8,  // 26: bank.identity.v1.OnboardingService.StartRegistration:output_type -> bank.identity.v1.StartRegistrationResponse
+	13, // 27: bank.identity.v1.OnboardingService.ConfirmRegistrationKyc:output_type -> bank.identity.v1.ConfirmRegistrationKycResponse
+	6,  // 28: bank.identity.v1.OnboardingService.ActivateRegistration:output_type -> bank.identity.v1.ActivateRegistrationResponse
+	16, // 29: bank.identity.v1.OidcAuthService.StartOidcLogin:output_type -> bank.identity.v1.StartOidcLoginResponse
+	18, // 30: bank.identity.v1.OidcAuthService.CompleteOidcLogin:output_type -> bank.identity.v1.CompleteOidcLoginResponse
+	21, // 31: bank.identity.v1.OidcAuthService.RefreshSession:output_type -> bank.identity.v1.RefreshSessionResponse
+	23, // 32: bank.identity.v1.OidcAuthService.LogoutSession:output_type -> bank.identity.v1.LogoutSessionResponse
+	25, // 33: bank.identity.v1.OidcAuthService.GetSessionInfo:output_type -> bank.identity.v1.GetSessionInfoResponse
+	27, // 34: bank.identity.v1.PrincipalService.ResolvePrincipal:output_type -> bank.identity.v1.ResolvePrincipalResponse
+	26, // [26:35] is the sub-list for method output_type
+	17, // [17:26] is the sub-list for method input_type
 	17, // [17:17] is the sub-list for extension type_name
 	17, // [17:17] is the sub-list for extension extendee
 	0,  // [0:17] is the sub-list for field type_name
@@ -2147,9 +2312,9 @@ func file_bank_identity_v1_identity_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_identity_v1_identity_proto_rawDesc), len(file_bank_identity_v1_identity_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   22,
+			NumMessages:   24,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_bank_identity_v1_identity_proto_goTypes,
 		DependencyIndexes: file_bank_identity_v1_identity_proto_depIdxs,

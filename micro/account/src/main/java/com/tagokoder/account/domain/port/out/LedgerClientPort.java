@@ -13,4 +13,13 @@ public interface LedgerClientPort {
             String reason,       // "registration_bonus"
             UUID customerId
     );
+
+    String creditAccountSystem(
+      String idempotencyKey,
+      UUID accountId,
+      String currency,
+      String amount,
+      String externalRef,
+      String reason
+  );
 }
