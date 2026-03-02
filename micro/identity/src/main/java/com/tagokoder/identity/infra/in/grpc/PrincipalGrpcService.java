@@ -2,6 +2,7 @@ package com.tagokoder.identity.infra.in.grpc;
 
 import java.util.List;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
@@ -14,6 +15,7 @@ import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import bank.identity.v1.*;
 import io.grpc.Status;
+import org.slf4j.Logger;
 
 
 @GrpcService
@@ -22,6 +24,7 @@ public class PrincipalGrpcService extends PrincipalServiceGrpc.PrincipalServiceI
   private final JwtDecoder jwtDecoder;
   private final IdentityRepositoryPort identities;
   private final IdentityLinkRepositoryPort identityLinks;
+private static final Logger log = LoggerFactory.getLogger(PrincipalGrpcService.class);
 
   public PrincipalGrpcService(
       JwtDecoder jwtDecoder,
@@ -39,7 +42,7 @@ public class PrincipalGrpcService extends PrincipalServiceGrpc.PrincipalServiceI
 
     try {
       // 1) extraer bearer token desde metadata
-      String token = GrpcAuth.extractBearerOrThrow(); // helper que tú creas
+      String token = GrpcAuth.extractBearerOrThrow();
       Jwt jwt = jwtDecoder.decode(token);
 
       String sub = jwt.getSubject();
@@ -74,8 +77,11 @@ public class PrincipalGrpcService extends PrincipalServiceGrpc.PrincipalServiceI
       responseObserver.onCompleted();
 
     } catch (StatusRuntimeException e) {
+        log.warn("ResolvePrincipal failed status={} desc={}",
+          e.getStatus().getCode(), e.getStatus().getDescription());
       responseObserver.onError(e);
     } catch (Exception e) {
+        log.error("ResolvePrincipal INTERNAL error", e);
       responseObserver.onError(Status.INTERNAL.withDescription("INTERNAL").asRuntimeException());
     }
   }
