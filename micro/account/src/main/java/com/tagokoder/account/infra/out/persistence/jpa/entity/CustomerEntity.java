@@ -31,7 +31,7 @@ public class CustomerEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @Column(name="full_name")
-    private String fullname;    
+    private String fullname;
     @Column(name="birth_date", nullable=false)
     private LocalDate birthDate;
     private String tin;
