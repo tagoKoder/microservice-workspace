@@ -1,68 +1,215 @@
 {
-  "ImaginaryBank": {
-    "entityTypes": {
-      "User": {
-        "shape": {
-          "type": "Record",
-          "attributes": {
-            "customer_id": { "type": "String" },
-            "roles": { "type": "Set", "element": { "type": "String" } }
-          }
-        }
-      },
-      "Account": {
-        "shape": {
-          "type": "Record",
-          "attributes": {
-            "account_id": { "type": "String" },
-            "owner_customer_id": { "type": "String" },
-            "status": { "type": "String" }
-          }
-        }
-      },
-      "Payment": {
-        "shape": {
-          "type": "Record",
-          "attributes": {
-            "payment_id": { "type": "String" },
-            "owner_customer_id": { "type": "String" },
-            "amount": { "type": "Long" },
-            "currency": { "type": "String" }
-          }
-        }
-      }
-    },
-    "actions": {
-      "accounts:read": {
-        "appliesTo": {
-          "principalTypes": ["User"],
-          "resourceTypes": ["Account"]
-        }
-      },
-      "accounts:overview": {
-        "appliesTo": {
-          "principalTypes": ["User"],
-          "resourceTypes": ["Account"]
-        }
-      },
-      "payments:create": {
-        "appliesTo": {
-          "principalTypes": ["User"],
-          "resourceTypes": ["Payment"],
-          "context": {
-            "type": "Record",
-            "attributes": {
-              "mfa_verified": { "type": "Boolean" }
+    "ImaginaryBank": {
+        "entityTypes": {
+            "User": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "customer_id": {
+                            "type": "String"
+                        },
+                        "roles": {
+                            "type": "Set",
+                            "element": {
+                                "type": "String"
+                            }
+                        }
+                    }
+                }
+            },
+            "Account": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "account_id": {
+                            "type": "String"
+                        },
+                        "owner_customer_id": {
+                            "type": "String"
+                        },
+                        "status": {
+                            "type": "String"
+                        },
+                        "owner": {
+                            "type": "Entity",
+                            "name": "User"
+                        }
+                    }
+                }
+            },
+            "Customer": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "customer_id": {
+                            "type": "String"
+                        },
+                        "status": {
+                            "type": "String"
+                        },
+                        "owner": {
+                            "type": "Entity",
+                            "name": "User"
+                        }
+                    }
+                }
+            },
+            "Payment": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "payment_id": {
+                            "type": "String"
+                        },
+                        "owner_customer_id": {
+                            "type": "String"
+                        },
+                        "source_account_id": {
+                            "type": "String"
+                        },
+                        "source_account_owner_customer_id": {
+                            "type": "String"
+                        },
+                        "dest_account_id": {
+                            "type": "String"
+                        },
+                        "amount": {
+                            "type": "Long"
+                        },
+                        "currency": {
+                            "type": "String"
+                        }
+                    }
+                }
             }
-          }
+        },
+        "actions": {
+            "accounts:read": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Account"
+                    ],
+                    "context": {
+                        "type": "Record",
+                        "attributes": {
+                            "customer_id": {
+                                "type": "String"
+                            }
+                        }
+                    }
+                }
+            },
+            "accounts:balances_read": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Account"
+                    ]
+                }
+            },
+            "accounts:limits_patch": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Account"
+                    ]
+                }
+            },
+            "accounts:create": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Account"
+                    ]
+                }
+            },
+            "accounts:validate": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Account"
+                    ]
+                }
+            },
+            "accounts:hold_reserve": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Account"
+                    ]
+                }
+            },
+            "accounts:hold_release": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Account"
+                    ]
+                }
+            },
+            "customers:create": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Customer"
+                    ]
+                }
+            },
+            "customers:patch": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Customer"
+                    ]
+                }
+            },
+            "payments:create": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Payment"
+                    ],
+                    "context": {
+                        "type": "Record",
+                        "attributes": {
+                            "mfa_verified": {
+                                "type": "Boolean"
+                            }
+                        }
+                    }
+                }
+            },
+            "payments:read": {
+                "appliesTo": {
+                    "principalTypes": [
+                        "User"
+                    ],
+                    "resourceTypes": [
+                        "Payment"
+                    ]
+                }
+            }
         }
-      },
-      "payments:read": {
-        "appliesTo": {
-          "principalTypes": ["User"],
-          "resourceTypes": ["Payment"]
-        }
-      }
     }
-  }
 }
