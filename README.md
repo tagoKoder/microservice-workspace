@@ -1,52 +1,52 @@
 # Imaginary Bank — Secure Microservices Thesis
 
-> Arquitectura de microservicios seguros orientada a banca digital, construida como proyecto de tesis y portafolio técnico.
+> A secure banking microservices architecture built as both a master’s thesis project and a technical portfolio.
 
-## Descripción general
+## Overview
 
-**Imaginary Bank** es un proyecto de tesis enfocado en el diseño e implementación de una plataforma bancaria basada en microservicios con un enfoque fuerte en **seguridad, trazabilidad, autorización fina y buenas prácticas cloud-native**.
+**Imaginary Bank** is a thesis project focused on the design and implementation of a banking platform based on microservices, with a strong emphasis on **security, traceability, fine-grained authorization, and cloud-native engineering practices**.
 
-El objetivo no es solo construir APIs funcionales, sino demostrar cómo diseñar un sistema distribuido bajo principios de **Zero Trust**, **defensa en profundidad**, **auditoría estructurada**, **autorización ABAC/ReBAC**, y controles alineados con estándares como **OWASP ASVS L3**.
+The goal is not just to build functional APIs, but to demonstrate how to design a distributed system under **Zero Trust**, **defense in depth**, **structured auditing**, **ABAC/ReBAC authorization**, and controls aligned with standards such as **OWASP ASVS Level 3**.
 
-Este repositorio también funciona como **portafolio técnico**, por lo que documenta no solo el código, sino la arquitectura, las decisiones de seguridad y la forma en que los componentes se integran entre sí.
-
----
-
-## Objetivo del proyecto
-
-Diseñar una arquitectura segura para una aplicación bancaria moderna que permita:
-
-* autenticación centralizada y segura;
-* autorización desacoplada y escalable;
-* separación clara entre frontend, BFF y microservicios;
-* trazabilidad end-to-end con auditoría estructurada;
-* controles de seguridad reutilizables entre servicios;
-* despliegue cloud-native en AWS mediante infraestructura como código.
+This repository also serves as a **technical portfolio**, so it documents not only the codebase, but also the architecture, security decisions, and the way the components integrate with each other.
 
 ---
 
-## Enfoque de seguridad
+## Project goal
 
-Este proyecto fue concebido desde el inicio con una mentalidad **security-first**. Entre los controles y decisiones principales se incluyen:
+Design a secure architecture for a modern banking application that enables:
 
-* **Patrón BFF-first**: el navegador no interactúa directamente con los microservicios internos.
-* **Autenticación con Cognito/JWT** y validación mediante **JWKS**.
-* **Autorización centralizada con AWS Verified Permissions** usando políticas **Cedar**.
-* **Modelo deny-by-default** para minimizar exposición accidental.
-* **Resolución de recursos y ownership** antes de decisiones de autorización.
-* **Auditoría estructurada** con un estándar propio de eventos (`AuditEvent JSON v1.0`).
-* **Idempotencia** para operaciones sensibles y prevención de reintentos peligrosos.
-* **Correlation ID** para trazabilidad entre componentes.
-* **Mapeo seguro de errores**, evitando filtrar detalles internos al cliente.
-* **Separación de responsabilidades** entre capa web, BFF, lógica de negocio y autorización.
+* centralized and secure authentication;
+* decoupled and scalable authorization;
+* clear separation between frontend, BFF, and microservices;
+* end-to-end traceability with structured auditing;
+* reusable security controls across services;
+* cloud-native deployment on AWS through infrastructure as code.
 
 ---
 
-## Arquitectura de alto nivel
+## Security approach
+
+This project was designed from the beginning with a **security-first** mindset. Key controls and decisions include:
+
+* **BFF-first pattern**: the browser does not interact directly with internal microservices.
+* **Authentication with Cognito/JWT** and validation through **JWKS**.
+* **Centralized authorization with AWS Verified Permissions** using **Cedar** policies.
+* **Deny-by-default** model to minimize accidental exposure.
+* **Resource and ownership resolution** before authorization decisions.
+* **Structured auditing** with a dedicated event standard (`AuditEvent JSON v1.0`).
+* **Idempotency** for sensitive operations and prevention of dangerous retries.
+* **Correlation ID** for cross-service traceability.
+* **Secure error mapping**, avoiding internal detail leakage to clients.
+* **Separation of concerns** across web layer, BFF, business logic, and authorization.
+
+---
+
+## High-level architecture
 
 ```mermaid
 flowchart LR
-    U[Usuario / Frontend Angular] --> BFF[Go BFF]
+    U[User / Angular Frontend] --> BFF[Go BFF]
     BFF --> ID[Identity Service]
     BFF --> ACC[Account Service]
     BFF --> LED[Ledger Service]
@@ -66,18 +66,18 @@ flowchart LR
     INFRA --> LED
 ```
 
-### Componentes principales
+### Main components
 
-* **imaginarybank-web**: frontend de la aplicación.
-* **bff**: Backend for Frontend que centraliza validaciones, sesión, políticas de exposición y orquestación segura.
-* **micro/identity**: microservicio orientado a identidad, onboarding y operaciones relacionadas con autenticación/registro.
-* **micro/account**: microservicio de cuentas y lógica de dominio asociada.
-* **micro/ledger**: microservicio orientado a movimientos, pagos y créditos.
-* **infra**: plantillas de infraestructura como código, networking, datos, identidad, cómputo, auditoría y observabilidad.
+* **imaginarybank-web**: application frontend.
+* **bff**: Backend for Frontend that centralizes validation, session handling, secure exposure policies, and orchestration.
+* **micro/identity**: microservice focused on identity, onboarding, and authentication-related operations.
+* **micro/account**: microservice for account domain logic.
+* **micro/ledger**: microservice focused on transactions, payments, and credits.
+* **infra**: infrastructure as code templates for networking, data, identity, compute, auditing, and observability.
 
 ---
 
-## Estructura del repositorio
+## Repository structure
 
 ```text
 microservice-workspace/
@@ -95,93 +95,206 @@ microservice-workspace/
 └── README.md
 ```
 
-### Qué contiene cada carpeta
+### Folder breakdown
 
 #### `bff/`
 
-Contiene el Backend for Frontend desarrollado para exponer una superficie controlada hacia el cliente. Aquí se concentran responsabilidades como:
+Contains the Backend for Frontend built to expose a controlled surface to the client. Responsibilities here include:
 
-* validación de sesión;
-* propagación segura de identidad hacia microservicios;
-* middlewares de seguridad;
-* control de cookies/sesión;
-* idempotencia y correlation IDs;
-* traducción y endurecimiento de errores para la capa pública.
+* session validation;
+* secure identity propagation to microservices;
+* security middleware;
+* cookie/session control;
+* idempotency and correlation IDs;
+* translation and hardening of errors for the public layer.
 
 #### `imaginarybank-web/`
 
-Aplicación frontend que consume el BFF. Esta capa está pensada para mantenerse desacoplada de la complejidad interna de autorización y comunicación entre servicios.
+Frontend application that consumes the BFF. This layer is intended to remain decoupled from the internal complexity of authorization and service-to-service communication.
 
 #### `micro/identity/`
 
-Servicio encargado de flujos de identidad y onboarding, incluyendo integración con el esquema de autenticación/autorización definido para la plataforma.
+Service responsible for identity and onboarding flows, including integration with the authentication and authorization scheme defined for the platform.
 
 #### `micro/account/`
 
-Servicio que encapsula la lógica del dominio de cuentas, ownership de recursos, resolución de contexto para autorización y reglas operativas asociadas.
+Service that encapsulates account domain logic, resource ownership, authorization context resolution, and operational business rules.
 
 #### `micro/ledger/`
 
-Servicio para operaciones transaccionales, movimientos, pagos y créditos, con énfasis en seguridad, idempotencia y validaciones de autorización contextual.
+Service for transactional operations, movements, payments, and credits, with strong emphasis on security, idempotency, and contextual authorization validation.
 
 #### `infra/`
 
-Define la infraestructura del proyecto con enfoque reproducible y modular. Aquí se estructura la base para networking, identidad, cómputo, datos y observabilidad en AWS.
+Defines the project infrastructure in a modular and reproducible way. This is where the base for networking, identity, compute, data, and observability in AWS is structured.
 
 ---
 
-## Principios de diseño aplicados
+## Design principles applied
 
-### 1. Seguridad desacoplada del negocio
+### 1. Security decoupled from business logic
 
-La autorización no se deja “quemada” dentro de cada caso de uso. Se construye una capa reusable para resolver:
+Authorization is not hardcoded inside every use case. Instead, the platform builds a reusable layer to resolve:
 
-* quién es el principal;
-* qué acción intenta ejecutar;
-* sobre qué recurso;
-* con qué contexto;
-* qué política debe evaluarse.
+* who the principal is;
+* which action is being attempted;
+* on which resource;
+* under which context;
+* which policy must be evaluated.
 
-### 2. BFF como punto de control
+### 2. BFF as a control point
 
-El BFF actúa como frontera de seguridad entre el cliente y los microservicios. Esto permite:
+The BFF acts as the security boundary between the client and the microservices. This makes it possible to:
 
-* reducir exposición directa;
-* centralizar manejo de sesión;
-* aplicar reglas uniformes de entrada/salida;
-* proteger detalles internos de la arquitectura.
+* reduce direct exposure;
+* centralize session handling;
+* apply uniform input/output rules;
+* protect internal architectural details.
 
-### 3. Observabilidad y auditoría como parte del diseño
+### 3. Observability and auditing as part of the design
 
-No se trata solo de “registrar logs”. El proyecto busca producir eventos auditables y consistentes para trazabilidad, cumplimiento y análisis posterior.
+This is not just about “adding logs.” The project is designed to produce consistent, auditable events for traceability, compliance, and later analysis.
 
-### 4. Infraestructura versionada
+### 4. Versioned infrastructure
 
-La infraestructura se trata como código para asegurar repetibilidad, revisión y trazabilidad de cambios.
+Infrastructure is treated as code to ensure repeatability, reviewability, and traceability of changes.
 
 ---
 
-## Stack tecnológico
+## Technology stack
 
 ### Backend
 
-* **Go** para el BFF y parte de los microservicios.
-* **Java / Spring Boot** para servicios del dominio donde aplica.
-* **gRPC** y/o integración interna entre servicios según el flujo.
-* **REST/OpenAPI** para la capa expuesta por el BFF.
+* **Go** for the BFF and part of the microservices.
+* **Java / Spring Boot** for domain services where appropriate.
+* **gRPC** and/or internal service integration depending on the flow.
+* **REST/OpenAPI** for the externally exposed BFF layer.
 
 ### Frontend
 
-* **Angular** para la interfaz web.
+* **Angular** for the web interface.
 
-### Seguridad
+### Security
 
-* **Amazon Cognito** para autenticación.
-* **AWS Verified Permissions** para autorización basada en políticas.
-* **Cedar** como lenguaje de políticas.
-* **JWT + JWKS** para validación de identidad.
+* **Amazon Cognito** for authentication.
+* **AWS Verified Permissions** for policy-based authorization.
+* **Cedar** as the policy language.
+* **JWT + JWKS** for identity validation.
 
-### Infraestructura / Cloud
+### Infrastructure / Cloud
 
-* **AWS CloudFormation** para IaC.
-* **AWS ECS Fargate** como estrategia principal de cómputo cloud-native
+* **AWS CloudFormation** for infrastructure as code.
+* **AWS ECS Fargate** as the primary cloud-native compute strategy.
+* **EventBridge / logs / observability** for auditing and monitoring.
+
+### Local development
+
+* **Docker / Docker Compose** for local environments and integrated testing.
+
+---
+
+## Security flow summary
+
+1. The user interacts with the frontend.
+2. The frontend communicates with the **BFF**.
+3. The BFF validates the session/token and applies input controls.
+4. The BFF calls the corresponding microservice.
+5. The microservice resolves the resource, ownership, and context.
+6. **AWS Verified Permissions** is queried to decide `ALLOW` or `DENY`.
+7. The operation proceeds or is blocked.
+8. An audit event is emitted with the decision and relevant context.
+
+---
+
+## Infrastructure as code
+
+The `infra/` folder follows a modular structure intended to separate responsibilities by layer, for example:
+
+* foundation;
+* networking;
+* data;
+* identity;
+* edge;
+* compute;
+* audit/observability;
+* authorization.
+
+This approach allows the platform to evolve without mixing network, identity, data, and compute configuration in a single monolithic template.
+
+---
+
+## Local setup
+
+> Note: exact environment variable names, profiles, and dependencies may evolve over time as the project grows.
+
+### Prerequisites
+
+* Docker
+* Docker Compose
+* Go
+* Java
+* Node.js / npm
+* AWS CLI
+
+### General steps
+
+```bash
+# 1. Clone the repository
+git clone <repo-url>
+cd microservice-workspace
+
+# 2. Start local dependencies
+docker compose up -d
+
+# 3. Run BFF / microservices / frontend depending on each module
+# Check the internal READMEs in each folder for module-specific commands
+```
+
+---
+
+## What this project demonstrates as a portfolio
+
+This repository is not meant to be just another CRUD demo. It is designed to demonstrate experience in:
+
+* secure microservices architecture;
+* cross-cutting security control design;
+* integration between identity, authorization, and domain logic;
+* AWS as a deployment platform;
+* infrastructure as code;
+* traceability, auditing, and observability;
+* modular and scalable design for sensitive systems.
+
+From a portfolio perspective, the value of the project lies in showing **architectural judgment**, **secure design**, **multi-stack integration capability**, and **alignment with security standards**.
+
+---
+
+## Project status
+
+**Current status:** under active development and continuous evolution.
+
+The decisions and components documented here represent the main architectural baseline of the thesis project. Some modules may still be under refactoring or expansion as implementation progresses.
+
+---
+
+## Next steps
+
+* complete internal documentation per microservice;
+* publish technical diagrams per flow;
+* add deployment guidance per environment;
+* document abuse cases and mitigating controls;
+* include evidence of security testing and validation.
+
+---
+
+## Author
+
+**Santiago Tumbaco**
+Computer Science Engineer
+Master’s in Cybersecurity
+Focused on backend engineering, distributed systems, cloud, and applied security.
+
+---
+
+## Final note
+
+This project represents a practical proposal for how to build a distributed platform with security integrated from the design stage, combining modern architecture, decoupled services, and cloud infrastructure under principles of traceability, control, and scalability.
