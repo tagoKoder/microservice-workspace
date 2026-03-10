@@ -1,10 +1,8 @@
-# Imaginary Bank — Secure Microservices Thesis
-
-> A secure banking microservices architecture built as both a master’s thesis project and a technical portfolio.
+# Imaginary Bank — Secure Microservices
 
 ## Overview
 
-**Imaginary Bank** is a thesis project focused on the design and implementation of a banking platform based on microservices, with a strong emphasis on **security, traceability, fine-grained authorization, and cloud-native engineering practices**.
+**Imaginary Bank** is a project focused on the design and implementation of a banking platform based on microservices, with a strong emphasis on **security, traceability, fine-grained authorization, and cloud-native engineering practices**.
 
 The goal is not just to build functional APIs, but to demonstrate how to design a distributed system under **Zero Trust**, **defense in depth**, **structured auditing**, **ABAC/ReBAC authorization**, and controls aligned with standards such as **OWASP ASVS Level 3**.
 
@@ -272,7 +270,7 @@ From a portfolio perspective, the value of the project lies in showing **archite
 
 **Current status:** under active development and continuous evolution.
 
-The decisions and components documented here represent the main architectural baseline of the thesis project. Some modules may still be under refactoring or expansion as implementation progresses.
+The decisions and components documented here represent the main architectural baseline of the project. Some modules may still be under refactoring or expansion as implementation progresses.
 
 ---
 
